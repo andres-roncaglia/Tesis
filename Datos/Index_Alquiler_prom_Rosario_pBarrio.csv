@@ -1,0 +1,565 @@
+fecha,nombre_n3,INDEX
+ene 17,Remedios Escalada de San Martín,5208
+ene 17,Centro,5481
+ene 17,Barrio del Abasto,5676
+ene 17,Nuestra Sra. de Lourdes,5846
+ene 17,Alberto Olmedo,6805
+ene 17,Luis Agote,5404
+feb 17,Alberto Olmedo,7421
+feb 17,Barrio del Abasto,5725
+feb 17,Nuestra Sra. de Lourdes,5848
+feb 17,Luis Agote,5631
+feb 17,Centro,5515
+feb 17,Remedios Escalada de San Martín,5408
+mar 17,Barrio del Abasto,5806
+mar 17,Alberto Olmedo,6687
+mar 17,Centro,5641
+mar 17,Nuestra Sra. de Lourdes,6275
+mar 17,Remedios Escalada de San Martín,5722
+mar 17,Luis Agote,5814
+abr 17,Centro,5755
+abr 17,Luis Agote,5807
+abr 17,Nuestra Sra. de Lourdes,6606
+abr 17,Remedios Escalada de San Martín,5931
+abr 17,Barrio del Abasto,6017
+abr 17,Alberto Olmedo,6302
+may 17,Barrio del Abasto,6278
+may 17,Centro,5995
+may 17,Alberto Olmedo,6607
+may 17,Remedios Escalada de San Martín,5840
+may 17,Nuestra Sra. de Lourdes,6633
+may 17,Luis Agote,5780
+jun 17,Alberto Olmedo,6679
+jun 17,Centro,6153
+jun 17,Luis Agote,6042
+jun 17,Nuestra Sra. de Lourdes,6818
+jun 17,Barrio del Abasto,6191
+jun 17,Remedios Escalada de San Martín,5904
+jul 17,Remedios Escalada de San Martín,6163
+jul 17,Alberto Olmedo,6784
+jul 17,Barrio del Abasto,6279
+jul 17,Luis Agote,6258
+jul 17,Centro,6157
+jul 17,Nuestra Sra. de Lourdes,6886
+ago 17,Nuestra Sra. de Lourdes,6997
+ago 17,Luis Agote,6433
+ago 17,Alberto Olmedo,6690
+ago 17,Remedios Escalada de San Martín,6237
+ago 17,Barrio del Abasto,6270
+ago 17,Centro,6181
+sep 17,Nuestra Sra. de Lourdes,7028
+sep 17,Luis Agote,6440
+sep 17,Alberto Olmedo,6760
+sep 17,Remedios Escalada de San Martín,6359
+sep 17,Barrio del Abasto,6634
+sep 17,Centro,6274
+oct 17,Remedios Escalada de San Martín,6500
+oct 17,Nuestra Sra. de Lourdes,7197
+oct 17,Barrio del Abasto,7186
+oct 17,Luis Agote,6252
+oct 17,Centro,6460
+oct 17,Alberto Olmedo,6984
+nov 17,Barrio del Abasto,6978
+nov 17,Nuestra Sra. de Lourdes,7217
+nov 17,Alberto Olmedo,7219
+nov 17,Luis Agote,6253
+nov 17,Remedios Escalada de San Martín,6828
+nov 17,Centro,6579
+dic 17,Alberto Olmedo,7530
+dic 17,Barrio del Abasto,6899
+dic 17,Nuestra Sra. de Lourdes,7420
+dic 17,Remedios Escalada de San Martín,7080
+dic 17,Centro,6670
+dic 17,Luis Agote,6410
+ene 18,Remedios Escalada de San Martín,6989
+ene 18,Centro,6695
+ene 18,Luis Agote,6488
+ene 18,Alberto Olmedo,7618
+ene 18,Nuestra Sra. de Lourdes,7748
+ene 18,Barrio del Abasto,7112
+feb 18,Nuestra Sra. de Lourdes,7910
+feb 18,Luis Agote,6864
+feb 18,Centro,6839
+feb 18,Barrio del Abasto,7379
+feb 18,Alberto Olmedo,7431
+feb 18,Remedios Escalada de San Martín,7032
+mar 18,Centro,7228
+mar 18,Barrio del Abasto,7696
+mar 18,Alberto Olmedo,7975
+mar 18,Remedios Escalada de San Martín,7321
+mar 18,Nuestra Sra. de Lourdes,8087
+mar 18,Luis Agote,7333
+abr 18,Remedios Escalada de San Martín,7589
+abr 18,Centro,7498
+abr 18,Luis Agote,7700
+abr 18,Barrio del Abasto,7788
+abr 18,Nuestra Sra. de Lourdes,8249
+abr 18,Alberto Olmedo,8513
+may 18,Nuestra Sra. de Lourdes,8362
+may 18,Barrio del Abasto,7966
+may 18,Alberto Olmedo,8224
+may 18,Remedios Escalada de San Martín,7560
+may 18,Centro,7522
+may 18,Luis Agote,7962
+jun 18,Centro,7636
+jun 18,Barrio del Abasto,8063
+jun 18,Remedios Escalada de San Martín,7653
+jun 18,Nuestra Sra. de Lourdes,8331
+jun 18,Alberto Olmedo,8027
+jun 18,Luis Agote,7752
+jul 18,Luis Agote,7605
+jul 18,Remedios Escalada de San Martín,7951
+jul 18,Alberto Olmedo,8107
+jul 18,Barrio del Abasto,8154
+jul 18,Centro,7760
+jul 18,Nuestra Sra. de Lourdes,8588
+ago 18,Barrio del Abasto,8285
+ago 18,Centro,7736
+ago 18,Nuestra Sra. de Lourdes,8957
+ago 18,Alberto Olmedo,8427
+ago 18,Luis Agote,7606
+ago 18,Remedios Escalada de San Martín,8008
+sep 18,Luis Agote,7605
+sep 18,Nuestra Sra. de Lourdes,9021
+sep 18,Remedios Escalada de San Martín,8078
+sep 18,Barrio del Abasto,8292
+sep 18,Alberto Olmedo,8727
+sep 18,Centro,7794
+oct 18,Luis Agote,7873
+oct 18,Nuestra Sra. de Lourdes,9127
+oct 18,Remedios Escalada de San Martín,8361
+oct 18,Centro,8060
+oct 18,Barrio del Abasto,8548
+oct 18,Alberto Olmedo,9030
+nov 18,Luis Agote,8149
+nov 18,Barrio del Abasto,8752
+nov 18,Alberto Olmedo,9135
+nov 18,Remedios Escalada de San Martín,8550
+nov 18,Nuestra Sra. de Lourdes,9170
+nov 18,Centro,8331
+dic 18,Nuestra Sra. de Lourdes,9088
+dic 18,Luis Agote,8167
+dic 18,Alberto Olmedo,9240
+dic 18,Barrio del Abasto,8733
+dic 18,Centro,8452
+dic 18,Remedios Escalada de San Martín,8711
+ene 19,Alberto Olmedo,9339
+ene 19,Luis Agote,8225
+ene 19,Centro,8614
+ene 19,Nuestra Sra. de Lourdes,9221
+ene 19,Remedios Escalada de San Martín,8767
+ene 19,Barrio del Abasto,8832
+feb 19,Barrio del Abasto,8913
+feb 19,Centro,8854
+feb 19,Luis Agote,8389
+feb 19,Remedios Escalada de San Martín,8871
+feb 19,Nuestra Sra. de Lourdes,9503
+feb 19,Alberto Olmedo,9550
+mar 19,Nuestra Sra. de Lourdes,9522
+mar 19,Remedios Escalada de San Martín,9112
+mar 19,Centro,9001
+mar 19,Luis Agote,8694
+mar 19,Alberto Olmedo,9852
+mar 19,Barrio del Abasto,9040
+abr 19,Centro,9079
+abr 19,Luis Agote,8786
+abr 19,Remedios Escalada de San Martín,9351
+abr 19,Alberto Olmedo,9889
+abr 19,Barrio del Abasto,9366
+abr 19,Nuestra Sra. de Lourdes,9374
+may 19,Luis Agote,8836
+may 19,Centro,9246
+may 19,Alberto Olmedo,10033
+may 19,Barrio del Abasto,9592
+may 19,Nuestra Sra. de Lourdes,9561
+may 19,Remedios Escalada de San Martín,9518
+jun 19,Remedios Escalada de San Martín,9600
+jun 19,Barrio del Abasto,9703
+jun 19,Nuestra Sra. de Lourdes,9839
+jun 19,Alberto Olmedo,10135
+jun 19,Luis Agote,9095
+jun 19,Centro,9359
+jul 19,Luis Agote,9178
+jul 19,Remedios Escalada de San Martín,9882
+jul 19,Nuestra Sra. de Lourdes,10123
+jul 19,Barrio del Abasto,9773
+jul 19,Alberto Olmedo,9946
+jul 19,Centro,9396
+ago 19,Luis Agote,9257
+ago 19,Nuestra Sra. de Lourdes,10335
+ago 19,Remedios Escalada de San Martín,10069
+ago 19,Barrio del Abasto,9921
+ago 19,Centro,9622
+ago 19,Alberto Olmedo,10107
+sep 19,Barrio del Abasto,9976
+sep 19,Centro,9852
+sep 19,Alberto Olmedo,10637
+sep 19,Luis Agote,9458
+sep 19,Remedios Escalada de San Martín,10125
+sep 19,Nuestra Sra. de Lourdes,10543
+oct 19,Centro,9928
+oct 19,Nuestra Sra. de Lourdes,10958
+oct 19,Barrio del Abasto,10100
+oct 19,Alberto Olmedo,11001
+oct 19,Luis Agote,10009
+oct 19,Remedios Escalada de San Martín,10492
+nov 19,Barrio del Abasto,10659
+nov 19,Alberto Olmedo,11171
+nov 19,Luis Agote,10604
+nov 19,Remedios Escalada de San Martín,10928
+nov 19,Centro,10073
+nov 19,Nuestra Sra. de Lourdes,11284
+dic 19,Barrio del Abasto,11495
+dic 19,Alberto Olmedo,11661
+dic 19,Centro,10424
+dic 19,Remedios Escalada de San Martín,11226
+dic 19,Luis Agote,10906
+dic 19,Nuestra Sra. de Lourdes,11898
+ene 20,Centro,10751
+ene 20,Luis Agote,10760
+ene 20,Barrio del Abasto,12073
+ene 20,Nuestra Sra. de Lourdes,12598
+ene 20,Alberto Olmedo,12155
+ene 20,Remedios Escalada de San Martín,11562
+feb 20,Luis Agote,11029
+feb 20,Nuestra Sra. de Lourdes,12790
+feb 20,Barrio del Abasto,12254
+feb 20,Alberto Olmedo,12424
+feb 20,Centro,10989
+feb 20,Remedios Escalada de San Martín,11684
+mar 20,Centro,11386
+mar 20,Barrio del Abasto,12512
+mar 20,Remedios Escalada de San Martín,11870
+mar 20,Nuestra Sra. de Lourdes,13209
+mar 20,Alberto Olmedo,12735
+mar 20,Luis Agote,11632
+abr 20,Remedios Escalada de San Martín,12090
+abr 20,Nuestra Sra. de Lourdes,13450
+abr 20,Centro,11531
+abr 20,Luis Agote,11575
+abr 20,Barrio del Abasto,12545
+abr 20,Alberto Olmedo,12936
+may 20,Alberto Olmedo,13551
+may 20,Barrio del Abasto,12529
+may 20,Remedios Escalada de San Martín,12209
+may 20,Luis Agote,11292
+may 20,Centro,11790
+may 20,Nuestra Sra. de Lourdes,13398
+jun 20,Remedios Escalada de San Martín,12289
+jun 20,Alberto Olmedo,14008
+jun 20,Centro,12310
+jun 20,Nuestra Sra. de Lourdes,13599
+jun 20,Luis Agote,11325
+jun 20,Barrio del Abasto,12841
+jul 20,Remedios Escalada de San Martín,13040
+jul 20,Nuestra Sra. de Lourdes,14481
+jul 20,Luis Agote,12480
+jul 20,Alberto Olmedo,14581
+jul 20,Centro,13068
+jul 20,Barrio del Abasto,13774
+ago 20,Centro,14105
+ago 20,Luis Agote,14084
+ago 20,Alberto Olmedo,15589
+ago 20,Nuestra Sra. de Lourdes,15464
+ago 20,Barrio del Abasto,14944
+ago 20,Remedios Escalada de San Martín,14595
+sep 20,Remedios Escalada de San Martín,15169
+sep 20,Luis Agote,14656
+sep 20,Centro,14834
+sep 20,Alberto Olmedo,16474
+sep 20,Barrio del Abasto,15471
+sep 20,Nuestra Sra. de Lourdes,15859
+oct 20,Barrio del Abasto,15659
+oct 20,Remedios Escalada de San Martín,15233
+oct 20,Luis Agote,14919
+oct 20,Centro,15322
+oct 20,Nuestra Sra. de Lourdes,16671
+oct 20,Alberto Olmedo,17185
+nov 20,Alberto Olmedo,17372
+nov 20,Nuestra Sra. de Lourdes,17512
+nov 20,Remedios Escalada de San Martín,15754
+nov 20,Centro,15687
+nov 20,Luis Agote,15575
+nov 20,Barrio del Abasto,16104
+dic 20,Remedios Escalada de San Martín,16354
+dic 20,Luis Agote,15676
+dic 20,Alberto Olmedo,17296
+dic 20,Barrio del Abasto,16903
+dic 20,Centro,16133
+dic 20,Nuestra Sra. de Lourdes,18043
+ene 21,Remedios Escalada de San Martín,16741
+ene 21,Luis Agote,15809
+ene 21,Barrio del Abasto,17304
+ene 21,Nuestra Sra. de Lourdes,18954
+ene 21,Alberto Olmedo,17611
+ene 21,Centro,16634
+feb 21,Barrio del Abasto,17789
+feb 21,Luis Agote,16905
+feb 21,Nuestra Sra. de Lourdes,19672
+feb 21,Centro,17376
+feb 21,Remedios Escalada de San Martín,17373
+feb 21,Alberto Olmedo,18810
+mar. 21,Remedios Escalada de San Martín,18662
+mar. 21,Centro,18429
+mar. 21,Nuestra Sra. de Lourdes,19700
+mar. 21,Luis Agote,17628
+mar. 21,Barrio del Abasto,18475
+mar. 21,Alberto Olmedo,20399
+abr. 21,Nuestra Sra. de Lourdes,20158
+abr. 21,Luis Agote,18099
+abr. 21,Barrio del Abasto,19085
+abr. 21,Alberto Olmedo,21465
+abr. 21,Centro,19336
+abr. 21,Remedios Escalada de San Martín,19865
+may 21,Alberto Olmedo,22045
+may 21,Luis Agote,18810
+may 21,Centro,20479
+may 21,Nuestra Sra. de Lourdes,21168
+may 21,Barrio del Abasto,20589
+may 21,Remedios Escalada de San Martín,20557
+jun 21,Barrio del Abasto,21778
+jun 21,Nuestra Sra. de Lourdes,21945
+jun 21,Remedios Escalada de San Martín,20934
+jun 21,Alberto Olmedo,22525
+jun 21,Luis Agote,19471
+jun 21,Centro,21577
+jul. 21,Nuestra Sra. de Lourdes,22690
+jul. 21,Centro,22174
+jul. 21,Barrio del Abasto,22123
+jul. 21,Luis Agote,19954
+jul. 21,Remedios Escalada de San Martín,21769
+jul. 21,Alberto Olmedo,22656
+ago. 21,Nuestra Sra. de Lourdes,24019
+ago. 21,Barrio del Abasto,22902
+ago. 21,Alberto Olmedo,23698
+ago. 21,Centro,23180
+ago. 21,Luis Agote,20480
+ago. 21,Remedios Escalada de San Martín,22742
+sep. 21,Barrio del Abasto,24533
+sep. 21,Centro,24077
+sep. 21,Alberto Olmedo,26126
+sep. 21,Nuestra Sra. de Lourdes,26329
+sep. 21,Luis Agote,21820
+sep. 21,Remedios Escalada de San Martín,24235
+oct. 21,Nuestra Sra. de Lourdes,27967
+oct. 21,Barrio del Abasto,25253
+oct. 21,Luis Agote,23436
+oct. 21,Remedios Escalada de San Martín,26225
+oct. 21,Alberto Olmedo,28457
+oct. 21,Centro,25178
+nov. 21,Centro,27036
+nov. 21,Nuestra Sra. de Lourdes,29466
+nov. 21,Alberto Olmedo,30605
+nov. 21,Remedios Escalada de San Martín,27335
+nov. 21,Luis Agote,24316
+nov. 21,Barrio del Abasto,26435
+dic. 21,Luis Agote,26085
+dic. 21,Alberto Olmedo,33531
+dic. 21,Nuestra Sra. de Lourdes,32978
+dic. 21,Remedios Escalada de San Martín,28780
+dic. 21,Centro,29310
+dic. 21,Barrio del Abasto,29149
+ene. 22,Remedios Escalada de San Martín,32025
+ene. 22,Luis Agote,28016
+ene. 22,Centro,31635
+ene. 22,Alberto Olmedo,36814
+ene. 22,Nuestra Sra. de Lourdes,35444
+ene. 22,Barrio del Abasto,31837
+feb. 22,Barrio del Abasto,35304
+feb. 22,Nuestra Sra. de Lourdes,37401
+feb. 22,Centro,34286
+feb. 22,Luis Agote,30015
+feb. 22,Alberto Olmedo,38948
+feb. 22,Remedios Escalada de San Martín,35549
+mar 22,Remedios Escalada de San Martín,38512
+mar 22,Nuestra Sra. de Lourdes,41277
+mar 22,Alberto Olmedo,43130
+mar 22,Centro,38328
+mar 22,Luis Agote,36109
+mar 22,Barrio del Abasto,39103
+abr 22,Nuestra Sra. de Lourdes,44443
+abr 22,Remedios Escalada de San Martín,42003
+abr 22,Barrio del Abasto,40340
+abr 22,Luis Agote,39772
+abr 22,Centro,41157
+abr 22,Alberto Olmedo,47932
+may. 22,Barrio del Abasto,42905
+may. 22,Alberto Olmedo,51212
+may. 22,Centro,44473
+may. 22,Luis Agote,42311
+may. 22,Remedios Escalada de San Martín,46116
+may. 22,Nuestra Sra. de Lourdes,46764
+jun. 22,Barrio del Abasto,47446
+jun. 22,Remedios Escalada de San Martín,48925
+jun. 22,Alberto Olmedo,56339
+jun. 22,Centro,47657
+jun. 22,Luis Agote,49898
+jun. 22,Nuestra Sra. de Lourdes,49780
+jul 22,Luis Agote,54227
+jul 22,Nuestra Sra. de Lourdes,52056
+jul 22,Barrio del Abasto,47973
+jul 22,Remedios Escalada de San Martín,49411
+jul 22,Alberto Olmedo,58471
+jul 22,Centro,49020
+ago. 22,Nuestra Sra. de Lourdes,55054
+ago. 22,Luis Agote,55021
+ago. 22,Remedios Escalada de San Martín,49963
+ago. 22,Alberto Olmedo,58807
+ago. 22,Centro,51358
+ago. 22,Barrio del Abasto,48316
+sep. 22,Alberto Olmedo,61567
+sep. 22,Nuestra Sra. de Lourdes,58814
+sep. 22,Remedios Escalada de San Martín,52730
+sep. 22,Centro,53431
+sep. 22,Luis Agote,55385
+sep. 22,Barrio del Abasto,52228
+oct. 22,Luis Agote,55482
+oct. 22,Remedios Escalada de San Martín,56466
+oct. 22,Centro,54210
+oct. 22,Nuestra Sra. de Lourdes,61136
+oct. 22,Barrio del Abasto,56437
+oct. 22,Alberto Olmedo,64183
+nov. 22,Nuestra Sra. de Lourdes,63169
+nov. 22,Remedios Escalada de San Martín,59181
+nov. 22,Luis Agote,58591
+nov. 22,Centro,55063
+nov. 22,Barrio del Abasto,57350
+nov. 22,Alberto Olmedo,66664
+dic. 22,Nuestra Sra. de Lourdes,65212
+dic. 22,Remedios Escalada de San Martín,60728
+dic. 22,Luis Agote,62917
+dic. 22,Centro,57528
+dic. 22,Barrio del Abasto,58812
+dic. 22,Alberto Olmedo,68571
+ene. 23,Barrio del Abasto,60022
+ene. 23,Alberto Olmedo,72155
+ene. 23,Centro,60766
+ene. 23,Nuestra Sra. de Lourdes,69331
+ene. 23,Luis Agote,67404
+ene. 23,Remedios Escalada de San Martín,61786
+feb. 23,Nuestra Sra. de Lourdes,74653
+feb. 23,Luis Agote,73442
+feb. 23,Centro,65348
+feb. 23,Barrio del Abasto,61944
+feb. 23,Alberto Olmedo,78115
+feb. 23,Remedios Escalada de San Martín,66202
+mar. 23,Alberto Olmedo,82553
+mar. 23,Centro,70685
+mar. 23,Nuestra Sra. de Lourdes,78030
+mar. 23,Luis Agote,75659
+mar. 23,Remedios Escalada de San Martín,72085
+mar. 23,Barrio del Abasto,69716
+abr. 23,Luis Agote,76555
+abr. 23,Centro,76107
+abr. 23,Barrio del Abasto,77188
+abr. 23,Nuestra Sra. de Lourdes,83626
+abr. 23,Alberto Olmedo,87638
+abr. 23,Remedios Escalada de San Martín,77175
+may. 23,Nuestra Sra. de Lourdes,93307
+may. 23,Barrio del Abasto,82858
+may. 23,Alberto Olmedo,94200
+may. 23,Remedios Escalada de San Martín,83277
+may. 23,Luis Agote,78673
+may. 23,Centro,81984
+jun. 23,Remedios Escalada de San Martín,89983
+jun. 23,Alberto Olmedo,95968
+jun. 23,Nuestra Sra. de Lourdes,100810
+jun. 23,Centro,89448
+jun. 23,Barrio del Abasto,89023
+jun. 23,Luis Agote,83656
+jul. 23,Alberto Olmedo,98744
+jul. 23,Nuestra Sra. de Lourdes,110105
+jul. 23,Remedios Escalada de San Martín,99276
+jul. 23,Barrio del Abasto,96280
+jul. 23,Luis Agote,92701
+jul. 23,Centro,96930
+ago. 23,Luis Agote,102867
+ago. 23,Nuestra Sra. de Lourdes,123070
+ago. 23,Barrio del Abasto,107233
+ago. 23,Remedios Escalada de San Martín,108338
+ago. 23,Centro,107635
+ago. 23,Alberto Olmedo,110344
+sep. 23,Centro,121515
+sep. 23,Alberto Olmedo,124895
+sep. 23,Luis Agote,114091
+sep. 23,Remedios Escalada de San Martín,125479
+sep. 23,Barrio del Abasto,116978
+sep. 23,Nuestra Sra. de Lourdes,134189
+oct. 23,Barrio del Abasto,138110
+oct. 23,Centro,138792
+oct. 23,Nuestra Sra. de Lourdes,148291
+oct. 23,Luis Agote,143309
+oct. 23,Alberto Olmedo,139401
+oct. 23,Remedios Escalada de San Martín,142488
+nov. 23,Centro,156709
+nov. 23,Nuestra Sra. de Lourdes,170376
+nov. 23,Remedios Escalada de San Martín,155639
+nov. 23,Luis Agote,161562
+nov. 23,Barrio del Abasto,164530
+nov. 23,Alberto Olmedo,156006
+dic. 23,Centro,172804
+dic. 23,Nuestra Sra. de Lourdes,193538
+dic. 23,Barrio del Abasto,183465
+dic. 23,Remedios Escalada de San Martín,179916
+dic. 23,Luis Agote,159586
+dic. 23,Alberto Olmedo,178883
+ene. 24,Remedios Escalada de San Martín,201606
+ene. 24,Alberto Olmedo,204371
+ene. 24,Centro,194960
+ene. 24,Nuestra Sra. de Lourdes,208248
+ene. 24,Luis Agote,183889
+ene. 24,Barrio del Abasto,201419
+feb. 24,Remedios Escalada de San Martín,212957
+feb. 24,Centro,209264
+feb. 24,Barrio del Abasto,215552
+feb. 24,Nuestra Sra. de Lourdes,217113
+feb. 24,Luis Agote,206658
+feb. 24,Alberto Olmedo,222211
+mar. 24,Remedios Escalada de San Martín,219811
+mar. 24,Centro,213193
+mar. 24,Alberto Olmedo,234609
+mar. 24,Nuestra Sra. de Lourdes,228417
+mar. 24,Luis Agote,213196
+mar. 24,Barrio del Abasto,225672
+abr. 24,Remedios Escalada de San Martín,223065
+abr. 24,Centro,219275
+abr. 24,Alberto Olmedo,240102
+abr. 24,Nuestra Sra. de Lourdes,237719
+abr. 24,Luis Agote,218382
+abr. 24,Barrio del Abasto,230835
+may 24,Alberto Olmedo,243355
+may 24,Remedios Escalada de San Martín,226796
+may 24,Luis Agote,221857
+may 24,Barrio del Abasto,232306
+may 24,Centro,227516
+may 24,Nuestra Sra. de Lourdes,243799
+jun 24,Luis Agote,228562
+jun 24,Barrio del Abasto,231589
+jun 24,Alberto Olmedo,251612
+jun 24,Nuestra Sra. de Lourdes,250236
+jun 24,Centro,233793
+jun 24,Remedios Escalada de San Martín,234840
+jul 24,Luis Agote,236603
+jul 24,Barrio del Abasto,234973
+jul 24,Alberto Olmedo,258888
+jul 24,Nuestra Sra. de Lourdes,257371
+jul 24,Centro,241444
+jul 24,Remedios Escalada de San Martín,242325
+ago 24,Luis Agote,240923
+ago 24,Remedios Escalada de San Martín,254728
+ago 24,Centro,254867
+ago 24,Nuestra Sra. de Lourdes,269617
+ago 24,Alberto Olmedo,269030
+ago 24,Barrio del Abasto,242721
+sep 24,Centro,267907
+sep 24,Remedios Escalada de San Martín,267904
+sep 24,Alberto Olmedo,282116
+sep 24,Nuestra Sra. de Lourdes,283765
+sep 24,Luis Agote,253563
+sep 24,Barrio del Abasto,262843
+oct 24,Centro,281114
+oct 24,Remedios Escalada de San Martín,277956
+oct 24,Alberto Olmedo,292735
+oct 24,Nuestra Sra. de Lourdes,295048
+oct 24,Luis Agote,276006
+oct 24,Barrio del Abasto,286259

@@ -1,0 +1,30 @@
+---
+title: "Tesis"
+format: pdf
+---
+
+
+```{python}
+# CARGA DE LIBRERIAS ------------------
+
+import pandas as pd
+import matplotlib as plot
+import numpy as np
+
+```
+
+```{python}
+
+# CARGA DE DATOS ----------------
+
+# Alquileres promedio en miles en todo rosario, + variacion mensual
+alquileres = pd.read_csv("Datos/Index_Alquiler_prom_Rosario.csv")
+
+# TRANSFORMACION DE DATOS ---------------
+
+alquileres = alquileres.rename(columns={'ALQUILER $/MES' : 'alquiler', 'VARIACIÓN MENSUAL (%)': 'variacion'})
+
+print(alquileres.head(), alquileres.tail())
+
+
+```

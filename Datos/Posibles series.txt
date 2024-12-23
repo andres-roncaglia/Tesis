@@ -1,0 +1,11 @@
+# Importaciones y exportaciones en argentina (mensual)
+
+https://www.indec.gob.ar/ftp/ica_digital/ica_d_11_248E94A3293E/#Series%20hist%C3%B3ricas
+
+# Ganancias Mercado Libre (earnings presentations) (cuatrimestral)
+
+https://investor.mercadolibre.com/#results-block
+
+# Precios de departamentos en rosario (no encontre datos)
+
+https://www.zonaprop.com.ar/noticias/zpindex/ros-alquiler/
