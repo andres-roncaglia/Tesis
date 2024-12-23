@@ -112,3 +112,7 @@ plt.show()
 ```
 
 Tiene estacionalidad y tendencia
+
+Hay para muchos mas rubros
+
+Solo tengo datos hasta agosto
