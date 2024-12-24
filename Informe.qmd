@@ -8,11 +8,24 @@ echo: False
 ```{python}
 # CARGA DE LIBRERIAS ------------------
 
+# Para el manejo de estructuras de datos
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+
+# Para dar formato fecha
 from datetime import datetime
-import locale
+
+# Para graficos
+import matplotlib.pyplot as plt
+import seaborn as sea
+
+# Para la transformacion de box y cox
+from scipy import stats
+
+# Para las autocorrelaciones
+from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.graphics.tsaplots import plot_pacf
+from statsmodels.tsa.stattools import acf, pacf
 
 ```
 
@@ -116,3 +129,76 @@ Tiene estacionalidad y tendencia
 Hay para muchos mas rubros
 
 Solo tengo datos hasta agosto
+
+
+```{python}
+sea.boxplot(x = empleo["fecha"].dt.year, y = empleo["empleados"])
+```
+
+Podriamos probar una transformacion de variancia
+
+
+```{python}
+fitted_data, fitted_lambda = stats.boxcox(empleo["empleados"])
+
+empleo['emp_transformada'] = fitted_data
+
+sea.lineplot(x = empleo["fecha"], y = empleo['emp_transformada'])
+```
+
+La transformacion parece empeorar incluso la variancia
+
+Diferencio estacionalmente la serie:
+
+```{python}
+empleo["emp_estacional"] = empleo['empleados'].diff(12)
+
+sea.lineplot(x = empleo["fecha"], y = empleo['emp_estacional'])
+```
+
+diferencio la serie en la parte estacionaria
+
+```{python}
+empleo["emp_estacionario"] = empleo['emp_estacional'].diff(1)
+
+sea.lineplot(x = empleo["fecha"], y = empleo['emp_estacionario'])
+```
+
+Parece ser estacionaria pero con grandes outlayers
+
+```{python}
+empleo_diff = pd.DataFrame({
+    'fecha' : empleo['fecha'],
+    'empleados' : empleo['emp_estacionario']
+})
+
+empleo_diff = empleo_diff.iloc[13:]
+
+autocorrelaciones = pd.DataFrame({
+    'lag' : np.arange(61),
+    'acf' : acf(empleo_diff['empleados'], nlags=60),
+    'pacf' : pacf(empleo_diff['empleados'], nlags=60, method = 'ywm') 
+})
+```
+
+
+
+```{python}
+upper_bound = 1.96/np.sqrt(len(empleo_diff['empleados']))
+lower_bound = -1.96/np.sqrt(len(empleo_diff['empleados']))
+
+# Cambio el color del punto si supera el limite
+col = np.where(autocorrelaciones['acf'] < lower_bound,'green', np.where(autocorrelaciones['acf'] > upper_bound, 'green', 'b'))
+
+plt.vlines(x=autocorrelaciones['lag'], ymin=0, ymax= autocorrelaciones['acf'], color='black', alpha=0.4)
+
+plt.scatter(x = autocorrelaciones['lag'], y = autocorrelaciones['acf'], color=col, alpha=1, marker = '.')
+
+plt.setp(baseline, visible = False)
+plt.axhline(y = 0, color = 'black')
+plt.axhline(y = upper_bound, color = 'green', ls = '--')
+plt.axhline(y = lower_bound, color = 'green', ls = '--')
+
+
+
+```
