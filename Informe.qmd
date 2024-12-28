@@ -22,10 +22,18 @@ import seaborn as sea
 # Para la transformacion de box y cox
 from scipy import stats
 
-# Para las autocorrelaciones
+# Para el calculo de autocorrelaciones
 from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.graphics.tsaplots import plot_pacf
 from statsmodels.tsa.stattools import acf, pacf
+
+# Para ajustar modelos arima
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima.model import ARIMAResults
+from pmdarima import auto_arima
+
+# Para calcular el error medio cuadratico
+from sklearn.metrics import mean_squared_error
 
 ```
 
@@ -181,24 +189,152 @@ autocorrelaciones = pd.DataFrame({
 })
 ```
 
+```{python}
+# Funcion para crear los graficos de autocorrelacion
+
+def autocorr_plot(vector, lags, atype = 'acf'):
+
+    # Calculo las autocorrelaciones
+    autocorrelaciones = pd.DataFrame({
+        'lag' : np.arange(lags+1),
+        'acf' : acf(vector, nlags=lags),
+        'pacf' : pacf(vector, nlags=lags, method = 'ywm') 
+    })
+
+    # Defino las bandas limite
+    upper_bound = 1.96/np.sqrt(len(vector))
+    lower_bound = -1.96/np.sqrt(len(vector))
+
+    # Cambio el color del punto si supera el limite
+    col = np.where(autocorrelaciones[atype] < lower_bound,'green', np.where(autocorrelaciones[atype] > upper_bound, 'green', 'b'))
+
+    # Creo los bastones
+    plt.vlines(x=autocorrelaciones['lag'], ymin=0, ymax= autocorrelaciones[atype], color='black', alpha=0.4)
+
+    # Creo los puntos y les asigno color segun pasen o no la banda
+    plt.scatter(x = autocorrelaciones['lag'], y = autocorrelaciones[atype], color=col, alpha=1, marker = '.')
+
+    # Grafico los limites de la banda
+    plt.axhline(y = 0, color = 'black')
+    plt.axhline(y = upper_bound, color = 'green', ls = '--')
+    plt.axhline(y = lower_bound, color = 'green', ls = '--')
+
+    if atype == 'acf':
+        titulo = 'autocorrelación'
+    else:
+        titulo = 'autocorrelación parcial'
+    
+    plt.title(f'Función de {titulo} muestral')
+```
 
 
 ```{python}
-upper_bound = 1.96/np.sqrt(len(empleo_diff['empleados']))
-lower_bound = -1.96/np.sqrt(len(empleo_diff['empleados']))
+# Grafico las funciones de autocorrelacion
 
-# Cambio el color del punto si supera el limite
-col = np.where(autocorrelaciones['acf'] < lower_bound,'green', np.where(autocorrelaciones['acf'] > upper_bound, 'green', 'b'))
-
-plt.vlines(x=autocorrelaciones['lag'], ymin=0, ymax= autocorrelaciones['acf'], color='black', alpha=0.4)
-
-plt.scatter(x = autocorrelaciones['lag'], y = autocorrelaciones['acf'], color=col, alpha=1, marker = '.')
-
-plt.setp(baseline, visible = False)
-plt.axhline(y = 0, color = 'black')
-plt.axhline(y = upper_bound, color = 'green', ls = '--')
-plt.axhline(y = lower_bound, color = 'green', ls = '--')
-
-
-
+plt.subplot(2,1,1)
+autocorr_plot(empleo_diff['empleados'], lags=60)
+plt.subplot(2,1,2)
+autocorr_plot(empleo_diff['empleados'], lags=60, atype='pacf')
 ```
+
+## Seleccion manual
+
+```{python}
+# Ajusto un modelo con lo visto en los graficos de autocorrelacion
+model = ARIMA(
+    empleo['empleados'], 
+    order=(0, 1, 0), 
+    seasonal_order=(0,1,1,12))
+
+model_fit = model.fit()
+```
+
+
+## Seleccion automatica
+```{python}
+# Busco un modelo con seleccion paso a paso
+stepwise_fit = auto_arima(empleo['empleados'], start_p = 1, start_q = 1, 
+                          max_p = 3, max_q = 3, m = 12, 
+                          start_P = 0, seasonal = True, 
+                          start_d = 0, max_d = 2, start_D = 0, max_D=2, 
+                          trace = False, 
+                          error_action ='ignore',   # we don't want to know if an order does not work 
+                          suppress_warnings = True,  # we don't want convergence warnings 
+                          stepwise = True)
+```
+
+
+```{python}
+# Veo las caracteristicas de los modelos ajustados
+
+model_fit.summary()
+
+stepwise_fit.summary()
+```
+
+## Comprobacion de supuestos
+
+### Admisible
+
+Ambos modelos son admisibles
+
+### Analisis de residuos
+
+```{python}
+# Calculo los residuos
+resid_auto = stepwise_fit.resid()
+
+resid_manual = model_fit.resid
+```
+
+
+```{python}
+# Los estandarizo
+
+resid_auto_est = (resid_auto - np.mean(resid_auto))/ np.std(resid_auto)
+
+resid_manual_est = (resid_manual - np.mean(resid_manual))/ np.std(resid_manual)
+```
+
+# 
+
+```{python}
+# Histograma
+plt.subplot(2,2,1)
+sea.histplot(resid_auto_est, bins=30)
+
+# Serie de los residuos
+plt.subplot(2,2,2)
+sea.lineplot(x = empleo['empleados'], y = resid_auto_est)
+plt.axhline(y = 3, color = 'black', ls = '--')
+plt.axhline(y = -3, color = 'black', ls = '--')
+
+# Autocorrelaciones
+plt.subplot(2,2,3)
+autocorr_plot(resid_auto_est, lags=30)
+
+plt.subplot(2,2,4)
+autocorr_plot(resid_auto_est, lags=30, atype='pacf')
+```
+
+```{python}
+
+# Histograma
+plt.subplot(2,2,1)
+sea.histplot(resid_manual_est, bins=30)
+
+# Serie de los residuos
+plt.subplot(2,2,2)
+sea.lineplot(x = empleo['empleados'], y = resid_manual_est)
+plt.axhline(y = 3, color = 'black', ls = '--')
+plt.axhline(y = -3, color = 'black', ls = '--')
+
+# Autocorrelaciones
+plt.subplot(2,2,3)
+autocorr_plot(resid_manual_est, lags=30)
+
+plt.subplot(2,2,4)
+autocorr_plot(resid_manual_est, lags=30, atype='pacf')
+```
+
+
