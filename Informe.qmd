@@ -35,6 +35,10 @@ from pmdarima import auto_arima
 # Para calcular el error medio cuadratico
 from sklearn.metrics import mean_squared_error
 
+
+# Para time GPT
+from nixtla import NixtlaClient
+nixtla_client = NixtlaClient(api_key="nixak-ZIV9C5mIZ2HlEAMJG54njJV5YKC1unQTJNCLea1B52KuMaCaoLf4421VIBWSnauQRzh4JxA7aBmQbOuJ")
 ```
 
 # Alquileres en Rosario
@@ -120,6 +124,10 @@ empleo['fecha'] = empleo['fecha'].apply(
 # Convierto a formato fecha
 empleo['fecha'] = pd.to_datetime(empleo['fecha'], format='%m-%y')
 
+# Separo en datos de entrenamiento y de testeo
+empleo_test = empleo[182:]
+empleo = empleo[:182]
+
 # Muestro los datos
 print(empleo.head(3),empleo.tail(3))
 
@@ -150,8 +158,12 @@ Podriamos probar una transformacion de variancia
 fitted_data, fitted_lambda = stats.boxcox(empleo["empleados"])
 
 empleo['emp_transformada'] = fitted_data
+```
 
+```{python}
 sea.lineplot(x = empleo["fecha"], y = empleo['emp_transformada'])
+plt.title('Serie transformada')
+
 ```
 
 La transformacion parece empeorar incluso la variancia
@@ -194,11 +206,20 @@ autocorrelaciones = pd.DataFrame({
 
 def autocorr_plot(vector, lags, atype = 'acf'):
 
+    if atype == 'acf':
+        autocorr = acf(vector, nlags=lags)
+        lags = np.arange(lags+1)
+    else:
+        autocorr = pacf(vector, nlags=lags, method = 'ywm')
+        lags = np.arange(lags+1)
+
+        autocorr = autocorr[1:]
+        lags = lags[1:]
+
     # Calculo las autocorrelaciones
     autocorrelaciones = pd.DataFrame({
-        'lag' : np.arange(lags+1),
-        'acf' : acf(vector, nlags=lags),
-        'pacf' : pacf(vector, nlags=lags, method = 'ywm') 
+        'lag' : lags,
+        atype : autocorr
     })
 
     # Defino las bandas limite
@@ -206,7 +227,9 @@ def autocorr_plot(vector, lags, atype = 'acf'):
     lower_bound = -1.96/np.sqrt(len(vector))
 
     # Cambio el color del punto si supera el limite
-    col = np.where(autocorrelaciones[atype] < lower_bound,'green', np.where(autocorrelaciones[atype] > upper_bound, 'green', 'b'))
+    col = np.where(
+        autocorrelaciones[atype] < lower_bound,'b',
+        np.where(autocorrelaciones[atype] > upper_bound, 'b', 'green'))
 
     # Creo los bastones
     plt.vlines(x=autocorrelaciones['lag'], ymin=0, ymax= autocorrelaciones[atype], color='black', alpha=0.4)
@@ -218,6 +241,8 @@ def autocorr_plot(vector, lags, atype = 'acf'):
     plt.axhline(y = 0, color = 'black')
     plt.axhline(y = upper_bound, color = 'green', ls = '--')
     plt.axhline(y = lower_bound, color = 'green', ls = '--')
+    plt.axhspan(upper_bound, lower_bound, color='green', alpha=0.15)
+    plt.ylim(-1,1)
 
     if atype == 'acf':
         titulo = 'autocorrelación'
@@ -241,14 +266,27 @@ autocorr_plot(empleo_diff['empleados'], lags=60, atype='pacf')
 
 ```{python}
 # Ajusto un modelo con lo visto en los graficos de autocorrelacion
-model = ARIMA(
+model_ma = ARIMA(
     empleo['empleados'], 
     order=(0, 1, 0), 
     seasonal_order=(0,1,1,12))
 
-model_fit = model.fit()
+model_ma_fit = model_ma.fit()
+
+model_ma_fit.summary()
 ```
 
+```{python}
+# Ajusto un modelo con lo visto en los graficos de autocorrelacion
+model_ar = ARIMA(
+    empleo['empleados'], 
+    order=(0, 1, 0), 
+    seasonal_order=(1,1,0,12))
+
+model_ar_fit = model_ar.fit()
+
+model_ar_fit.summary()
+```
 
 ## Seleccion automatica
 ```{python}
@@ -261,22 +299,27 @@ stepwise_fit = auto_arima(empleo['empleados'], start_p = 1, start_q = 1,
                           error_action ='ignore',   # we don't want to know if an order does not work 
                           suppress_warnings = True,  # we don't want convergence warnings 
                           stepwise = True)
+
 ```
 
 
 ```{python}
 # Veo las caracteristicas de los modelos ajustados
-
-model_fit.summary()
-
 stepwise_fit.summary()
 ```
 
+Modelos seleccionados:
+
+- $SARIMA(0,1,0)(0,1,1)_{12}$
+
+- $SARIMA(0,1,0)(1,1,0)_{12}$
+
+- $SARIMA(2,1,1)(0,1,1)_{12}$
+
+
 ## Comprobacion de supuestos
 
-### Admisible
-
-Ambos modelos son admisibles
+Todos los modelos son admisibles
 
 ### Analisis de residuos
 
@@ -284,7 +327,9 @@ Ambos modelos son admisibles
 # Calculo los residuos
 resid_auto = stepwise_fit.resid()
 
-resid_manual = model_fit.resid
+resid_ma_manual = model_ma_fit.resid
+
+resid_ar_manual = model_ar_fit.resid
 ```
 
 
@@ -293,7 +338,9 @@ resid_manual = model_fit.resid
 
 resid_auto_est = (resid_auto - np.mean(resid_auto))/ np.std(resid_auto)
 
-resid_manual_est = (resid_manual - np.mean(resid_manual))/ np.std(resid_manual)
+resid_ma_manual_est = (resid_ma_manual - np.mean(resid_ma_manual))/ np.std(resid_ma_manual)
+
+resid_ar_manual_est = (resid_ar_manual - np.mean(resid_ar_manual))/ np.std(resid_ar_manual)
 ```
 
 # 
@@ -321,20 +368,101 @@ autocorr_plot(resid_auto_est, lags=30, atype='pacf')
 
 # Histograma
 plt.subplot(2,2,1)
-sea.histplot(resid_manual_est, bins=30)
+sea.histplot(resid_ma_manual_est, bins=30)
 
 # Serie de los residuos
 plt.subplot(2,2,2)
-sea.lineplot(x = empleo['empleados'], y = resid_manual_est)
+sea.lineplot(x = empleo['empleados'], y = resid_ma_manual_est)
 plt.axhline(y = 3, color = 'black', ls = '--')
 plt.axhline(y = -3, color = 'black', ls = '--')
 
 # Autocorrelaciones
 plt.subplot(2,2,3)
-autocorr_plot(resid_manual_est, lags=30)
+autocorr_plot(resid_ma_manual_est, lags=30)
 
 plt.subplot(2,2,4)
-autocorr_plot(resid_manual_est, lags=30, atype='pacf')
+autocorr_plot(resid_ma_manual_est, lags=30, atype='pacf')
 ```
 
 
+```{python}
+
+# Histograma
+plt.subplot(2,2,1)
+sea.histplot(resid_ar_manual_est, bins=30)
+
+# Serie de los residuos
+plt.subplot(2,2,2)
+sea.lineplot(x = empleo['empleados'], y = resid_ar_manual_est)
+plt.axhline(y = 3, color = 'black', ls = '--')
+plt.axhline(y = -3, color = 'black', ls = '--')
+
+# Autocorrelaciones
+plt.subplot(2,2,3)
+autocorr_plot(resid_ar_manual_est, lags=30)
+
+plt.subplot(2,2,4)
+autocorr_plot(resid_ar_manual_est, lags=30, atype='pacf')
+```
+
+# Cosas a mirar
+
+- La funcion de pacf da 1 en el rezago 0 cuando no deberia
+
+- los 2 primeros residuos son enormes
+
+- A priori los residuos entre los modelos parecen ser identicos
+
+# Pronosticos
+
+
+```{python}
+# Predigo con el modelo automatico los ultimos 6 meses
+pronostico_auto = stepwise_fit.predict(n_periods = 7, alpha = 0.05)
+pronostico_ma = model_ma_fit.get_forecast(steps=7)
+pronostico_ar = model_ar_fit.get_forecast(steps=7)
+```
+
+
+```{python}
+empleo_total = pd.concat([empleo[['fecha','empleados']], empleo_test])
+pronosticos = empleo_test
+
+pronosticos['pr_auto'] = pronostico_auto
+pronosticos['pr_ma'] = pronostico_ma.predicted_mean
+pronosticos['pr_ar'] = pronostico_ar.predicted_mean
+```
+
+
+```{python}
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_auto'], color = 'blue')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_ar'], color = 'green')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_ma'], color = 'r')
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+```
+
+
+# Time GPT
+
+
+```{python}
+pro_timeGPT = nixtla_client.forecast(
+    df = empleo, h = 6,time_col= "fecha", 
+    target_col= "empleados",
+    level=[80,90], finetune_steps=20, finetune_loss= "mape")
+
+```
+
+
+```{python}
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_auto'], color = 'blue')
+sea.lineplot(x = pro_timeGPT['fecha'], y = pro_timeGPT['TimeGPT'], color = 'r')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+```
