@@ -2,6 +2,7 @@
 title: "Tesis"
 format: pdf
 echo: False
+warning: False
 ---
 
 
@@ -41,11 +42,12 @@ from nixtla import NixtlaClient
 nixtla_client = NixtlaClient(api_key="nixak-ZIV9C5mIZ2HlEAMJG54njJV5YKC1unQTJNCLea1B52KuMaCaoLf4421VIBWSnauQRzh4JxA7aBmQbOuJ")
 ```
 
-# Alquileres en Rosario
+<!-- # Alquileres en Rosario -->
 
-(fuente: zonaprop)
+<!-- (fuente: zonaprop) -->
 
 ```{python}
+#| eval: false
 
 # CARGA DE DATOS ----------------
 
@@ -60,12 +62,19 @@ alquileres = alquileres.rename(columns={'ALQUILER $/MES' : 'alquiler', 'VARIACI�
 # Los ultimos meses estan en un formato diferente, por eso quito en todos el punto
 alquileres['fecha'] = alquileres['fecha'].str.replace('.', '', regex=False)
 
+```
+
+```{python}
 # Creo un diccionario para pasar los meses a numero 
 meses = {
     'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 
     'may': '05', 'jun': '06', 'jul': '07', 'ago': '08', 
     'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
 }
+```
+
+```{python}
+#| eval: false
 
 # Cambio la abreviacion del mes por su numero
 alquileres['fecha'] = alquileres['fecha'].apply(
@@ -82,6 +91,8 @@ print(alquileres.head(3),alquileres.tail(3))
 
 
 ```{python}
+#| eval: false
+
 plt.plot(alquileres['fecha'], alquileres['alquiler'], marker = '.')
 plt.title('Precio de alquileres promedio en Rosario (en miles)')
 plt.xlabel('Año')
@@ -90,9 +101,11 @@ plt.show()
 
 ```
 
-No tiene estacionalidad y solo aumenta
+<!-- No tiene estacionalidad y solo aumenta -->
 
 ```{python}
+#| eval: false
+
 plt.plot(alquileres['fecha'], alquileres['variacion'], marker = '.')
 plt.title('Variacion mensual en el precio de alquileres promedio en Rosario')
 plt.xlabel('Año')
@@ -101,7 +114,7 @@ plt.show()
 
 ```
 
-Y la variacion mensual parece tener un comportamiento muy raro con muchos outlayers y sin una estacionalidad clara
+<!-- Y la variacion mensual parece tener un comportamiento muy raro con muchos outlayers y sin una estacionalidad clara -->
 
 
 # Empleados promedio mensuales en Argentina, rubro: Enseñanza
@@ -124,10 +137,6 @@ empleo['fecha'] = empleo['fecha'].apply(
 # Convierto a formato fecha
 empleo['fecha'] = pd.to_datetime(empleo['fecha'], format='%m-%y')
 
-# Separo en datos de entrenamiento y de testeo
-empleo_test = empleo[182:]
-empleo = empleo[:182]
-
 # Muestro los datos
 print(empleo.head(3),empleo.tail(3))
 
@@ -146,12 +155,20 @@ Hay para muchos mas rubros
 
 Solo tengo datos hasta agosto
 
+Inicialmente habia tomado datos solo hasta febrero para pronosticar 6 meses, pero al tener solo 2 observaciones en 2024 afectaba mucho la variancia de este año. Además, la serie es muy larga, asi que voy a trabajar con 6 años nomás (2018-2023)
+
+```{python}
+
+# Separo en datos de entrenamiento y de testeo
+empleo_test = empleo[180:]
+empleo = empleo[108:180]
+```
 
 ```{python}
 sea.boxplot(x = empleo["fecha"].dt.year, y = empleo["empleados"])
 ```
 
-Podriamos probar una transformacion de variancia
+No parece haber necesidad de transformar la variable
 
 
 ```{python}
@@ -162,11 +179,13 @@ empleo['emp_transformada'] = fitted_data
 
 ```{python}
 sea.lineplot(x = empleo["fecha"], y = empleo['emp_transformada'])
-plt.title('Serie transformada')
+plt.title('Serie transformada con box y cox')
+plt.text(pd.to_datetime('2020-03-01'), empleo['emp_transformada'].max() * 0.2, 
+         f'Párametro de\n Box y Cox: {fitted_lambda.round(2)}', fontsize=12, color='black')
 
 ```
 
-La transformacion parece empeorar incluso la variancia
+Finalmnente decido no usar la transformacion
 
 Diferencio estacionalmente la serie:
 
@@ -193,12 +212,6 @@ empleo_diff = pd.DataFrame({
 })
 
 empleo_diff = empleo_diff.iloc[13:]
-
-autocorrelaciones = pd.DataFrame({
-    'lag' : np.arange(61),
-    'acf' : acf(empleo_diff['empleados'], nlags=60),
-    'pacf' : pacf(empleo_diff['empleados'], nlags=60, method = 'ywm') 
-})
 ```
 
 ```{python}
@@ -242,7 +255,9 @@ def autocorr_plot(vector, lags, atype = 'acf'):
     plt.axhline(y = upper_bound, color = 'green', ls = '--')
     plt.axhline(y = lower_bound, color = 'green', ls = '--')
     plt.axhspan(upper_bound, lower_bound, color='green', alpha=0.15)
-    plt.ylim(-1,1)
+    plt.axhspan(1, 2, color='grey', alpha=0.5)
+    plt.axhspan(-1, -2, color='grey', alpha=0.5)
+    plt.ylim(-1.15,1.15)
 
     if atype == 'acf':
         titulo = 'autocorrelación'
@@ -257,18 +272,21 @@ def autocorr_plot(vector, lags, atype = 'acf'):
 # Grafico las funciones de autocorrelacion
 
 plt.subplot(2,1,1)
-autocorr_plot(empleo_diff['empleados'], lags=60)
+autocorr_plot(empleo_diff['empleados'], lags=25)
 plt.subplot(2,1,2)
-autocorr_plot(empleo_diff['empleados'], lags=60, atype='pacf')
+autocorr_plot(empleo_diff['empleados'], lags=25, atype='pacf')
+
 ```
 
-## Seleccion manual
+La serie parece tener una componente MA tanto en la parte estacional como en la estacionaria
+
+# Seleccion manual
 
 ```{python}
 # Ajusto un modelo con lo visto en los graficos de autocorrelacion
 model_ma = ARIMA(
     empleo['empleados'], 
-    order=(0, 1, 0), 
+    order=(0, 1, 1), 
     seasonal_order=(0,1,1,12))
 
 model_ma_fit = model_ma.fit()
@@ -276,29 +294,20 @@ model_ma_fit = model_ma.fit()
 model_ma_fit.summary()
 ```
 
-```{python}
-# Ajusto un modelo con lo visto en los graficos de autocorrelacion
-model_ar = ARIMA(
-    empleo['empleados'], 
-    order=(0, 1, 0), 
-    seasonal_order=(1,1,0,12))
-
-model_ar_fit = model_ar.fit()
-
-model_ar_fit.summary()
-```
 
 ## Seleccion automatica
 ```{python}
 # Busco un modelo con seleccion paso a paso
-stepwise_fit = auto_arima(empleo['empleados'], start_p = 1, start_q = 1, 
-                          max_p = 3, max_q = 3, m = 12, 
-                          start_P = 0, seasonal = True, 
-                          start_d = 0, max_d = 2, start_D = 0, max_D=2, 
-                          trace = False, 
-                          error_action ='ignore',   # we don't want to know if an order does not work 
-                          suppress_warnings = True,  # we don't want convergence warnings 
-                          stepwise = True)
+stepwise_fit = auto_arima(empleo['empleados'], 
+                        start_p = 0, max_p = 3,
+                        start_q = 0, max_q = 3,
+                        start_P = 0, max_P = 3,
+                        start_Q = 0, max_Q = 3,
+                        m = 12,
+                        trace = False, 
+                        error_action ='ignore',   # we don't want to know if an order does not work 
+                        suppress_warnings = True,  # we don't want convergence warnings 
+                        stepwise = True)
 
 ```
 
@@ -308,119 +317,181 @@ stepwise_fit = auto_arima(empleo['empleados'], start_p = 1, start_q = 1,
 stepwise_fit.summary()
 ```
 
+```{python}
+phi = [1, 0.9769, 0.8867, 0.8524]  # Sustituye phi1, phi2, phi3 con tus valores
+
+# Calcula las raíces
+roots = np.roots(phi)
+
+# Verifica el módulo de las raíces
+admisible = all(abs(root) > 1 for root in roots)
+```
+
 Modelos seleccionados:
 
-- $SARIMA(0,1,0)(0,1,1)_{12}$
+- $SARIMA(0,1,1)(0,1,1)_{12}$
 
-- $SARIMA(0,1,0)(1,1,0)_{12}$
+Con $q = 0.3888$ y $Q = -0.9983$ | $AIC = 253.003$
 
-- $SARIMA(2,1,1)(0,1,1)_{12}$
+Es admisible
 
+- $SARIMA(1,1,0)(3,1,1)_{12}$
+
+Con $p = 0.268$, $P_1 = -0.9769$, $P_2 = -0.8867$, $P_3 = -0.8524$, $Q = -0.4374$ | $AIC = 248.636$
+
+No es admisible
+
+Probamos el modelo $SARIMA(1,1,0)(2,1,1)_{12}$
+
+```{python}
+# Trato de que el modelo con seleccion manual sea admisible
+model_auto2 = ARIMA(
+    empleo['empleados'], 
+    order=(1, 1, 0), 
+    seasonal_order=(2,1,1,12))
+
+model_auto2_fit = model_auto2.fit()
+
+model_auto2_fit.summary()
+```
+
+- $SARIMA(1,1,0)(2,1,1)_{12}$
+
+Con $p = 0.4025$, $P_1 = -0.1533$, $P_2 = -0.3886$, $Q = -0.997$ | $AIC = 250$
+
+Es admisible
+
+Tambien voy a probar el mismo modelo anterior, pero con la componente ma en lugar de ar en la parte estacionaria, ya que es lo que se ve en los graficos de autocorrelacion
+
+```{python}
+# Trato de que el modelo con seleccion manual sea admisible
+model_auto3 = ARIMA(
+    empleo['empleados'], 
+    order=(0, 1, 1), 
+    seasonal_order=(2,1,1,12))
+
+model_auto3_fit = model_auto3.fit()
+
+model_auto3_fit.summary()
+```
+
+- $SARIMA(0,1,1)(2,1,1)_{12}$
+
+Con $q = 0.3989$, $P_1 = -0.1333$, $P_2 = -0.4221$, $Q = -0.997$ | $AIC = 250.4$
+
+Es admisible
 
 ## Comprobacion de supuestos
 
-Todos los modelos son admisibles
-
-### Analisis de residuos
+Hago la comprobacion de supuestos unicamente con los modelos admisibles
 
 ```{python}
 # Calculo los residuos
-resid_auto = stepwise_fit.resid()
+# resid_auto = stepwise_fit.resid()
 
-resid_ma_manual = model_ma_fit.resid
+resid_ma = model_ma_fit.resid
 
-resid_ar_manual = model_ar_fit.resid
+resid_auto2 = model_auto2_fit.resid
+
+resid_auto3 = model_auto3_fit.resid
 ```
 
 
 ```{python}
 # Los estandarizo
 
-resid_auto_est = (resid_auto - np.mean(resid_auto))/ np.std(resid_auto)
+resid_auto2_est = (resid_auto2 - np.mean(resid_auto2))/ np.std(resid_auto2)
 
-resid_ma_manual_est = (resid_ma_manual - np.mean(resid_ma_manual))/ np.std(resid_ma_manual)
+resid_auto3_est = (resid_auto3 - np.mean(resid_auto3))/ np.std(resid_auto3)
 
-resid_ar_manual_est = (resid_ar_manual - np.mean(resid_ar_manual))/ np.std(resid_ar_manual)
+resid_ma_est = (resid_ma - np.mean(resid_ma))/ np.std(resid_ma)
 ```
 
-# 
-
-```{python}
-# Histograma
-plt.subplot(2,2,1)
-sea.histplot(resid_auto_est, bins=30)
-
-# Serie de los residuos
-plt.subplot(2,2,2)
-sea.lineplot(x = empleo['empleados'], y = resid_auto_est)
-plt.axhline(y = 3, color = 'black', ls = '--')
-plt.axhline(y = -3, color = 'black', ls = '--')
-
-# Autocorrelaciones
-plt.subplot(2,2,3)
-autocorr_plot(resid_auto_est, lags=30)
-
-plt.subplot(2,2,4)
-autocorr_plot(resid_auto_est, lags=30, atype='pacf')
-```
+### $SARIMA(0,1,1)(0,1,1)_{12}$
 
 ```{python}
 
 # Histograma
 plt.subplot(2,2,1)
-sea.histplot(resid_ma_manual_est, bins=30)
+sea.histplot(resid_ma_est, bins=100)
 
 # Serie de los residuos
 plt.subplot(2,2,2)
-sea.lineplot(x = empleo['empleados'], y = resid_ma_manual_est)
+sea.lineplot(x = empleo['empleados'], y = resid_ma_est)
 plt.axhline(y = 3, color = 'black', ls = '--')
 plt.axhline(y = -3, color = 'black', ls = '--')
 
 # Autocorrelaciones
 plt.subplot(2,2,3)
-autocorr_plot(resid_ma_manual_est, lags=30)
+autocorr_plot(resid_ma_est, lags=30)
+plt.title('')
 
 plt.subplot(2,2,4)
-autocorr_plot(resid_ma_manual_est, lags=30, atype='pacf')
+autocorr_plot(resid_ma_est, lags=30, atype='pacf')
+plt.title('')
 ```
 
 
-```{python}
+### $SARIMA(1,1,0)(2,1,1)_{12}$
 
+```{python}
 # Histograma
 plt.subplot(2,2,1)
-sea.histplot(resid_ar_manual_est, bins=30)
+sea.histplot(resid_auto2_est, bins=30)
 
 # Serie de los residuos
 plt.subplot(2,2,2)
-sea.lineplot(x = empleo['empleados'], y = resid_ar_manual_est)
+sea.lineplot(x = empleo['empleados'], y = resid_auto2_est)
 plt.axhline(y = 3, color = 'black', ls = '--')
 plt.axhline(y = -3, color = 'black', ls = '--')
 
 # Autocorrelaciones
 plt.subplot(2,2,3)
-autocorr_plot(resid_ar_manual_est, lags=30)
+autocorr_plot(resid_auto2_est, lags=30)
+plt.title('')
 
 plt.subplot(2,2,4)
-autocorr_plot(resid_ar_manual_est, lags=30, atype='pacf')
+autocorr_plot(resid_auto2_est, lags=30, atype='pacf')
+plt.title('')
+```
+
+
+### $SARIMA(0,1,1)(2,1,1)_{12}$
+
+```{python}
+# Histograma
+plt.subplot(2,2,1)
+sea.histplot(resid_auto3_est, bins=30)
+
+# Serie de los residuos
+plt.subplot(2,2,2)
+sea.lineplot(x = empleo['empleados'], y = resid_auto3_est)
+plt.axhline(y = 3, color = 'black', ls = '--')
+plt.axhline(y = -3, color = 'black', ls = '--')
+
+# Autocorrelaciones
+plt.subplot(2,2,3)
+autocorr_plot(resid_auto3_est, lags=30)
+
+plt.subplot(2,2,4)
+autocorr_plot(resid_auto3_est, lags=30, atype='pacf')
 ```
 
 # Cosas a mirar
 
-- La funcion de pacf da 1 en el rezago 0 cuando no deberia
+- Calcular MAPE
 
-- los 2 primeros residuos son enormes
-
-- A priori los residuos entre los modelos parecen ser identicos
+- hay 2 residuos enormes
 
 # Pronosticos
 
 
 ```{python}
-# Predigo con el modelo automatico los ultimos 6 meses
-pronostico_auto = stepwise_fit.predict(n_periods = 7, alpha = 0.05)
-pronostico_ma = model_ma_fit.get_forecast(steps=7)
-pronostico_ar = model_ar_fit.get_forecast(steps=7)
+# Pronostico con el modelo automatico los ultimos 6 meses
+# pronostico_auto = stepwise_fit.predict(n_periods = 7, alpha = 0.05)
+pronostico_ma = model_ma_fit.get_forecast(steps=9)
+pronostico_auto2 = model_auto2_fit.get_forecast(steps=9)
+pronostico_auto3 = model_auto3_fit.get_forecast(steps=9)
 ```
 
 
@@ -428,41 +499,175 @@ pronostico_ar = model_ar_fit.get_forecast(steps=7)
 empleo_total = pd.concat([empleo[['fecha','empleados']], empleo_test])
 pronosticos = empleo_test
 
-pronosticos['pr_auto'] = pronostico_auto
+# pronosticos['pr_auto'] = pronostico_auto
 pronosticos['pr_ma'] = pronostico_ma.predicted_mean
-pronosticos['pr_ar'] = pronostico_ar.predicted_mean
+pronosticos['pr_auto2'] = pronostico_auto2.predicted_mean
+pronosticos['pr_auto3'] = pronostico_auto3.predicted_mean
+
+
+# intervalos de confianza
+pronosticos['ma_ic_90_inf'] = pronostico_ma.conf_int(90)['lower empleados']
+pronosticos['ma_ic_90_sup'] = pronostico_ma.conf_int(90)['upper empleados']
+
+pronosticos['auto2_ic_90_inf'] = pronostico_auto2.conf_int(90)['lower empleados']
+pronosticos['auto2_ic_90_sup'] = pronostico_auto2.conf_int(90)['upper empleados']
+
+pronosticos['auto3_ic_90_inf'] = pronostico_auto3.conf_int(90)['lower empleados']
+pronosticos['auto3_ic_90_sup'] = pronostico_auto3.conf_int(90)['upper empleados']
 ```
 
-
 ```{python}
-sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
-sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_auto'], color = 'blue')
-sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_ar'], color = 'green')
-sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_ma'], color = 'r')
-plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
-plt.ylim(400,440)
-plt.gcf().autofmt_xdate()
-```
+#| echo: true
 
-
-# Time GPT
-
-
-```{python}
+# Pronostico CHAT gpt
 pro_timeGPT = nixtla_client.forecast(
-    df = empleo, h = 6,time_col= "fecha", 
+    df = empleo, h = 8,time_col= "fecha", 
     target_col= "empleados",
-    level=[80,90], finetune_steps=20, finetune_loss= "mape")
-
+    level=[90], finetune_steps=40, finetune_loss= "mape")
 ```
 
+```{python}
+print(pro_timeGPT.head(3),pro_timeGPT.tail(3))
+```
+
+Leyenda:
+
+- $SARIMA(0,1,1)(0,1,1)_{12}$: Rojo
+
+- $SARIMA(1,1,0)(2,1,1)_{12}$: Azul
+
+- $SARIMA(0,1,1)(2,1,1)_{12}$: Violeta
+
+- TimeGPT: Verde
 
 ```{python}
+# Pronostico ma
+plt.subplot(2,2,1)
 sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
-sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_auto'], color = 'blue')
-sea.lineplot(x = pro_timeGPT['fecha'], y = pro_timeGPT['TimeGPT'], color = 'r')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_ma'], color = 'r')
+
+plt.fill_between(pronosticos['fecha'], pronosticos['ma_ic_90_inf'], pronosticos['ma_ic_90_sup'], color = 'r', alpha = 0.3, label = 'IC 90%')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+
+# Pronostico auto2
+plt.subplot(2,2,2)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_auto2'], color = 'b')
+
+plt.fill_between(pronosticos['fecha'], pronosticos['auto2_ic_90_inf'], pronosticos['auto2_ic_90_sup'], color = 'b', alpha = 0.3, label = 'IC 90%')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+
+# Pronostico auto3
+plt.subplot(2,2,3)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = pronosticos['fecha'], y = pronosticos['pr_auto3'], color = 'blueviolet')
+
+plt.fill_between(pronosticos['fecha'], pronosticos['auto3_ic_90_inf'], pronosticos['auto3_ic_90_sup'], color = 'blueviolet', alpha = 0.3, label = 'IC 90%')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+
+# Pronostico Time GPT
+plt.subplot(2,2,4)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = pro_timeGPT['fecha'], y = pro_timeGPT['TimeGPT'], color = 'green')
+
+plt.fill_between(pronosticos['fecha'], pro_timeGPT['TimeGPT-lo-90'], pro_timeGPT['TimeGPT-hi-90'], color = 'green', alpha = 0.3, label = 'IC 90%')
 
 plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
 plt.ylim(400,440)
 plt.gcf().autofmt_xdate()
 ```
+
+El area marcada denota el intervalo de confianza del 90%
+
+Dado que los pronosticos con time gpt fueron muy malos voy a tratar con distintos parametros
+
+### Distintos pronosticos con time gpt
+
+```{python}
+#| echo: true
+
+# Pruebo las opciones por defecto
+time_gpt1 = nixtla_client.forecast(
+    df = empleo, h = 8,time_col= "fecha", 
+    target_col= "empleados",
+    freq = 'M',
+    level=[90])
+
+# Pruebo usar 5 pasos de ajuste
+time_gpt2 = nixtla_client.forecast(
+    df = empleo, h = 8,time_col= "fecha", 
+    target_col= "empleados",
+    level=[90], finetune_steps=5)
+
+# Pruebo usar la funcion de perdida mape
+time_gpt3 = nixtla_client.forecast(
+    df = empleo, h = 8,time_col= "fecha", 
+    target_col= "empleados",
+    level=[90], finetune_loss= "mape")
+
+# Pruebo usar la funcion de perdida mape con 5 pasos de ajuste
+time_gpt4 = nixtla_client.forecast(
+    df = empleo, h = 8,time_col= "fecha", 
+    target_col= "empleados",
+    level=[90], finetune_loss= "mape", finetune_steps=10)
+```
+
+
+```{python}
+# Pronosito opciones 1
+plt.subplot(2,2,1)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = time_gpt1['fecha'], y = time_gpt1['TimeGPT'], color = 'green')
+
+plt.fill_between(pronosticos['fecha'], time_gpt1['TimeGPT-lo-90'], time_gpt1['TimeGPT-hi-90'], color = 'green', alpha = 0.3, label = 'IC 90%')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+
+# Pronosito opciones 2
+plt.subplot(2,2,2)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = time_gpt2['fecha'], y = time_gpt2['TimeGPT'], color = 'r')
+
+plt.fill_between(pronosticos['fecha'], time_gpt2['TimeGPT-lo-90'], time_gpt2['TimeGPT-hi-90'], color = 'r', alpha = 0.3, label = 'IC 90%')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+
+
+# Pronosito opciones 3
+plt.subplot(2,2,3)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = time_gpt3['fecha'], y = time_gpt3['TimeGPT'], color = 'b')
+
+plt.fill_between(pronosticos['fecha'], time_gpt3['TimeGPT-lo-90'], time_gpt3['TimeGPT-hi-90'], color = 'b', alpha = 0.3, label = 'IC 90%')
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+
+
+# Pronosito opciones 4
+plt.subplot(2,2,4)
+sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
+sea.lineplot(x = time_gpt4['fecha'], y = time_gpt4['TimeGPT'], color = 'blueviolet')
+
+plt.fill_between(pronosticos['fecha'], time_gpt4['TimeGPT-lo-90'], time_gpt4['TimeGPT-hi-90'], color = 'blueviolet', alpha = 0.3)
+
+plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
+plt.ylim(400,440)
+plt.gcf().autofmt_xdate()
+```
+
+Los pronosticos mejoraron considerablemente pero siguen siendo peores que los metodos clasicos por ahora, hay que seguir viendo que problemas pueden tener y como solucionarlo.
