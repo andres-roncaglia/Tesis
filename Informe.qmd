@@ -33,6 +33,12 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.arima.model import ARIMAResults
 from pmdarima import auto_arima
 
+# Para calcular el test de ljung box
+import statsmodels.api as sm
+
+# Para el test de kolmogorov-smirnov
+import scipy.stats as stats
+
 # Para calcular el error medio cuadratico
 from sklearn.metrics import mean_squared_error
 
@@ -410,45 +416,93 @@ resid_ma_est = (resid_ma - np.mean(resid_ma))/ np.std(resid_ma)
 ### $SARIMA(0,1,1)(0,1,1)_{12}$
 
 ```{python}
+#| fig-width: 8
+#| fig-height: 6
 
 # Histograma
 plt.subplot(2,2,1)
 sea.histplot(resid_ma_est, bins=100)
+
+# Test de normalidad
+ks = stats.kstest(resid_ma_est,'norm').pvalue
+if ks < 0.0001:
+    ks = '< 0.0001'
+else:
+    ks = round(ks, 4)
+
+# resid_ma_est_sin_out = resid_ma_est[(resid_ma_est > -3) & (resid_ma_est < 3)]
+
+plt.text(1, 20, 
+         f'P-value test de\nnormalidad K-S: {ks}', fontsize=6, color='black')
 
 # Serie de los residuos
 plt.subplot(2,2,2)
 sea.lineplot(x = empleo['empleados'], y = resid_ma_est)
 plt.axhline(y = 3, color = 'black', ls = '--')
 plt.axhline(y = -3, color = 'black', ls = '--')
+plt.ylabel('')
 
 # Autocorrelaciones
 plt.subplot(2,2,3)
 autocorr_plot(resid_ma_est, lags=30)
 plt.title('')
 
+# Test de Ljung-box
+p_value = sm.stats.acorr_ljungbox(resid_ma_est, lags= range(1,20) , return_df=True)['lb_pvalue'].min()
+
+plt.text(10, -0.85, 
+         f'Test de Ljung-Box\nMenor P-value: {round(p_value,4)}', fontsize=8, color='black')
+
+
 plt.subplot(2,2,4)
 autocorr_plot(resid_ma_est, lags=30, atype='pacf')
 plt.title('')
+
 ```
 
 
 ### $SARIMA(1,1,0)(2,1,1)_{12}$
 
 ```{python}
+#| fig-width: 8
+#| fig-height: 6
+
 # Histograma
 plt.subplot(2,2,1)
 sea.histplot(resid_auto2_est, bins=30)
+
+# Test de normalidad
+ks = stats.kstest(resid_auto2_est,'norm').pvalue
+if ks < 0.0001:
+    ks = '< 0.0001'
+else:
+    ks = round(ks, 4)
+
+# resid_ma_est_sin_out = resid_ma_est[(resid_ma_est > -3) & (resid_ma_est < 3)]
+
+plt.text(1, 20, 
+         f'P-value test de\nnormalidad K-S: {ks}', fontsize=6, color='black')
+
 
 # Serie de los residuos
 plt.subplot(2,2,2)
 sea.lineplot(x = empleo['empleados'], y = resid_auto2_est)
 plt.axhline(y = 3, color = 'black', ls = '--')
 plt.axhline(y = -3, color = 'black', ls = '--')
+plt.ylabel('')
 
 # Autocorrelaciones
 plt.subplot(2,2,3)
 autocorr_plot(resid_auto2_est, lags=30)
 plt.title('')
+
+# Test de Ljung-box
+p_value = sm.stats.acorr_ljungbox(resid_auto2_est, lags= range(1,20) , return_df=True)['lb_pvalue'].min()
+
+plt.text(10, -0.85, 
+         f'Test de Ljung-Box\nMenor P-value: {round(p_value,4)}', fontsize=8, color='black')
+
+
 
 plt.subplot(2,2,4)
 autocorr_plot(resid_auto2_est, lags=30, atype='pacf')
@@ -459,29 +513,53 @@ plt.title('')
 ### $SARIMA(0,1,1)(2,1,1)_{12}$
 
 ```{python}
+#| fig-width: 8
+#| fig-height: 6
+
 # Histograma
 plt.subplot(2,2,1)
 sea.histplot(resid_auto3_est, bins=30)
+
+# Test de normalidad
+ks = stats.kstest(resid_auto3_est,'norm').pvalue
+if ks < 0.0001:
+    ks = '< 0.0001'
+else:
+    ks = round(ks, 4)
+
+# resid_ma_est_sin_out = resid_ma_est[(resid_ma_est > -3) & (resid_ma_est < 3)]
+
+plt.text(1, 20, 
+         f'P-value test de\nnormalidad K-S: {ks}', fontsize=6, color='black')
+
 
 # Serie de los residuos
 plt.subplot(2,2,2)
 sea.lineplot(x = empleo['empleados'], y = resid_auto3_est)
 plt.axhline(y = 3, color = 'black', ls = '--')
 plt.axhline(y = -3, color = 'black', ls = '--')
+plt.ylabel('')
 
 # Autocorrelaciones
 plt.subplot(2,2,3)
 autocorr_plot(resid_auto3_est, lags=30)
+plt.title('')
+
+# Test de Ljung-box
+p_value = sm.stats.acorr_ljungbox(resid_auto3_est, lags= range(1,20) , return_df=True)['lb_pvalue'].min()
+
+plt.text(10, -0.85, 
+         f'Test de Ljung-Box\nMenor P-value: {round(p_value,4)}', fontsize=8, color='black')
+
 
 plt.subplot(2,2,4)
 autocorr_plot(resid_auto3_est, lags=30, atype='pacf')
+plt.title('')
 ```
 
-# Cosas a mirar
+Comentarios en general:
 
-- Calcular MAPE
-
-- hay 2 residuos enormes
+Para todos los modelos se rechaza la normalidad de los residuos incluso sacando los 2 outlayers. La independencia de los residuos tambien se cumple para todos los modelos.
 
 # Pronosticos
 
@@ -519,7 +597,7 @@ pronosticos['auto3_ic_90_sup'] = pronostico_auto3.conf_int(90)['upper empleados'
 ```{python}
 #| echo: true
 
-# Pronostico CHAT gpt
+# Pronostico Time gpt
 pro_timeGPT = nixtla_client.forecast(
     df = empleo, h = 8,time_col= "fecha", 
     target_col= "empleados",
@@ -541,6 +619,10 @@ Leyenda:
 - TimeGPT: Verde
 
 ```{python}
+#| fig-width: 8
+#| fig-height: 6
+
+
 # Pronostico ma
 plt.subplot(2,2,1)
 sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
@@ -588,7 +670,34 @@ plt.gcf().autofmt_xdate()
 
 El area marcada denota el intervalo de confianza del 90%
 
-Dado que los pronosticos con time gpt fueron muy malos voy a tratar con distintos parametros
+```{python}
+# Calculo del MAPE
+# Uno todos los pronosticos en un dataframe
+pronosticos_mape = pronosticos[['fecha', 'empleados', 'pr_ma', 'pr_auto2', 'pr_auto3']].copy()
+
+pronosticos_mape = pronosticos_mape.set_index('fecha')
+
+time_gpt = pro_timeGPT.set_index('fecha')
+
+pronosticos_mape = pd.concat([pronosticos_mape, time_gpt[['TimeGPT']]], axis=1)
+
+# Defino una funcion para calcular el mape, calculando la media del valor absoluto de la resta entre el valor real y el pronosticado, dividiendo por el valor real y multiplicando por 100
+
+def calculate_mape(actual, forecast):
+    return np.mean(np.abs((actual - forecast) / actual)) * 100
+
+pd.DataFrame({
+    'Modelo': ['$SARIMA(0,1,1)(0,1,1)_{12}$', '$SARIMA(1,1,0)(2,1,1)_{12}$', '$SARIMA(0,1,1)(2,1,1)_{12}$', 'Time GPT'],
+    'MAPE': [calculate_mape(pronosticos_mape['empleados'], pronosticos_mape['pr_ma']),
+    calculate_mape(pronosticos_mape['empleados'], pronosticos_mape['pr_auto2']),
+    calculate_mape(pronosticos_mape['empleados'], pronosticos_mape['pr_auto3']),
+    calculate_mape(pronosticos_mape['empleados'], pronosticos_mape['TimeGPT'])
+    ]
+})
+
+```
+
+Dado que los pronosticos con time gpt fueron muy malos voy a tratar con distintos parametros. Muy seguramente falla mucho por el sobreajuste, ya quue se hicieron 40 pasos de tuneo de parametros.
 
 ### Distintos pronosticos con time gpt
 
@@ -602,11 +711,13 @@ time_gpt1 = nixtla_client.forecast(
     freq = 'M',
     level=[90])
 
+
 # Pruebo usar 5 pasos de ajuste
 time_gpt2 = nixtla_client.forecast(
     df = empleo, h = 8,time_col= "fecha", 
     target_col= "empleados",
     level=[90], finetune_steps=5)
+
 
 # Pruebo usar la funcion de perdida mape
 time_gpt3 = nixtla_client.forecast(
@@ -619,10 +730,15 @@ time_gpt4 = nixtla_client.forecast(
     df = empleo, h = 8,time_col= "fecha", 
     target_col= "empleados",
     level=[90], finetune_loss= "mape", finetune_steps=10)
+    
 ```
 
 
 ```{python}
+#| fig-width: 8
+#| fig-height: 6
+
+
 # Pronosito opciones 1
 plt.subplot(2,2,1)
 sea.lineplot(x = empleo_total['fecha'],y = empleo_total['empleados'], color = 'black')
@@ -668,6 +784,22 @@ plt.fill_between(pronosticos['fecha'], time_gpt4['TimeGPT-lo-90'], time_gpt4['Ti
 plt.xlim(pd.to_datetime('2023-12-01'),pd.to_datetime('2024-09-01'))
 plt.ylim(400,440)
 plt.gcf().autofmt_xdate()
+```
+
+```{python}
+time_gpt1 = time_gpt1.set_index('fecha')
+time_gpt2 = time_gpt2.set_index('fecha')
+time_gpt3 = time_gpt3.set_index('fecha')
+time_gpt4 = time_gpt4.set_index('fecha')
+
+pd.DataFrame({
+    'Modelo': ['Time GPT conf 1', 'Time GPT conf 2', 'Time GPT conf 3', 'Time GPT conf 4'],
+    'MAPE': [calculate_mape(pronosticos_mape['empleados'], time_gpt1['TimeGPT']),
+    calculate_mape(pronosticos_mape['empleados'], time_gpt2['TimeGPT']),
+    calculate_mape(pronosticos_mape['empleados'], time_gpt3['TimeGPT']),
+    calculate_mape(pronosticos_mape['empleados'], time_gpt4['TimeGPT'])
+    ]
+})
 ```
 
 Los pronosticos mejoraron considerablemente pero siguen siendo peores que los metodos clasicos por ahora, hay que seguir viendo que problemas pueden tener y como solucionarlo.
