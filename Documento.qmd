@@ -1,0 +1,80 @@
+---
+title: "Untitled"
+format: pdf
+---
+
+# Carátula 
+
+(ver en otras tesinas la información que debe contener la carátula)
+
+# Agradecimientos (esto es opcional)
+
+# Resumen
+Palabras clave: series temporales, predicción, ARIMA, TimeGPT, redes neuronales, ¿? 
+
+# Tabla de contenidos
+
+# Introducción
+
+Contexto de la predicción de series temporales en Argentina.
+Motivación del uso de modelos avanzados como TimeGPT.
+Preguntas de investigación y estructura del documento.
+
+# Objetivos
+
+Redactar los objetivos de la tesina. Podes especificar un objetivo principal y objetivos específicos.
+
+## Objetivo General
+
+Evaluar el desempeño del modelo TimeGPT en la predicción de una serie temporal mensual de Argentina con tendencia y estacionalidad, comparándolo con modelos tradicionales (ARIMA) y técnicas de Machine Learning.
+
+## Objetivos Específicos
+
+- Revisión teórica sobre modelos de series temporales tradicionales y modernos, incluyendo ARIMA, Machine Learning y TimeGPT.
+- Preprocesamiento y análisis exploratorio de una serie temporal mensual de Argentina.
+- Entrenamiento y evaluación de modelos ARIMA, modelos de Machine Learning (p.ej., XGBoost, LSTM) y TimeGPT.
+- Comparación del desempeño de los modelos según métricas como RMSE, MAE y MASE.
+- Discusión de ventajas y desventajas de cada enfoque en términos de precisión, interpretabilidad y facilidad de implementación.
+
+# Metodología
+
+## Conceptos básicos de series temporales y datos faltantes
+
+- Conceptos básicos de series temporales: Introduce los conceptos fundamentales de series temporales, como serie de tiempo, componentes de una serie temporal, estacionariedad, autocorrelación.
+
+## Modelos utlilizados para pronosticar las series temporales
+
+- Modelos tradicionales para series temporales (ARIMA, ETS).
+- Modelos de Machine Learning aplicados a pronósticos (Random Forest, XGBoost, LSTM).
+- Introducción a TimeGPT y su enfoque basado en redes neuronales profundas.
+
+## Métricas de evaluación
+
+- RMSE, MAE, MAPE, o cualquier otra métrica relevante para la comparación de pronósticos.
+
+# Aplicación
+
+- Selección de la serie temporal: Descripción de la serie mensual utilizada (ejemplo: inflación, exportaciones, producción industrial, etc.).
+- Tratamiento de datos: Limpieza, detección de valores atípicos y transformación de variables.
+- Implementación de modelos: Configuración y parámetros utilizados en ARIMA, ML y TimeGPT.
+- Criterios de evaluación: Explicación de métricas utilizadas (RMSE, MAE, MASE, etc.).
+
+## Resultados y Comparación de Modelos
+
+- Descripción de los resultados obtenidos con cada modelo.
+- Comparación de desempeño en distintos horizontes de predicción.
+
+#	Conclusiones	
+
+-  Resume las principales conclusiones del estudio.
+-  Destaca las contribuciones del trabajo y su relevancia para el campo de la estadística y el análisis de datos.
+- Fortalezas y limitaciones de TimeGPT en comparación con otros modelos.
+- Proporciona recomendaciones finales y reflexiones sobre posibles direcciones futuras de investigación.
+
+# Referencias Bibliográficas
+
+Ir completando a medida que vas consultando artículos o libros
+
+# Anexo
+
+Incluye cualquier material adicional, como código fuente, datos adicionales, detalles sobre la implementación en R o Python, entre otros.
