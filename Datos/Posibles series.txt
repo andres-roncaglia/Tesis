@@ -9,3 +9,10 @@ https://investor.mercadolibre.com/#results-block
 # Precios de departamentos en rosario (no encontre datos)
 
 https://www.zonaprop.com.ar/noticias/zpindex/ros-alquiler/
+
+# Algun indicador de salud
+# Turismo en rosario
+# Volumen de trafico
+
+
+# Viajes en mi bici tu bici

@@ -20,9 +20,18 @@ Contexto de la predicción de series temporales en Argentina.
 Motivación del uso de modelos avanzados como TimeGPT.
 Preguntas de investigación y estructura del documento.
 
+
+Desde antaño, el deseo de saber que traerá el mañana invade los pensamientos de las personas, y tener una predicción del futuro es crucial para la toma de decisiones. 
+
+El estudio de las series de tiempo lleva años en desarrollo y permite realizar inferencias en datos temporales de diversas áreas, ya sea finanzas, medicina, medio ambiente u otras tantas más. Con un buen conocimiento de matemáticas, estadística e informática es sencillo hacer un pronóstico aproximado de casi cualquier dato que se mida en el tiempo. 
+
+Estos últimos años se vieron caracterizados por el gran aumento en los volúmenes de datos, el '*Big Data*' es presente y futuro, y en un mundo en donde todo se vuelve más complejo y el tiempo es cada vez más valioso, es conveniente tener herramientas que faciliten y acorten los tiempos de trabajo. Si bien los métodos actuales para trabajar series de tiempo son precisos, los modelos clásicos como ARIMA requieren conocimientos y trabajo manual, mientras que los métodos basados en *machine learning* actuales toman tiempo de entrenamiento y un gran coste computacional. Para resolver estos problemas llega *TimeGPT*, un modelo pre-entrenado exclusivamente para series de tiempo fácil de usar.
+
+Este documento tendrá el trabajo de explicar el funcionamiento de esta nueva tecnología y compararla con otros métodos más asentados en el campo de predicciones de series de tiempo. 
+
 # Objetivos
 
-Redactar los objetivos de la tesina. Podes especificar un objetivo principal y objetivos específicos.
+<!-- Redactar los objetivos de la tesina. Podes especificar un objetivo principal y objetivos específicos.
 
 ## Objetivo General
 
@@ -34,19 +43,78 @@ Evaluar el desempeño del modelo TimeGPT en la predicción de una serie temporal
 - Preprocesamiento y análisis exploratorio de una serie temporal mensual de Argentina.
 - Entrenamiento y evaluación de modelos ARIMA, modelos de Machine Learning (p.ej., XGBoost, LSTM) y TimeGPT.
 - Comparación del desempeño de los modelos según métricas como RMSE, MAE y MASE.
-- Discusión de ventajas y desventajas de cada enfoque en términos de precisión, interpretabilidad y facilidad de implementación.
+- Discusión de ventajas y desventajas de cada enfoque en términos de precisión, interpretabilidad y facilidad de implementación. -->
+
+El objetivo de esta tesina es, en primer lugar, comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo con *TimeGPT* en contraposición con otros métodos ya más establecidos como los modelos ARIMA o modelos a partir del uso de *machine learning*.
+
+Por otro lado también se busca que el lector obtenga conocimientos acerca de:
+
+- que es una serie de tiempo y para que sirve pronosticarlas
+
+- conceptos básicos del pronóstico de series de tiempo
+
+- como funcionan los modelos de pronóstico utilizados
+
+Para probar y ejemplificar estos puntos es necesario tener datos con los que trabajar, por lo que además de los objetivos planteados anteriormente se propone estimar el consumo mensual de gas natural de la empresa Litoral Gas entre noviembre de 2023 y abril de 2024.
+
 
 # Metodología
-
+<!-- 
 ## Conceptos básicos de series temporales y datos faltantes
 
-- Conceptos básicos de series temporales: Introduce los conceptos fundamentales de series temporales, como serie de tiempo, componentes de una serie temporal, estacionariedad, autocorrelación.
+- Conceptos básicos de series temporales: Introduce los conceptos fundamentales de series temporales, como serie de tiempo, componentes de una serie temporal, estacionariedad, autocorrelación. -->
+
+## Conceptos básicos de series de tiempo
+
+Una serie de tiempo es un conjunto de observaciones ordenadas por el tiempo y por lo general de forma equiespaciada sobre una variable de interés. El análisis de series de tiempo es la tarea de resumir y extraer información estadística útil para poder diagnosticar los valores históricos y pronosticar los futuros de la variable de interés.
+
+El gran volúmen de producción de este tipo de datos dado al auge del *Big Data* hace que saber entederlos y analizarlos correctamente sea esencial en el mundo de la estadística.
+
+Las series de tiempo se pueden presentar con distintos patrones, por lo que es de utilidad 'dividir' la serie en distintas componentes, en las que cada una representa una categoría del patrón de la serie:
+
+- La componente estacional reconoce los patrones que se repiten en cada intervalo de tiempo, por ejemplo la temperatura, que baja en invierno y en verano sube repitiendo este patrón cada año. 
+
+- La componente tendencia-ciclo (de forma abreviada simplemente tendencia) reconoce como se ve afectada la media a medida que avanza el tiempo, por ejemplo ...
+
+Se dice que una serie es debilmente estacionaria si la media y la variancia se mantienen constantes en el tiempo y la correlación entre distintas observaciones solo depende de la distancia en el tiempo entre estas. Por comodidad, cuando se mencione estacionariedad se estará haciendo referencia al cumplimiento de estas propiedades. 
+
+Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas.
+
+
 
 ## Modelos utlilizados para pronosticar las series temporales
 
 - Modelos tradicionales para series temporales (ARIMA, ETS).
 - Modelos de Machine Learning aplicados a pronósticos (Random Forest, XGBoost, LSTM).
 - Introducción a TimeGPT y su enfoque basado en redes neuronales profundas.
+
+### ARIMA
+
+Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además generaliza en el sentido de los modelos diferenciados (I), en los que se resta a cada observacion los $d$-ésimo valores anteriores para estacionarizar en media.
+
+Formalmente un modelo $ARIMA(p,d,q)$ se define como:
+
+$$
+\psi_p(B)(1-B)^dZ_t = \theta_0 + \theta_q(B)\alpha_t
+$$
+
+Donde $Z_t$ es la observación $t$-ésima, $\psi_p(B)$ y $\theta_q(B)$ son funciones de los rezagos ($B$), correspondientes a la parte autoregresiva y promedio móvil respectivamente, $d$ es el grado de diferenciación y $\alpha_t$ es el error de la $t$-ésima observación.
+
+Se debe tener en cuenta estos aspectos importantes:
+
+- Se dice que una serie es invertible si se puede escribir cada observación como una función de las observaciones pasadas más un error aleatorio. Por definición, todo modelo AR es invertible.
+
+- Por definición, todo modelo MA es estacionario.
+
+- $\psi_p(B) = 1 - \psi_1 B - \psi_2 B_2 - ... - \psi_p B^p$ es el polinomio característico de la componente AR y $\theta_q(B) = 1 - \theta_1 B - \psi_2 B^2 - ... - \psi_p B^q$ de la componente MA. Si las raíces de los polinomios característicos caen fuera del círculo unitario, entonces un proceso AR se puede esctribir de forma MA y es estacionario, y a su vez un proceso MA se puede escribir de forma AR y es invertible.
+
+- Un proceso $ARIMA$ es estacionario e invertible si su componente AR y MA lo son respectivamente.
+
+Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad que puede tener una serie, es por esto que se introducen los modelos $SARIMA(p,d,q)(P,D,Q)_s$. Estos modelos siguen la misma estructura que los $ARIMA$, agregando componentes AR, MA y diferenciaciones a la parte estacional de la serie con período $s$.
+
+### Time GPt
+
+
 
 ## Métricas de evaluación
 
@@ -78,3 +146,15 @@ Ir completando a medida que vas consultando artículos o libros
 # Anexo
 
 Incluye cualquier material adicional, como código fuente, datos adicionales, detalles sobre la implementación en R o Python, entre otros.
+
+
+
+
+# IDEAS
+
+## Distintos modelos a usar para el apartado machine learning
+
+- LightGBM con optimizacion de parametros usando bayes (libro avanzado de python) es más eficiente que XGBoost
+- Prophet, no es un modelo como tal sino un procedimiento automatizado para la construccion de modelos predictivos
+- Red neuronal LSTM? no creo que lo haga pero puede ser util
+- Para elegir el mejor modelo uso cross-validation? porque no puedo hacerlo para arima

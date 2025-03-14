@@ -1,0 +1,117 @@
+---
+title: "Tesis"
+format: pdf
+echo: False
+warning: False
+---
+
+
+```{python}
+# CARGA DE LIBRERIAS ------------------
+
+# Para el manejo de estructuras de datos
+import pandas as pd
+import numpy as np
+
+# Para dar formato fecha
+from datetime import datetime
+
+# Para graficos
+import matplotlib.pyplot as plt
+import seaborn as sea
+
+# Para la transformacion de box y cox
+from scipy import stats
+
+# Para el calculo de autocorrelaciones
+from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.graphics.tsaplots import plot_pacf
+from statsmodels.tsa.stattools import acf, pacf
+
+# Para ajustar modelos arima
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima.model import ARIMAResults
+from pmdarima import auto_arima
+
+# Para calcular el test de ljung box
+import statsmodels.api as sm
+
+# Para el test de kolmogorov-smirnov
+import scipy.stats as stats
+
+# Para calcular el error medio cuadratico
+from sklearn.metrics import mean_squared_error
+
+# Para time GPT
+from nixtla import NixtlaClient
+nixtla_client = NixtlaClient(api_key="nixak-ZIV9C5mIZ2HlEAMJG54njJV5YKC1unQTJNCLea1B52KuMaCaoLf4421VIBWSnauQRzh4JxA7aBmQbOuJ")
+
+# Para realizar consultas a la base de datos
+import urllib.parse
+import requests
+```
+
+
+
+```{python}
+# Creamos una función para realizar llamadas a la API de datos argentina
+def get_api_call(ids, **kwargs):
+    API_BASE_URL = "https://apis.datos.gob.ar/series/api/"
+    kwargs["ids"] = ",".join(ids)
+    return "{}{}?{}".format(API_BASE_URL, "series", urllib.parse.urlencode(kwargs))
+```
+
+
+```{python}
+# Llamada a la API y carga de datos
+
+api_call = get_api_call(["364.3_LITORAL_GAGAS__11"], start_date="2016-01")
+
+json = requests.get(api_call).json()
+
+datos = pd.DataFrame(json['data'], columns = ['fecha', 'consumo'])
+
+datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
+```
+
+
+```{python}
+# Tabla con los primeros y ultimos datos
+print(datos.head(3),datos.tail(3))
+
+# Grafico los datos
+plt.plot(datos['fecha'], datos['consumo'], marker = '.')
+plt.title('Consumo de gas natural')
+plt.xlabel('Año')
+plt.ylabel('Consumo (millones de metros cúbicos)')
+plt.show()
+
+```
+
+
+```{python}
+# Divido el conjunto de datos en entrenamiento y testeo
+
+corte = len(datos)-6
+
+datos_train = datos[:corte]
+datos_test = datos[corte:]
+
+print(datos_test.head())
+
+```
+
+
+```{python}
+#| fig-cap: 'Distribución del consumo de gas natural de Litoral Gas por año'
+#| label: fig-dist-box
+
+sea.boxplot(x = datos_train["fecha"].dt.year, y = datos_train["consumo"])
+
+fitted_data, fitted_lambda, fitted_lambda_ic = stats.boxcox(datos_train["consumo"], alpha = 0.05)
+
+print(fitted_lambda_ic)
+```
+
+Observando la @fig-dist-box parecería ser que la variabilidad del consumo de gas natural no es la misma durante los años, sin embargo, el intervalo de confianza para el parámetro de transformación de Box y Cox resulta ser `python round(fitted_lambda_ic,3)` con un nivel de significación del 5%. Esto indica que la hipótesis nula que sostiene que la variancia del consumo es la misma año a año, y por lo tanto no hay necesidad de hacer transformar la variable.
+
