@@ -3,6 +3,14 @@ title: "Untitled"
 format: pdf
 ---
 
+```{python}
+# LIBRERIAS
+
+# Para imprimir imagenes
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+```
+
 # Carátula 
 
 (ver en otras tesinas la información que debe contener la carátula)
@@ -80,7 +88,19 @@ Se dice que una serie es debilmente estacionaria si la media y la variancia se m
 
 Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas.
 
+## Introducción a los modelos transformadores
 
+En los últimos años '*ChatGPT*' ganó una popularidad excesiva a nivel mundial, y rápidamente muchos competidores salieron a la luz para agarrar una parte del gran mercado de la inteligencia artificial. El chatbot de OpenAI hizo que muchas las empresas de tecnología quieran crear su propia versión y usar la tecnología implementada para distintos usos. Las siglas *GPT* provienen de *Generative Pre-trained Transformer*, un tipo de inteligencia artificial de la familia de las redes neuronales que usa arquitectura *transformer*. Entender que significa esto no es tarea sencilla si no se tiene ya una base de conocimientos en el tema, es por eso que a continuación se explican brevemente ciertos conceptos para luego dar pie a los modelos transformadores.
+
+- Inteligencia Artificial (IA): Es la ciencia que busca construir computadoras, máquinas y programas que puedan razonar, aprender y actuar de la misma manera que lo haría un ser humano.
+
+- *Machine Learning* (ML): Es una rama de la inteligencia artificial enfocada a permitir que las computadoras y máquinas imiten la forma en que los humanos aprenden, para realizar tareas de forma autónoma y mejorar la eficiencia y eficacia a través de la experiencia y la exposición a mas información.
+
+- Red Neuronal (neuronal newtwork): Las redes neuronales son un tipo de programa o modelo de *machine learning* que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biologica en la que trabajan la neuronas para indentificar fenómenos, evaluar opciones y llegar a conclusiones. **EXTENDER CON BREVE EXPLICACION SOBRE CAPAS Y TIPOS COMO CNN Y RNN**
+
+- Aprendizaje profundo (*Deep learning*): Es una subdivisión del *machine learning* que usa redes neuronales más complejas para acercarse aún más a la forma en la que el cerebro humano trabaja. 
+
+Los modelos transformadores (*transformer models*) son un tipo de modelos con arquitectura de aprendizaje profundo (*deep learning*). Su auge se ve explicado por su alta eficiencia para entrenar y realizar inferencias en comparación con otros métodos de aprendizaje profundo tales como las redes neuronales recurrentes (RNN) o redes neuronales convolucionales (CNN). Esta eficiencia se debe al uso de mecanismos de atención, presentado en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google, este mecanismo se detallará más adelante para poder ser seguido con ejemplos.
 
 ## Modelos utlilizados para pronosticar las series temporales
 
@@ -110,15 +130,111 @@ Se debe tener en cuenta estos aspectos importantes:
 
 - Un proceso $ARIMA$ es estacionario e invertible si su componente AR y MA lo son respectivamente.
 
-Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad que puede tener una serie, es por esto que se introducen los modelos $SARIMA(p,d,q)(P,D,Q)_s$. Estos modelos siguen la misma estructura que los $ARIMA$, agregando componentes AR, MA y diferenciaciones a la parte estacional de la serie con período $s$.
+Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad que puede tener una serie, es por esto que se introducen los modelos $SARIMA(p,d,q)(P,D,Q)_s$ que agregan componentes AR, MA y diferenciaciones a la parte estacional de la serie con período $s$.
 
-### Time GPt
+Un buen modelo $SARIMA$ debe cumplir las siguientes propiedades:
+
+- Sus residuos se comportan como ruido blanco, es decir, estan incorrelacionados y se distribuyen normal, con media y variancia constante.
+
+- Es admisible, es decir que es invertible y estacionario.
+
+- Es parsimonioso, en el sentido de que sus parámetros son significativos.
+
+- Es estable en los parámetros, que se cumple cuando las correlaciones entre los parámetros no son altas.
+
+### TimeGPt
+
+TimeGPt es el primer modelo fundacional (modelos entrenados con conjuntos de datos masivos)^[Según los creadores de TimeGPT, fue entrenado con una colección de 100 mil millones de observaciones provenientes de datos públicos.] pre-entrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos pre-entrenados constituyen una gran innovación haciendo que el pronóstico de series de tiempo sea más accesible, preciso, tenga menor complejidad computacional y consuma menos tiempo.
+
+TimeGPT es un modelo de tipo transformer con mecanismos de autoatención (del inglés *self-attention mechanisms*) que **no** es de código abierto. La autoatención captura dependencias y relaciónes en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. De acuerdo con los creadores de TimeGPT, 
+
+La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
+
+![Diagrama de la estructura del modelo](../Info%20tesis/Imgs/modelo.png){#fig-modelo}
+
+#### Paso a paso del funcionamiento del modelo
+
+##### Codificador
+
+1. *Input embedding*: Cada *token* (observaciones en el caso de TimeGPT) es transformado en un vector (vector de entrada) con muchas dimensiones ($\vec E$). Las dimensiones corresponden a diferentes caracteristicas que el modelo definió en el pre-entrenado con una numerosa cantidad de parámetros.
+
+2. Codificación posicional: Típicamente se introduce como un set de valores adicionales o vectores que son añadidos los vectores de entrada antes de alimentarlos al modelo ($\vec E \Leftarrow \vec E + \vec P$). Estas codificaciones posicionales tienen patrones específicos que agregan la información posicional del token.
+
+3. *Multi-Head Attention* (Atención multi-cabezal): La autoatención opera en múltiples 'cabezales de atención' para capturar los diferentes tipos de relaciones entre tokens. Una cabeza de atención verifica el contexto en el que el token está y manipula los valores del vector que lo representa para añadir esta información contextual.
+
+La verificación del contexto funciona gracias a una matriz la cúal se llamará *Query* ($W_Q$) que examina ciertas características, y es multiplicada por el vector de entrada ($\vec E$) resultando en un vector de consultas ($\vec Q$) para cada token. Una matriz de claves (*Key matrix*) ($W_K$) que comprueba las relaciones con las características en la matriz de consultas y tiene las mismas dimensiones que esta es también multiplicada por $\vec E$ generando así el vector de claves ($\vec K$). Luego se forma una nueva matriz a partir de los productos cruzados entre los vectores $\vec K$ y $\vec Q$ de cada token, se divide por la raíz de la dimensión de los vectores^[Es útil para mantener estabilidad numérica, la cual describe cómo los errores en los datos de entrada se propagan a través del algoritmo. En un método estable, los errores debidos a las aproximaciones se atenúan a medida que la computación procede.] ($\sqrt{d_k}$) y se normaliza con *softmax*^[ $softmax(x) = \frac{e^{x_i/t}}{\sum_j e^{x_j/t}}$] por columna^[Aplicar *softmax* hace que cada columna se comporte como una distribución de probabilidad.] ($\vec S$), valores más altos indican que un token (de las columnas) esta siendo influenciado por el comportamiento de otro token (de las filas).
+
+![(before applying softmax) for example: Fluffy and Blue contribute to creature](Imgs/attention_matrix.png)
+
+Ahora que se sabe que tokens son relevantes para otros tokens, es necesario saber como son afectados. Para esto existe otra matriz de valores ($W_V$) que es multiplicada por cada vector de entrada resultando en los vectores de valor ($\vec V$) que son multiplicados a cada columna. La suma por filas devuelven el vector ($\Delta \vec E$) que debe ser sumado al vector de entrada original de cada token.
+
+![](Imgs/attention_matrix_softmax.png)
+
+$$
+\Delta \vec E_j = \sum_i S_j \cdot \vec V_i
+$$
+
+Con múltiples 'cabezas', cada una con sus propias matrices $W_K$, $W_Q$ y $W_V$, se generan varios $\Delta \vec E$ que se suman y se añaden al vector de entrada original. 
+
+$$
+\vec E \Leftarrow \vec E+ \sum_h \Delta \vec E_h
+$$
+
+En resumen, y haciendo referencia la publicación [Attention is all you need](https://arxiv.org/pdf/1706.03762):
+
+$$
+Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}})V
+$$
+
+Es importante notar que todas las matrices $Q$, $K$ y $V$ son pre-entrenadas.
 
 
+4. Sumar y normalizar (*Add and norm*): En lugar de simplemente pasar los datos por las capas, las conexiones residuales se añaden sobre el vector de entrada en la salida de cada capa. Esto es lo que se hizo cuando se sumaron los cambios al vector de entrada, en lugar de directamente modificar el vector.
+
+Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al actualizarlos, una normalización al vector estabiliza el entrenamiento y mejora la convergencia. 
+
+5. Red neuronal convolucional (CNN): A diferencia de otros modelos transformadores tradicionales, TimeGPT incorpora *CNN*s para descubrir dependencias locales y patrones de corto plazo, tratando de minimizar una función de costo (MAPE, MAE, RMSE, etc.).
+
+##### Decodificador
+
+1. *Output embedding* (desplazado hacia la derecha): La entrada del decodificador son los tokens desplazados hacia la derecha.
+
+2. Codificación posicional
+
+
+3. *Masked multi-head attention* (Atención multicabezal enmascarada): Ahora que las predicciones deben hacerce únicamente con los valores previos a cada token, en el proceso de 'atención' y antes de aplicar la transformación softmax se debe reemplazar todos los valores debajo de la diagonal principal de la matriz $QK$ por $-\infty$ para prevenir que los tokens sean influenciados por tokens anteriores.
+
+4. *Multi-head attention*: En este caso, se usan las matrices de claves y valores que da como salida el codificador y la matriz de consultas es la salida de la capa de atención multicabezal enmascarada.
+
+5. Conexión lineal: Es una capa completamente conectada que traduce las representaciones de atributos aprendidas en predicciones relevantes.
 
 ## Métricas de evaluación
 
-- RMSE, MAE, MAPE, o cualquier otra métrica relevante para la comparación de pronósticos.
+<!-- - RMSE, MAE, MAPE, o cualquier otra métrica relevante para la comparación de pronósticos. -->
+
+Es muy posible que más de un modelo ajuste bien, por eso es necesario tener alguna forma de compararlos para elegir el mejor con un criterio formal. Para esto se usan medidas del error sobre los valores pronosticados.
+
+Sea $e_l = Z_{n+1} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error son:
+
+- Error Cuadrático Medio (*Mean Square Error (MSE)*):
+
+$$
+MSE = \frac{1}{M}\sum^M_{i=1}e_i^2
+$$
+
+- Error absoluto medio (*Mean Absolute Error (MAE)*):
+
+$$
+MAE = \frac{1}{M}\sum^M_{i=1}|e_i|
+$$
+
+- Porcentaje del error absoluto medio (*Mean Absolute Percentage Error (MAPE)*)
+
+$$
+MAPE = (\frac{1}{M}\sum^M_{i=1}|\frac{e_i}{Z_{n+l}}|)\cdot 100 \%
+$$
+
+Aquel modelo que tenga el menor valor en estas medidas será el mejor.
 
 # Aplicación
 
@@ -158,3 +274,5 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 - Prophet, no es un modelo como tal sino un procedimiento automatizado para la construccion de modelos predictivos
 - Red neuronal LSTM? no creo que lo haga pero puede ser util
 - Para elegir el mejor modelo uso cross-validation? porque no puedo hacerlo para arima
+- Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
+- hacer equivalencia del documento en GitBook
