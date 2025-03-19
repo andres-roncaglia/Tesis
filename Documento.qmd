@@ -74,7 +74,7 @@ Para probar y ejemplificar estos puntos es necesario tener datos con los que tra
 
 ## Conceptos básicos de series de tiempo
 
-Una serie de tiempo es un conjunto de observaciones ordenadas por el tiempo y por lo general de forma equiespaciada sobre una variable de interés. El análisis de series de tiempo es la tarea de resumir y extraer información estadística útil para poder diagnosticar los valores históricos y pronosticar los futuros de la variable de interés.
+Una serie de tiempo es un conjunto de observaciones ordenadas por el tiempo, generalmente de forma equiespaciada, sobre una variable de interés. El análisis de series de tiempo consiste en resumir y extraer información estadística útil para poder diagnosticar los valores históricos de la variable de interés y pronosticar los futuros.
 
 El gran volúmen de producción de este tipo de datos dado al auge del *Big Data* hace que saber entederlos y analizarlos correctamente sea esencial en el mundo de la estadística.
 
@@ -82,9 +82,9 @@ Las series de tiempo se pueden presentar con distintos patrones, por lo que es d
 
 - La componente estacional reconoce los patrones que se repiten en cada intervalo de tiempo, por ejemplo la temperatura, que baja en invierno y en verano sube repitiendo este patrón cada año. 
 
-- La componente tendencia-ciclo (de forma abreviada simplemente tendencia) reconoce como se ve afectada la media a medida que avanza el tiempo, por ejemplo ...
+- La componente tendencia-ciclo (de forma abreviada simplemente tendencia) reconoce como se ve afectada la media a medida que avanza el tiempo, por ejemplo la pobación mundial, que crece cada año.
 
-Se dice que una serie es debilmente estacionaria si la media y la variancia se mantienen constantes en el tiempo y la correlación entre distintas observaciones solo depende de la distancia en el tiempo entre estas. Por comodidad, cuando se mencione estacionariedad se estará haciendo referencia al cumplimiento de estas propiedades. 
+Se dice que una serie es débilmente estacionaria si la media y la variancia se mantienen constantes en el tiempo y la correlación entre distintas observaciones solo depende de la distancia en el tiempo entre estas. Por comodidad, cuando se mencione estacionariedad se estará haciendo referencia al cumplimiento de estas propiedades. 
 
 Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas.
 
@@ -96,21 +96,21 @@ En los últimos años '*ChatGPT*' ganó una popularidad excesiva a nivel mundial
 
 - *Machine Learning* (ML): Es una rama de la inteligencia artificial enfocada a permitir que las computadoras y máquinas imiten la forma en que los humanos aprenden, para realizar tareas de forma autónoma y mejorar la eficiencia y eficacia a través de la experiencia y la exposición a mas información.
 
-- Red Neuronal (neuronal newtwork): Las redes neuronales son un tipo de programa o modelo de *machine learning* que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biologica en la que trabajan la neuronas para indentificar fenómenos, evaluar opciones y llegar a conclusiones. **EXTENDER CON BREVE EXPLICACION SOBRE CAPAS Y TIPOS COMO CNN Y RNN**
+- Red Neuronal (*neuronal network*): Las redes neuronales son un tipo de programa o modelo de *machine learning* que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biologica en la que trabajan la neuronas para indentificar fenómenos, evaluar opciones y llegar a conclusiones. **EXTENDER CON BREVE EXPLICACION SOBRE CAPAS Y TIPOS COMO CNN Y RNN**
 
 - Aprendizaje profundo (*Deep learning*): Es una subdivisión del *machine learning* que usa redes neuronales más complejas para acercarse aún más a la forma en la que el cerebro humano trabaja. 
 
-Los modelos transformadores (*transformer models*) son un tipo de modelos con arquitectura de aprendizaje profundo (*deep learning*). Su auge se ve explicado por su alta eficiencia para entrenar y realizar inferencias en comparación con otros métodos de aprendizaje profundo tales como las redes neuronales recurrentes (RNN) o redes neuronales convolucionales (CNN). Esta eficiencia se debe al uso de mecanismos de atención, presentado en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google, este mecanismo se detallará más adelante para poder ser seguido con ejemplos.
+Los modelos transformadores (*transformer models*) son un tipo de modelos con arquitectura de aprendizaje profundo. Su auge se ve explicado por su alta eficiencia para entrenar y realizar inferencias en comparación con otros métodos de aprendizaje profundo tales como las redes neuronales recurrentes (RNN) o redes neuronales convolucionales (CNN). Esta eficiencia se debe al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google, este mecanismo se detallará más adelante para poder ser seguido con ejemplos.
 
 ## Modelos utlilizados para pronosticar las series temporales
 
-- Modelos tradicionales para series temporales (ARIMA, ETS).
+<!-- - Modelos tradicionales para series temporales (ARIMA, ETS).
 - Modelos de Machine Learning aplicados a pronósticos (Random Forest, XGBoost, LSTM).
-- Introducción a TimeGPT y su enfoque basado en redes neuronales profundas.
+- Introducción a TimeGPT y su enfoque basado en redes neuronales profundas. -->
 
 ### ARIMA
 
-Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además generaliza en el sentido de los modelos diferenciados (I), en los que se resta a cada observacion los $d$-ésimo valores anteriores para estacionarizar en media.
+Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además generaliza en el sentido de los modelos diferenciados (I), en los que se resta a cada observacion los $d$-ésimo valores anteriores para estacionarizar en media.
 
 Formalmente un modelo $ARIMA(p,d,q)$ se define como:
 
@@ -126,7 +126,7 @@ Se debe tener en cuenta estos aspectos importantes:
 
 - Por definición, todo modelo MA es estacionario.
 
-- $\psi_p(B) = 1 - \psi_1 B - \psi_2 B_2 - ... - \psi_p B^p$ es el polinomio característico de la componente AR y $\theta_q(B) = 1 - \theta_1 B - \psi_2 B^2 - ... - \psi_p B^q$ de la componente MA. Si las raíces de los polinomios característicos caen fuera del círculo unitario, entonces un proceso AR se puede esctribir de forma MA y es estacionario, y a su vez un proceso MA se puede escribir de forma AR y es invertible.
+- $\psi_p(B) = 1 - \psi_1 B - \psi_2 B_2 - ... - \psi_p B^p$ es el polinomio característico de la componente AR y $\theta_q(B) = 1 - \theta_1 B - \theta_2 B^2 - ... - \theta_p B^q$ de la componente MA. Si las raíces de los polinomios característicos caen fuera del círculo unitario, entonces un proceso AR se puede esctribir de forma MA y es estacionario, y a su vez un proceso MA se puede escribir de forma AR y es invertible.
 
 - Un proceso $ARIMA$ es estacionario e invertible si su componente AR y MA lo son respectivamente.
 
@@ -144,9 +144,9 @@ Un buen modelo $SARIMA$ debe cumplir las siguientes propiedades:
 
 ### TimeGPt
 
-TimeGPt es el primer modelo fundacional (modelos entrenados con conjuntos de datos masivos)^[Según los creadores de TimeGPT, fue entrenado con una colección de 100 mil millones de observaciones provenientes de datos públicos.] pre-entrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos pre-entrenados constituyen una gran innovación haciendo que el pronóstico de series de tiempo sea más accesible, preciso, tenga menor complejidad computacional y consuma menos tiempo.
+TimeGPT es el primer modelo fundacional (modelos entrenados con conjuntos de datos masivos)^[Según los creadores de TimeGPT, fue entrenado con una colección de 100 mil millones de observaciones provenientes de datos públicos.] pre-entrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos pre-entrenados constituyen una gran innovación haciendo que el pronóstico de series de tiempo sea más accesible, preciso, tenga menor complejidad computacional y consuma menos tiempo.
 
-TimeGPT es un modelo de tipo transformer con mecanismos de autoatención (del inglés *self-attention mechanisms*) que **no** es de código abierto. La autoatención captura dependencias y relaciónes en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. De acuerdo con los creadores de TimeGPT, 
+TimeGPT es un modelo de tipo transformer con mecanismos de autoatención (del inglés *self-attention mechanisms*) que **no** es de código abierto. La autoatención captura dependencias y relaciónes en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
 La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
 
@@ -158,17 +158,17 @@ La arquitectura del modelo consiste en una estructura con codificador y decodifi
 
 1. *Input embedding*: Cada *token* (observaciones en el caso de TimeGPT) es transformado en un vector (vector de entrada) con muchas dimensiones ($\vec E$). Las dimensiones corresponden a diferentes caracteristicas que el modelo definió en el pre-entrenado con una numerosa cantidad de parámetros.
 
-2. Codificación posicional: Típicamente se introduce como un set de valores adicionales o vectores que son añadidos los vectores de entrada antes de alimentarlos al modelo ($\vec E \Leftarrow \vec E + \vec P$). Estas codificaciones posicionales tienen patrones específicos que agregan la información posicional del token.
+2. Codificación posicional: Típicamente se introduce como un set de valores adicionales o vectores que son añadidos a los vectores de entrada antes de alimentarlos al modelo ($\vec E \Leftarrow \vec E + \vec P$). Estas codificaciones posicionales tienen patrones específicos que agregan la información posicional del token.
 
 3. *Multi-Head Attention* (Atención multi-cabezal): La autoatención opera en múltiples 'cabezales de atención' para capturar los diferentes tipos de relaciones entre tokens. Una cabeza de atención verifica el contexto en el que el token está y manipula los valores del vector que lo representa para añadir esta información contextual.
 
 La verificación del contexto funciona gracias a una matriz la cúal se llamará *Query* ($W_Q$) que examina ciertas características, y es multiplicada por el vector de entrada ($\vec E$) resultando en un vector de consultas ($\vec Q$) para cada token. Una matriz de claves (*Key matrix*) ($W_K$) que comprueba las relaciones con las características en la matriz de consultas y tiene las mismas dimensiones que esta es también multiplicada por $\vec E$ generando así el vector de claves ($\vec K$). Luego se forma una nueva matriz a partir de los productos cruzados entre los vectores $\vec K$ y $\vec Q$ de cada token, se divide por la raíz de la dimensión de los vectores^[Es útil para mantener estabilidad numérica, la cual describe cómo los errores en los datos de entrada se propagan a través del algoritmo. En un método estable, los errores debidos a las aproximaciones se atenúan a medida que la computación procede.] ($\sqrt{d_k}$) y se normaliza con *softmax*^[ $softmax(x) = \frac{e^{x_i/t}}{\sum_j e^{x_j/t}}$] por columna^[Aplicar *softmax* hace que cada columna se comporte como una distribución de probabilidad.] ($\vec S$), valores más altos indican que un token (de las columnas) esta siendo influenciado por el comportamiento de otro token (de las filas).
 
-![(before applying softmax) for example: Fluffy and Blue contribute to creature](Imgs/attention_matrix.png)
+![(before applying softmax) for example: Fluffy and Blue contribute to creature](../Info%20tesis/Imgs/attention_matrix.png)
 
 Ahora que se sabe que tokens son relevantes para otros tokens, es necesario saber como son afectados. Para esto existe otra matriz de valores ($W_V$) que es multiplicada por cada vector de entrada resultando en los vectores de valor ($\vec V$) que son multiplicados a cada columna. La suma por filas devuelven el vector ($\Delta \vec E$) que debe ser sumado al vector de entrada original de cada token.
 
-![](Imgs/attention_matrix_softmax.png)
+![](../Info%20tesis/Imgs/attention_matrix_softmax.png)
 
 $$
 \Delta \vec E_j = \sum_i S_j \cdot \vec V_i
