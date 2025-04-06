@@ -18,7 +18,7 @@ from datetime import datetime
 
 # Para graficos
 import matplotlib.pyplot as plt
-import seaborn as sea
+import seaborn as sns
 
 # Para la transformacion de box y cox
 from scipy import stats
@@ -49,6 +49,15 @@ nixtla_client = NixtlaClient(api_key="nixak-ZIV9C5mIZ2HlEAMJG54njJV5YKC1unQTJNCL
 # Para realizar consultas a la base de datos
 import urllib.parse
 import requests
+
+# Para guardar y cargar los modelos
+from joblib import dump, load
+
+# Para estandarizar los datos
+from sklearn.preprocessing import MinMaxScaler
+
+# Para medir el tiempo que tarda en ajustar los modelos
+import time
 ```
 
 
@@ -92,7 +101,13 @@ plt.show()
 ```{python}
 # Divido el conjunto de datos en entrenamiento y testeo
 
-corte = len(datos)-6
+corte = len(datos)-12
+
+datos.columns = ['ds', 'y']
+
+# Normalizamos 'y' para que los modelos deep learning puedan converger mejor
+# scaler = MinMaxScaler(feature_range=(-1, 1)) 
+# datos[['y']] = scaler.fit_transform(datos[['y']])
 
 datos_train = datos[:corte]
 datos_test = datos[corte:]
@@ -105,8 +120,9 @@ print(datos_test.head())
 ```{python}
 #| fig-cap: 'Distribución del consumo de gas natural de Litoral Gas por año'
 #| label: fig-dist-box
+#| eval: False
 
-sea.boxplot(x = datos_train["fecha"].dt.year, y = datos_train["consumo"])
+sns.boxplot(x = datos_train["fecha"].dt.year, y = datos_train["consumo"])
 
 fitted_data, fitted_lambda, fitted_lambda_ic = stats.boxcox(datos_train["consumo"], alpha = 0.05)
 
@@ -115,3 +131,404 @@ print(fitted_lambda_ic)
 
 Observando la @fig-dist-box parecería ser que la variabilidad del consumo de gas natural no es la misma durante los años, sin embargo, el intervalo de confianza para el parámetro de transformación de Box y Cox resulta ser `python round(fitted_lambda_ic,3)` con un nivel de significación del 5%. Esto indica que la hipótesis nula que sostiene que la variancia del consumo es la misma año a año, y por lo tanto no hay necesidad de hacer transformar la variable.
 
+# Predicciones con machine learning
+
+```{python}
+# Prueba con sktime
+
+from sktime.forecasting.base import ForecastingHorizon
+
+from sktime.forecasting.theta import ThetaForecaster
+
+from sktime.forecasting.fbprophet import Prophet
+
+from sktime.forecasting.arima import AutoARIMA
+
+from sktime.forecasting.chronos import ChronosForecaster
+
+from sktime.forecasting.pytorchforecasting import PytorchForecastingDeepAR
+
+from sktime.forecasting.timesfm_forecaster import TimesFMForecaster
+
+from sktime.forecasting.neuralforecast import NeuralForecastLSTM
+
+from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
+
+from sktime.split import temporal_train_test_split
+
+```
+
+```{python}
+metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Tiempo']))
+```
+
+```{python}
+# Tuner de hiperparametros
+
+def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
+
+    # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
+    train_y, test_y = temporal_train_test_split(datos_train['y'], test_size=0.1)
+
+    num_pred = ForecastingHorizon(test_y.index, is_relative=False)
+
+    # Si no se definen parametros, simplemente se devuelve el modelo base ajustado
+    if not isinstance(parametros, dict):
+        
+        fh = ForecastingHorizon(datos_test.index, is_relative=False)
+
+        timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+        forecaster = forecaster_fun().fit(datos_train['y'])
+          
+        # Obtenemos predicciones
+        pred = forecaster.predict(fh)
+        timer_final = time.time()
+        tiempo = timer_comienzo - timer_final
+
+        mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
+
+        # Graficamos el pronostico
+        datos = pd.concat([datos_train, datos_test])
+        plt.plot(datos['ds'], datos['y'])
+        sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
+
+        # Devolvemos las predicciones
+        return pred, mape_final, tiempo, []
+
+
+    
+    mapes = []
+    nombre_cols = list(parametros.keys())
+
+    # Expandimos la grilla de parametros para evaluar todas las opciones
+    ## Paso 1: Pasar los valores del diccionario como vectores de una lista
+    grilla_lista = list(parametros.values())
+
+    ## Paso 2: Expandimos la lista por todos los parametros. '*' sirve para desempaquetar los elementos de la lista, en lugar de pasarse como '[elem1, elem2]' se pasan como 'elem1, elem2'
+    grilla_expan = list(map(np.ravel, np.meshgrid(*grilla_lista)))
+
+    ## Paso 3: Guardamos todo como un Dataframe
+    grilla = pd.DataFrame(np.array(grilla_expan).T, columns= nombre_cols)
+
+    # Vamos a probar cada combinacion de filas 
+    for j in range(0,grilla.shape[0]):
+
+        # Primero pasamos la fila como diccionario para usar los argumentos
+        kwargs = grilla.iloc[j].to_dict()
+            
+
+        # TimeGPT no necesita una funcion para ajustar el modelo
+        print(kwargs)
+        if forecaster_fun.__name__ == 'forecast':
+            gpttrain_y = pd.DataFrame({'y': train_y, 'ds': datos_train['ds'][:len(train_y)]})
+            forecaster = forecaster_fun(df = gpttrain_y, h = len(test_y), time_col= 'ds',
+            target_col= 'y', freq= 'M', level=[95], **kwargs)
+            mape = mean_absolute_percentage_error(test_y, forecaster['TimeGPT'])
+            mapes.append(mape)
+            continue
+
+
+        # Luego especificamos el pronosticador
+        forecaster = forecaster_fun(**kwargs)
+
+
+        # Ajustamos el modelo
+        try:
+            forecaster.fit(train_y)
+          
+            # Obtenemos predicciones
+            pred = forecaster.predict(num_pred)
+
+            # Calculamos medidas del error
+            mape = mean_absolute_percentage_error(test_y, pred)
+            mapes.append(mape)
+        except:
+            # Si el modelo falla en ajustar, asignamos NaN
+            mapes.append(np.NaN)
+
+    # Una vez probamos todas las opciones, vemos con cual modelo se obtuvo el menor error
+    mejor_combinacion = mapes.index(np.nanmin(mapes))
+
+    # Por ultimo ajustamos el mejor modelo con todo el conjunto de entrenamiento:
+
+    kwargs = grilla.iloc[mejor_combinacion].to_dict()
+
+    # Time GPT no necesita llamar a una funcion para ajustar el modelo
+
+    if forecaster_fun.__name__ == 'forecast':
+        timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+        
+        forecaster = forecaster_fun(df = datos_train, h = len(datos_test), time_col= 'ds',
+            target_col= 'y', freq= 'M', level=[95], **kwargs)
+        
+        timer_final = time.time()
+        tiempo = timer_final - timer_comienzo
+
+        pred = forecaster['TimeGPT']
+    
+    else: 
+        forecaster = forecaster_fun(**kwargs)
+        
+        timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+        forecaster.fit(datos_train['y'])
+            
+        # Obtenemos predicciones
+        fh = ForecastingHorizon(datos_test.index, is_relative=False)
+        pred = forecaster.predict(fh)
+
+        timer_final = time.time()
+        tiempo = timer_final - timer_comienzo
+
+    # Agregamos a la grilla los mapes de cada combinacion
+    grilla['MAPE'] = mapes
+    grilla['Seleccionado'] = mapes == np.nanmin(mapes)
+    mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
+
+    # Graficamos el pronostico
+    datos = pd.concat([datos_train, datos_test])
+    plt.plot(datos['ds'], datos['y'])
+    if forecaster_fun.__name__ == 'forecast':
+        sns.lineplot(x = forecaster['ds'], y= pred, color = 'red', label = 'Prediccion')   
+    else : 
+        sns.lineplot(x = datos_test['ds'], y= pred, color = 'red', label = 'Prediccion')
+
+    # Devolvemos las predicciones
+    return pred, mape_final, tiempo, grilla
+
+```
+
+```{python}
+# THETAFORECASTER
+
+parametros = {'sp':[6,12, 24]}
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=ThetaForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['ThetaForecaster', mape, tiempo]
+```
+
+
+```{python}
+# PROPHET
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=Prophet, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['Prophet', mape, tiempo]
+```
+
+
+```{python}
+# AUTOARIMA
+
+parametros = {'start_p': [0], 'start_q' : [0],
+    'sp':[12], 'max_p':[2], 'max_q':[2], 'd':[0,1,2], 'D':[0,1,2],  'suppress_warnings':[True]}
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=AutoARIMA, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['AutoARIMA', mape, tiempo]
+```
+
+```{python}
+# Chronos
+
+parametros = {'model_path': ['amazon/chronos-t5-tiny', 'chronos-bolt-tiny', 'chronos-t5-mini']}
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=ChronosForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['Chronos', mape, tiempo]
+```
+
+```{python}
+# DeepAR
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=PytorchForecastingDeepAR, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['DeepAR', mape, tiempo]
+```
+
+```{python}
+# TimesFM
+
+parametros = {'freq': [1]}
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=TimesFMForecaster, parametros= parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['TimesFM', mape, tiempo]
+```
+
+```{python}
+# TIME GPT
+
+parametros = {
+    'finetune_loss' : ['mape']}
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=nixtla_client.forecast, parametros= parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['TimeGPT', mape, tiempo]
+
+```
+
+
+```{python}
+# LSTM
+
+# creating model instance configuring the hyperparameters
+
+model = NeuralForecastLSTM(max_steps=200)
+
+
+# fitting the model
+fh = ForecastingHorizon(datos_test.index, is_relative=False)
+
+model.fit(datos_train['y'], fh=fh)  
+
+y_pred_lstm = model.predict()  
+
+mape = mean_absolute_percentage_error(datos_test['y'], y_pred_lstm)
+
+metricas.loc[len(metricas)] = ['LSTM', mape]
+```
+
+```{python}
+# LightGBM y XGBoost
+from xgboost import XGBRegressor
+import lightgbm as lgb
+from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+
+datos_train['month'] = datos_train['ds'].dt.month
+datos_train['year'] = datos_train['ds'].dt.year
+datos_test['month'] = datos_test['ds'].dt.month
+datos_test['year'] = datos_test['ds'].dt.year
+
+X_train = datos_train[['month', 'year']]
+X_test = datos_test[['month', 'year']]
+
+# XGBoost
+cv_split = TimeSeriesSplit(n_splits=4)
+model = XGBRegressor()
+parameters = {
+    "max_depth": [3, 4, 6, 5, 10],
+    "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
+    "n_estimators": [100, 300, 500, 700, 900, 1000],
+    "colsample_bytree": [0.3, 0.5, 0.7]
+}
+
+
+grid_search = GridSearchCV(estimator=model, cv=cv_split, param_grid=parameters)
+grid_search.fit(X_train, datos_train['y'])
+
+# Prediccion
+y_pred_xgb = grid_search.predict(X_test)
+
+mape = mean_absolute_percentage_error(datos_test['y'], y_pred_xgb)
+
+metricas.loc[len(metricas)] = ['XGBoost', mape]
+```
+
+```{python}
+# LGBMoost
+cv_split = TimeSeriesSplit(n_splits=3)
+model = lgb.LGBMRegressor()
+parameters = {
+    "max_depth": [3, 4],
+    "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
+    "n_estimators": [50, 100, 300, 500, 700, 900, 1000],
+    "colsample_bytree": [0.3, 0.5, 0.7]
+}
+
+
+grid_search = GridSearchCV(estimator=model, cv=cv_split, param_grid=parameters)
+grid_search.fit(X_train, datos_train['y'])
+
+# Prediccion
+y_pred_lgb = grid_search.predict(X_test)
+
+mape = mean_absolute_percentage_error(datos_test['y'], y_pred_lgb)
+
+metricas.loc[len(metricas)] = ['LightGBM', mape]
+```
+
+
+
+
+```{python}
+plt.subplot(2,1,1)
+
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= y_pred_forecast, color = 'red', label = 'Forecaster')
+
+plt.subplot(2,1,2)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= y_pred, color = 'green', label = 'Prophet')
+
+```
+
+
+```{python}
+
+plt.subplot(2,1,1)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= y_pred_arima, color = '#F96E46', label = 'AutoArima')
+
+plt.subplot(2,1,2)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= y_pred_chronos, color = '#594236', label = 'Chronos')
+```
+
+
+```{python}
+
+plt.subplot(2,1,1)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = time_gpt1['ds'], y= time_gpt1['TimeGPT'], color = '#820263', label = 'TimeGPT1')
+
+plt.subplot(2,1,2)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = time_gpt2['ds'], y= time_gpt2['TimeGPT'], color = '#60993E',label = 'TimeGPT2')
+```
+
+
+```{python}
+plt.subplot(2,1,2)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= y_pred_lstm, color = '#04A777', label = 'LSTM')
+```
+
+```{python}
+
+plt.subplot(2,1,1)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos_test['ds'], y= y_pred_xgb, color = '#F96E46', label = 'XGBoost')
+
+plt.subplot(2,1,2)
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos_test['ds'], y= y_pred_lgb, color = '#594236', label = 'LighGBM')
+```
+
+
+```{python}
+
+def is_pickleable(obj):
+    """Check if an object can be pickled."""
+    try:
+        pickle.dumps(obj)
+        return True
+    except (pickle.PickleError, AttributeError, TypeError):
+        return False
+
+def save_env(filename="modelos_consumo_gas.pkl"):
+    global_vars = {k: v for k, v in globals().items() if not k.startswith("__") and is_pickleable(v)}
+    with open(filename, "wb") as f:
+        pickle.dump(global_vars, f)
+
+def load_env(filename="modelos_consumo_gas.pkl"):
+    with open(filename, "rb") as f:
+        global_vars = pickle.load(f)
+        globals().update(global_vars)
+
+# Usage
+save_env()
+load_env()
+
+
+```

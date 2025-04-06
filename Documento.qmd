@@ -98,7 +98,7 @@ En los últimos años '*ChatGPT*' ganó una popularidad excesiva a nivel mundial
 
 - Red Neuronal (*neuronal network*): Las redes neuronales son un tipo de programa o modelo de *machine learning* que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biologica en la que trabajan la neuronas para indentificar fenómenos, evaluar opciones y llegar a conclusiones. **EXTENDER CON BREVE EXPLICACION SOBRE CAPAS Y TIPOS COMO CNN Y RNN**
 
-- Aprendizaje profundo (*Deep learning*): Es una subdivisión del *machine learning* que usa redes neuronales más complejas para acercarse aún más a la forma en la que el cerebro humano trabaja. 
+- Aprendizaje profundo (*Deep learning*): Es una rama del *machine learning* que tiene como base un conjuntos de algoritmos (entre ellos las redes neuronales) que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
 
 Los modelos transformadores (*transformer models*) son un tipo de modelos con arquitectura de aprendizaje profundo. Su auge se ve explicado por su alta eficiencia para entrenar y realizar inferencias en comparación con otros métodos de aprendizaje profundo tales como las redes neuronales recurrentes (RNN) o redes neuronales convolucionales (CNN). Esta eficiencia se debe al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google, este mecanismo se detallará más adelante para poder ser seguido con ejemplos.
 
@@ -150,7 +150,7 @@ TimeGPT es un modelo de tipo transformer con mecanismos de autoatención (del in
 
 La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
 
-![Diagrama de la estructura del modelo](../Info%20tesis/Imgs/modelo.png){#fig-modelo}
+![Diagrama de la estructura del modelo](../Info%20tesis/Imgs/modelo2.png){#fig-modelo}
 
 #### Paso a paso del funcionamiento del modelo
 
@@ -214,27 +214,27 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 
 Es muy posible que más de un modelo ajuste bien, por eso es necesario tener alguna forma de compararlos para elegir el mejor con un criterio formal. Para esto se usan medidas del error sobre los valores pronosticados.
 
-Sea $e_l = Z_{n+1} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error son:
+Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error son:
 
 - Error Cuadrático Medio (*Mean Square Error (MSE)*):
 
 $$
-MSE = \frac{1}{M}\sum^M_{i=1}e_i^2
+MSE = \frac{1}{M}\sum^M_{l=1}e_l^2
 $$
 
 - Error absoluto medio (*Mean Absolute Error (MAE)*):
 
 $$
-MAE = \frac{1}{M}\sum^M_{i=1}|e_i|
+MAE = \frac{1}{M}\sum^M_{l=1}|e_l|
 $$
 
 - Porcentaje del error absoluto medio (*Mean Absolute Percentage Error (MAPE)*)
 
 $$
-MAPE = (\frac{1}{M}\sum^M_{i=1}|\frac{e_i}{Z_{n+l}}|)\cdot 100 \%
+MAPE = (\frac{1}{M}\sum^M_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
 $$
 
-Aquel modelo que tenga el menor valor en estas medidas será el mejor.
+Aquel modelo que tenga el menor valor en estas medidas será considerado el mejor.
 
 # Aplicación
 
@@ -270,9 +270,12 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 ## Distintos modelos a usar para el apartado machine learning
 
-- LightGBM con optimizacion de parametros usando bayes (libro avanzado de python) es más eficiente que XGBoost
-- Prophet, no es un modelo como tal sino un procedimiento automatizado para la construccion de modelos predictivos
-- Red neuronal LSTM? no creo que lo haga pero puede ser util
-- Para elegir el mejor modelo uso cross-validation? porque no puedo hacerlo para arima
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
 - hacer equivalencia del documento en GitBook
+- tsfresh para la extraccion de caracteristicas
+- sktime engloba muchos modelos para series de tiempo
+- Agregar deepAR
+- Conseguir los intervalos de confianza
+- ¿podria hacer una medida del error que tenga en cuenta los intervalos de confianza y no simplemente la media de la prediccion?
+
+
