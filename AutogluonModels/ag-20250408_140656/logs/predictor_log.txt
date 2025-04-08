@@ -1,0 +1,58 @@
+Beginning AutoGluon training...
+AutoGluon will save models to 'f:\Users\iCentro\Desktop\Escritorio\Facu\0-TESIS\Tesis\AutogluonModels\ag-20250408_140656'
+=================== System Info ===================
+AutoGluon Version:  1.2
+Python Version:     3.12.3
+Operating System:   Windows
+Platform Machine:   AMD64
+Platform Version:   10.0.19045
+CPU Count:          4
+GPU Count:          0
+Memory Avail:       1.28 GB / 7.95 GB (16.2%)
+Disk Space Avail:   542.87 GB / 930.95 GB (58.3%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': False,
+ 'eval_metric': WQL,
+ 'hyperparameters': {'Chronos': [{'ag_args': {'name_suffix': 'ZeroShot'},
+                                  'model_path': 'bolt_small'},
+                                 {'ag_args': {'name_suffix': 'FineTuned'},
+                                  'fine_tune': True,
+                                  'model_path': 'bolt_small'}]},
+ 'known_covariates_names': [],
+ 'num_val_windows': 1,
+ 'prediction_length': 12,
+ 'quantile_levels': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'verbosity': 2}
+
+Inferred time series frequency: 'MS'
+Provided train_data has 88 rows, 1 time series. Median time series length is 88 (min=88, max=88). 
+
+Provided data contains following columns:
+	target: 'target'
+
+AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2025-04-08 11:07:08
+Models that will be trained: ['ChronosZeroShot[bolt_small]', 'ChronosFineTuned[bolt_small]']
+Training timeseries model ChronosZeroShot[bolt_small]. 
+	Warning: Exception caused ChronosZeroShot[bolt_small] to fail during training... Skipping this model.
+	Failed to import transformers.integrations.integration_utils because of the following error (look up to see its traceback):
+Failed to import transformers.modeling_utils because of the following error (look up to see its traceback):
+cannot import name 'float8_e4m3b11fnuz' from 'tensorflow.python.framework.dtypes' (f:\Python\Lib\site-packages\tensorflow\python\framework\dtypes.py)
+Training timeseries model ChronosFineTuned[bolt_small]. 
+	Warning: Exception caused ChronosFineTuned[bolt_small] to fail during training... Skipping this model.
+	Failed to import transformers.integrations.integration_utils because of the following error (look up to see its traceback):
+Failed to import transformers.modeling_utils because of the following error (look up to see its traceback):
+cannot import name 'float8_e4m3b11fnuz' from 'tensorflow.python.framework.dtypes' (f:\Python\Lib\site-packages\tensorflow\python\framework\dtypes.py)
+Training complete. Models trained: []
+Total runtime: 35.22 s
+Trainer has no fit models that can predict.

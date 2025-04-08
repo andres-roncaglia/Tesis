@@ -42,9 +42,12 @@ import scipy.stats as stats
 # Para calcular el error medio cuadratico
 from sklearn.metrics import mean_squared_error
 
+# Para cargar las claves
+import creds
+
 # Para time GPT
 from nixtla import NixtlaClient
-nixtla_client = NixtlaClient(api_key="nixak-ZIV9C5mIZ2HlEAMJG54njJV5YKC1unQTJNCLea1B52KuMaCaoLf4421VIBWSnauQRzh4JxA7aBmQbOuJ")
+nixtla_client = NixtlaClient(api_key= creds.api_key)
 
 # Para realizar consultas a la base de datos
 import urllib.parse
@@ -83,6 +86,18 @@ datos = pd.DataFrame(json['data'], columns = ['fecha', 'consumo'])
 datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
 ```
 
+
+```{python}
+datos = pd.read_csv(filepath_or_buffer= 'Datos/exportaciones-actividad-saldocomercial-rangos-exportacion-empresa-exportadora-mensual.csv')
+
+datos = datos[['indice_tiempo','litoral_gas']]
+
+datos.columns = ['fecha', 'consumo']
+
+datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
+
+datos.dropna(inplace=True)
+```
 
 ```{python}
 # Tabla con los primeros y ultimos datos
@@ -133,22 +148,17 @@ Observando la @fig-dist-box parecería ser que la variabilidad del consumo de ga
 
 # Predicciones con machine learning
 
+
 ```{python}
 # Prueba con sktime
 
 from sktime.forecasting.base import ForecastingHorizon
-
-from sktime.forecasting.theta import ThetaForecaster
 
 from sktime.forecasting.fbprophet import Prophet
 
 from sktime.forecasting.arima import AutoARIMA
 
 from sktime.forecasting.chronos import ChronosForecaster
-
-from sktime.forecasting.pytorchforecasting import PytorchForecastingDeepAR
-
-from sktime.forecasting.timesfm_forecaster import TimesFMForecaster
 
 from sktime.forecasting.neuralforecast import NeuralForecastLSTM
 
@@ -159,13 +169,45 @@ from sktime.split import temporal_train_test_split
 ```
 
 ```{python}
-metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Tiempo']))
+metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Interval Score', 'Tiempo']))
+```
+
+
+```{python}
+# Interval Score
+
+def interval_score(obs, lower, upper, alpha):
+
+    upper = upper.values
+    lower = lower.values
+    obs = obs.values
+
+    # Ancho del intervalo
+    W = upper - lower
+
+    # Penalización por sobre-estimación
+    cuantil_sobreestimado = lower > obs
+    diferencia_inferior = lower - obs
+    O = 2/alpha * (cuantil_sobreestimado * diferencia_inferior)
+
+    # Penalización por sub-estimación
+    cuantil_subestimado = upper < obs
+    diferencia_superior = obs - upper
+    U = 2/alpha * (cuantil_subestimado * diferencia_superior)
+
+    # Interval Score
+    score = np.average(W + O + U)
+
+    return score
+
+
+
 ```
 
 ```{python}
 # Tuner de hiperparametros
 
-def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
+def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'MAPE'):
 
     # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
     train_y, test_y = temporal_train_test_split(datos_train['y'], test_size=0.1)
@@ -182,22 +224,30 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
           
         # Obtenemos predicciones
         pred = forecaster.predict(fh)
+        pred_int = forecaster.predict_interval(fh, coverage=0.9)
         timer_final = time.time()
-        tiempo = timer_comienzo - timer_final
+        tiempo = timer_final - timer_comienzo
 
+        # Calculamos MAPE
         mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
+
+        # Calculamos Interval Score
+        pred_int.columns = ['lower', 'upper']
+        score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = 0.05)
 
         # Graficamos el pronostico
         datos = pd.concat([datos_train, datos_test])
         plt.plot(datos['ds'], datos['y'])
         sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
+        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = 'IC: 0.9')
 
         # Devolvemos las predicciones
-        return pred, mape_final, tiempo, []
+        return pred, mape_final, score_final, tiempo, []
 
 
     
     mapes = []
+    scores = []
     nombre_cols = list(parametros.keys())
 
     # Expandimos la grilla de parametros para evaluar todas las opciones
@@ -222,9 +272,16 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
         if forecaster_fun.__name__ == 'forecast':
             gpttrain_y = pd.DataFrame({'y': train_y, 'ds': datos_train['ds'][:len(train_y)]})
             forecaster = forecaster_fun(df = gpttrain_y, h = len(test_y), time_col= 'ds',
-            target_col= 'y', freq= 'M', level=[95], **kwargs)
+            target_col= 'y', freq= 'M', level=[90], **kwargs)
+
+            # Calculamos MAPE
             mape = mean_absolute_percentage_error(test_y, forecaster['TimeGPT'])
             mapes.append(mape)
+
+            # Calculamos interval score
+            score = interval_score(obs=test_y, lower= forecaster['TimeGPT-lo-90'], upper= forecaster['TimeGPT-hi-90'], alpha = 0.05)
+            scores.append(score)
+
             continue
 
 
@@ -238,16 +295,27 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
           
             # Obtenemos predicciones
             pred = forecaster.predict(num_pred)
+            pred_int = forecaster.predict_interval(num_pred, coverage=0.9)
 
-            # Calculamos medidas del error
+            # Calculamos MAPE
             mape = mean_absolute_percentage_error(test_y, pred)
             mapes.append(mape)
+
+            # Calculamos Interval Score
+            pred_int.columns = ['lower', 'upper']
+            score = interval_score(obs=test_y, lower=pred_int['lower'], upper=pred_int['upper'], alpha = 0.05)
+            scores.append(score)
         except:
             # Si el modelo falla en ajustar, asignamos NaN
             mapes.append(np.NaN)
+            scores.append(np.NaN)
 
     # Una vez probamos todas las opciones, vemos con cual modelo se obtuvo el menor error
-    mejor_combinacion = mapes.index(np.nanmin(mapes))
+    if metrica == 'MAPE': 
+        mejor_combinacion = mapes.index(np.nanmin(mapes))
+    else :
+        mejor_combinacion = scores.index(np.nanmin(scores))
+        
 
     # Por ultimo ajustamos el mejor modelo con todo el conjunto de entrenamiento:
 
@@ -259,12 +327,13 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
         timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
         
         forecaster = forecaster_fun(df = datos_train, h = len(datos_test), time_col= 'ds',
-            target_col= 'y', freq= 'M', level=[95], **kwargs)
+            target_col= 'y', freq= 'M', level=[90], **kwargs)
         
         timer_final = time.time()
         tiempo = timer_final - timer_comienzo
 
         pred = forecaster['TimeGPT']
+        pred_int = forecaster[['TimeGPT-lo-90', 'TimeGPT-hi-90']]
     
     else: 
         forecaster = forecaster_fun(**kwargs)
@@ -275,47 +344,39 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = ''):
         # Obtenemos predicciones
         fh = ForecastingHorizon(datos_test.index, is_relative=False)
         pred = forecaster.predict(fh)
+        pred_int = forecaster.predict_interval(num_pred, coverage=0.9)
 
         timer_final = time.time()
         tiempo = timer_final - timer_comienzo
 
     # Agregamos a la grilla los mapes de cada combinacion
     grilla['MAPE'] = mapes
-    grilla['Seleccionado'] = mapes == np.nanmin(mapes)
     mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
+
+    # Agregamos a la grilla los scores de cada combinacion
+    grilla['Interval Scores'] = scores
+    pred_int.columns = ['lower', 'upper']
+    score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = 0.05)
+
+    if metrica == 'MAPE':
+        grilla['Seleccionado'] = mapes == np.nanmin(mapes)
+    else:
+        grilla['Seleccionado'] = scores == np.nanmin(scores)
 
     # Graficamos el pronostico
     datos = pd.concat([datos_train, datos_test])
     plt.plot(datos['ds'], datos['y'])
     if forecaster_fun.__name__ == 'forecast':
-        sns.lineplot(x = forecaster['ds'], y= pred, color = 'red', label = 'Prediccion')   
+        sns.lineplot(x = forecaster['ds'], y= pred, color = 'red', label = 'Prediccion')
+        plt.fill_between(forecaster['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = 'IC: 0.9')   
     else : 
         sns.lineplot(x = datos_test['ds'], y= pred, color = 'red', label = 'Prediccion')
+        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = 'IC: 0.9')
 
     # Devolvemos las predicciones
-    return pred, mape_final, tiempo, grilla
+    return pred, mape_final, score_final, tiempo, grilla
 
 ```
-
-```{python}
-# THETAFORECASTER
-
-parametros = {'sp':[6,12, 24]}
-
-pred, mape, tiempo, resultados = tuner(forecaster_fun=ThetaForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
-
-metricas.loc[len(metricas)] = ['ThetaForecaster', mape, tiempo]
-```
-
-
-```{python}
-# PROPHET
-
-pred, mape, tiempo, resultados = tuner(forecaster_fun=Prophet, datos_train=datos_train, datos_test=datos_test)
-
-metricas.loc[len(metricas)] = ['Prophet', mape, tiempo]
-```
-
 
 ```{python}
 # AUTOARIMA
@@ -323,49 +384,18 @@ metricas.loc[len(metricas)] = ['Prophet', mape, tiempo]
 parametros = {'start_p': [0], 'start_q' : [0],
     'sp':[12], 'max_p':[2], 'max_q':[2], 'd':[0,1,2], 'D':[0,1,2],  'suppress_warnings':[True]}
 
-pred, mape, tiempo, resultados = tuner(forecaster_fun=AutoARIMA, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+pred, mape, score, tiempo, resultados = tuner(forecaster_fun=AutoARIMA, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
 
-metricas.loc[len(metricas)] = ['AutoARIMA', mape, tiempo]
+metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
 ```
 
-```{python}
-# Chronos
-
-parametros = {'model_path': ['amazon/chronos-t5-tiny', 'chronos-bolt-tiny', 'chronos-t5-mini']}
-
-pred, mape, tiempo, resultados = tuner(forecaster_fun=ChronosForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
-
-metricas.loc[len(metricas)] = ['Chronos', mape, tiempo]
-```
 
 ```{python}
-# DeepAR
+# PROPHET
 
-pred, mape, tiempo, resultados = tuner(forecaster_fun=PytorchForecastingDeepAR, datos_train=datos_train, datos_test=datos_test)
+pred, mape, score, tiempo, resultados = tuner(forecaster_fun=Prophet, datos_train=datos_train, datos_test=datos_test)
 
-metricas.loc[len(metricas)] = ['DeepAR', mape, tiempo]
-```
-
-```{python}
-# TimesFM
-
-parametros = {'freq': [1]}
-
-pred, mape, tiempo, resultados = tuner(forecaster_fun=TimesFMForecaster, parametros= parametros, datos_train=datos_train, datos_test=datos_test)
-
-metricas.loc[len(metricas)] = ['TimesFM', mape, tiempo]
-```
-
-```{python}
-# TIME GPT
-
-parametros = {
-    'finetune_loss' : ['mape']}
-
-pred, mape, tiempo, resultados = tuner(forecaster_fun=nixtla_client.forecast, parametros= parametros, datos_train=datos_train, datos_test=datos_test)
-
-metricas.loc[len(metricas)] = ['TimeGPT', mape, tiempo]
-
+metricas.loc[len(metricas)] = ['Prophet', mape, score, tiempo]
 ```
 
 
@@ -450,59 +480,26 @@ metricas.loc[len(metricas)] = ['LightGBM', mape]
 
 
 
-
 ```{python}
-plt.subplot(2,1,1)
+# Chronos
 
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= y_pred_forecast, color = 'red', label = 'Forecaster')
+parametros = {'model_path': ['amazon/chronos-t5-tiny']}
 
-plt.subplot(2,1,2)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= y_pred, color = 'green', label = 'Prophet')
+pred, mape, tiempo, resultados = tuner(forecaster_fun=ChronosForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
 
-```
-
-
-```{python}
-
-plt.subplot(2,1,1)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= y_pred_arima, color = '#F96E46', label = 'AutoArima')
-
-plt.subplot(2,1,2)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= y_pred_chronos, color = '#594236', label = 'Chronos')
-```
-
-
-```{python}
-
-plt.subplot(2,1,1)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = time_gpt1['ds'], y= time_gpt1['TimeGPT'], color = '#820263', label = 'TimeGPT1')
-
-plt.subplot(2,1,2)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = time_gpt2['ds'], y= time_gpt2['TimeGPT'], color = '#60993E',label = 'TimeGPT2')
-```
-
-
-```{python}
-plt.subplot(2,1,2)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= y_pred_lstm, color = '#04A777', label = 'LSTM')
+metricas.loc[len(metricas)] = ['Chronos', mape, tiempo]
 ```
 
 ```{python}
+# TIME GPT
 
-plt.subplot(2,1,1)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos_test['ds'], y= y_pred_xgb, color = '#F96E46', label = 'XGBoost')
+parametros = {
+    'finetune_loss' : ['mape']}
 
-plt.subplot(2,1,2)
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos_test['ds'], y= y_pred_lgb, color = '#594236', label = 'LighGBM')
+pred, mape, score, tiempo, resultados = tuner(forecaster_fun=nixtla_client.forecast, parametros= parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
+
 ```
 
 

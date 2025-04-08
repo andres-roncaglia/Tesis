@@ -271,11 +271,23 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 ## Distintos modelos a usar para el apartado machine learning
 
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
-- hacer equivalencia del documento en GitBook
-- tsfresh para la extraccion de caracteristicas
-- sktime engloba muchos modelos para series de tiempo
-- Agregar deepAR
-- Conseguir los intervalos de confianza
-- ¿podria hacer una medida del error que tenga en cuenta los intervalos de confianza y no simplemente la media de la prediccion?
+- Hacer equivalencia del documento en GitBook
+- tsfresh o cesium para la extraccion de caracteristicas
+
+- Enfocar la tesina a comparar modelos tradicionales vs machine learning vs deep learning
+
+- Implementar features para xgboost y lgbm
+- Mejorar LSTM
+- Conseguir intervalos de condianza para chronos
+
+- Dividir la funcion de hiperparametros en mas funciones
+
+- Modelos que voy a usar: 
+    Tradicionales: Arima y autoarima, Prophet
+    Machine Learning: XGB, LGBM
+    Deep Learning: LSTM
+        Foundational models: TimeGPT, Chronos
+
+
 
 
