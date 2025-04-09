@@ -214,27 +214,42 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 
 Es muy posible que más de un modelo ajuste bien, por eso es necesario tener alguna forma de compararlos para elegir el mejor con un criterio formal. Para esto se usan medidas del error sobre los valores pronosticados.
 
-Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error son:
+Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $L$ pasos hacia adelante son:
 
 - Error Cuadrático Medio (*Mean Square Error (MSE)*):
 
 $$
-MSE = \frac{1}{M}\sum^M_{l=1}e_l^2
+MSE = \frac{1}{L}\sum^L_{l=1}e_l^2
 $$
 
 - Error absoluto medio (*Mean Absolute Error (MAE)*):
 
 $$
-MAE = \frac{1}{M}\sum^M_{l=1}|e_l|
+MAE = \frac{1}{L}\sum^L_{l=1}|e_l|
 $$
 
 - Porcentaje del error absoluto medio (*Mean Absolute Percentage Error (MAPE)*)
 
 $$
-MAPE = (\frac{1}{M}\sum^M_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
+MAPE = (\frac{1}{L}\sum^L_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
 $$
 
 Aquel modelo que tenga el menor valor en estas medidas será considerado el mejor.
+
+El problema de estos errores es que solo tienen en cuenta la estimación puntual, y por lo general es buena idea trabajar con pronosticos probabilisticos para cuantificar la incertidumbre de los valores futuros de la variable. Gneiting & Raftery (2007, JASA) propusieron en [Strictly Proper Scoring Rules, Prediction, and Estimation](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf) una nueva medida del error que tiene en cuenta los intervalos probabilísticos de la estimación, llamandola *Interval Score*:
+
+$$
+S = \frac{1}{L}\sum_{l=1}^L (W_l + O_l + U_l) 
+$$
+
+Donde:
+
+$$
+W_l = IS_l - II_l \hspace{1, cm} O_l = \left \{ \matrix{ \frac{2}{\alpha}(Z_n(l) - Z_{n+l}) \hspace{10,mm} \text{si } Z_n(l) > Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill}\right. \hspace{1, cm} U_l = \left \{ \matrix{ \frac{2}{\alpha}(Z_{n+l} - Z_n(l)) \hspace{10,mm} \text{si } Z_n(l) < Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill}\right.
+$$
+
+Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ésimo pronóstico respectivamente. Es fácil darse cuenta que $W$ es una penalización por el ancho del intervalo, y que $O$ y $U$ son penalizaciones por sobre y subestimación respectivamente.
+
 
 # Aplicación
 
@@ -272,15 +287,15 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
 - Hacer equivalencia del documento en GitBook
-- tsfresh o cesium para la extraccion de caracteristicas
 
 - Enfocar la tesina a comparar modelos tradicionales vs machine learning vs deep learning
 
-- Implementar features para xgboost y lgbm
 - Mejorar LSTM
-- Conseguir intervalos de condianza para chronos
+- Conseguir intervalos de confianza para chronos y XGB y LGBM
 
 - Dividir la funcion de hiperparametros en mas funciones
+
+- Toda la modelización pasarla a .py y no .qmd
 
 - Modelos que voy a usar: 
     Tradicionales: Arima y autoarima, Prophet
@@ -288,6 +303,16 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
     Deep Learning: LSTM
         Foundational models: TimeGPT, Chronos
 
+
+Completitud modelos:
+
+Arima: hacer
+Prophet: listo (hiperparametros?)
+XGB: Buscar intervalos (bootstrap?)
+LGBM; hacer
+LSTM: Listo (hiperparametros)
+TimeGPT: hiperparametros, corregir graficos
+Chronos: hacer
 
 
 

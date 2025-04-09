@@ -84,6 +84,8 @@ json = requests.get(api_call).json()
 datos = pd.DataFrame(json['data'], columns = ['fecha', 'consumo'])
 
 datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
+
+datos.columns = ['ds', 'y']
 ```
 
 
@@ -104,7 +106,7 @@ datos.dropna(inplace=True)
 print(datos.head(3),datos.tail(3))
 
 # Grafico los datos
-plt.plot(datos['fecha'], datos['consumo'], marker = '.')
+plt.plot(datos['ds'], datos['y'], marker = '.')
 plt.title('Consumo de gas natural')
 plt.xlabel('Año')
 plt.ylabel('Consumo (millones de metros cúbicos)')
@@ -112,39 +114,6 @@ plt.show()
 
 ```
 
-
-```{python}
-# Divido el conjunto de datos en entrenamiento y testeo
-
-corte = len(datos)-12
-
-datos.columns = ['ds', 'y']
-
-# Normalizamos 'y' para que los modelos deep learning puedan converger mejor
-# scaler = MinMaxScaler(feature_range=(-1, 1)) 
-# datos[['y']] = scaler.fit_transform(datos[['y']])
-
-datos_train = datos[:corte]
-datos_test = datos[corte:]
-
-print(datos_test.head())
-
-```
-
-
-```{python}
-#| fig-cap: 'Distribución del consumo de gas natural de Litoral Gas por año'
-#| label: fig-dist-box
-#| eval: False
-
-sns.boxplot(x = datos_train["fecha"].dt.year, y = datos_train["consumo"])
-
-fitted_data, fitted_lambda, fitted_lambda_ic = stats.boxcox(datos_train["consumo"], alpha = 0.05)
-
-print(fitted_lambda_ic)
-```
-
-Observando la @fig-dist-box parecería ser que la variabilidad del consumo de gas natural no es la misma durante los años, sin embargo, el intervalo de confianza para el parámetro de transformación de Box y Cox resulta ser `python round(fitted_lambda_ic,3)` con un nivel de significación del 5%. Esto indica que la hipótesis nula que sostiene que la variancia del consumo es la misma año a año, y por lo tanto no hay necesidad de hacer transformar la variable.
 
 # Predicciones con machine learning
 
@@ -166,12 +135,18 @@ from sktime.performance_metrics.forecasting import mean_absolute_percentage_erro
 
 from sktime.split import temporal_train_test_split
 
+from neuralforecast import NeuralForecast
+
+from neuralforecast.models import LSTM
+
+from neuralforecast.losses.pytorch import MQLoss
+
 ```
 
 ```{python}
+# Creamos un dataframe donde vasmos a guardar todos los resultados
 metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Interval Score', 'Tiempo']))
 ```
-
 
 ```{python}
 # Interval Score
@@ -186,14 +161,10 @@ def interval_score(obs, lower, upper, alpha):
     W = upper - lower
 
     # Penalización por sobre-estimación
-    cuantil_sobreestimado = lower > obs
-    diferencia_inferior = lower - obs
-    O = 2/alpha * (cuantil_sobreestimado * diferencia_inferior)
+    O = 2/alpha * np.maximum(lower - obs, 0)
 
     # Penalización por sub-estimación
-    cuantil_subestimado = upper < obs
-    diferencia_superior = obs - upper
-    U = 2/alpha * (cuantil_subestimado * diferencia_superior)
+    U = 2/alpha * np.maximum(obs - upper, 0)
 
     # Interval Score
     score = np.average(W + O + U)
@@ -207,7 +178,15 @@ def interval_score(obs, lower, upper, alpha):
 ```{python}
 # Tuner de hiperparametros
 
-def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'MAPE'):
+def tuner(forecaster_fun, datos, parametros = '', metrica = 'MAPE', alpha = 0.05, long_pred = 12):
+
+    # Dividimos el conjunto de datos que queremos pronosticar
+    corte = len(datos)-long_pred
+
+    datos.columns = ['ds', 'y']
+
+    datos_train = datos[:corte]
+    datos_test = datos[corte:]
 
     # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
     train_y, test_y = temporal_train_test_split(datos_train['y'], test_size=0.1)
@@ -224,7 +203,7 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
           
         # Obtenemos predicciones
         pred = forecaster.predict(fh)
-        pred_int = forecaster.predict_interval(fh, coverage=0.9)
+        pred_int = forecaster.predict_interval(fh, coverage=1-alpha*2)
         timer_final = time.time()
         tiempo = timer_final - timer_comienzo
 
@@ -233,13 +212,13 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
 
         # Calculamos Interval Score
         pred_int.columns = ['lower', 'upper']
-        score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = 0.05)
+        score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
 
         # Graficamos el pronostico
         datos = pd.concat([datos_train, datos_test])
         plt.plot(datos['ds'], datos['y'])
         sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
-        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = 'IC: 0.9')
+        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = f'IC: {1-alpha*2}%')
 
         # Devolvemos las predicciones
         return pred, mape_final, score_final, tiempo, []
@@ -268,18 +247,18 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
             
 
         # TimeGPT no necesita una funcion para ajustar el modelo
-        print(kwargs)
+        
         if forecaster_fun.__name__ == 'forecast':
             gpttrain_y = pd.DataFrame({'y': train_y, 'ds': datos_train['ds'][:len(train_y)]})
             forecaster = forecaster_fun(df = gpttrain_y, h = len(test_y), time_col= 'ds',
-            target_col= 'y', freq= 'M', level=[90], **kwargs)
+            target_col= 'y', freq= 'M', level=[1-alpha*2], **kwargs)
 
             # Calculamos MAPE
             mape = mean_absolute_percentage_error(test_y, forecaster['TimeGPT'])
             mapes.append(mape)
 
             # Calculamos interval score
-            score = interval_score(obs=test_y, lower= forecaster['TimeGPT-lo-90'], upper= forecaster['TimeGPT-hi-90'], alpha = 0.05)
+            score = interval_score(obs=test_y, lower= forecaster[f'TimeGPT-lo-{1-alpha*2}'], upper= forecaster[f'TimeGPT-hi-{1-alpha*2}'], alpha = alpha)
             scores.append(score)
 
             continue
@@ -295,7 +274,7 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
           
             # Obtenemos predicciones
             pred = forecaster.predict(num_pred)
-            pred_int = forecaster.predict_interval(num_pred, coverage=0.9)
+            pred_int = forecaster.predict_interval(num_pred, coverage=1-alpha*2)
 
             # Calculamos MAPE
             mape = mean_absolute_percentage_error(test_y, pred)
@@ -303,7 +282,7 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
 
             # Calculamos Interval Score
             pred_int.columns = ['lower', 'upper']
-            score = interval_score(obs=test_y, lower=pred_int['lower'], upper=pred_int['upper'], alpha = 0.05)
+            score = interval_score(obs=test_y, lower=pred_int['lower'], upper=pred_int['upper'], alpha = 1-alpha*2)
             scores.append(score)
         except:
             # Si el modelo falla en ajustar, asignamos NaN
@@ -327,13 +306,13 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
         timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
         
         forecaster = forecaster_fun(df = datos_train, h = len(datos_test), time_col= 'ds',
-            target_col= 'y', freq= 'M', level=[90], **kwargs)
+            target_col= 'y', freq= 'M', level=[1-alpha*2], **kwargs)
         
         timer_final = time.time()
         tiempo = timer_final - timer_comienzo
 
         pred = forecaster['TimeGPT']
-        pred_int = forecaster[['TimeGPT-lo-90', 'TimeGPT-hi-90']]
+        pred_int = forecaster[[f'TimeGPT-lo-{1-alpha*2}', f'TimeGPT-hi-{1-alpha*2}']]
     
     else: 
         forecaster = forecaster_fun(**kwargs)
@@ -344,11 +323,11 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
         # Obtenemos predicciones
         fh = ForecastingHorizon(datos_test.index, is_relative=False)
         pred = forecaster.predict(fh)
-        pred_int = forecaster.predict_interval(num_pred, coverage=0.9)
+        pred_int = forecaster.predict_interval(num_pred, coverage=1-alpha*2)
 
         timer_final = time.time()
         tiempo = timer_final - timer_comienzo
-
+    
     # Agregamos a la grilla los mapes de cada combinacion
     grilla['MAPE'] = mapes
     mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
@@ -356,7 +335,7 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
     # Agregamos a la grilla los scores de cada combinacion
     grilla['Interval Scores'] = scores
     pred_int.columns = ['lower', 'upper']
-    score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = 0.05)
+    score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
 
     if metrica == 'MAPE':
         grilla['Seleccionado'] = mapes == np.nanmin(mapes)
@@ -368,21 +347,25 @@ def tuner(forecaster_fun, datos_train, datos_test, parametros = '', metrica = 'M
     plt.plot(datos['ds'], datos['y'])
     if forecaster_fun.__name__ == 'forecast':
         sns.lineplot(x = forecaster['ds'], y= pred, color = 'red', label = 'Prediccion')
-        plt.fill_between(forecaster['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = 'IC: 0.9')   
+        plt.fill_between(forecaster['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3)
+
+        print(pred_int)   
     else : 
         sns.lineplot(x = datos_test['ds'], y= pred, color = 'red', label = 'Prediccion')
-        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = 'IC: 0.9')
+        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3)
 
     # Devolvemos las predicciones
     return pred, mape_final, score_final, tiempo, grilla
 
 ```
 
+# Tradicionales
+
 ```{python}
 # AUTOARIMA
 
 parametros = {'start_p': [0], 'start_q' : [0],
-    'sp':[12], 'max_p':[2], 'max_q':[2], 'd':[0,1,2], 'D':[0,1,2],  'suppress_warnings':[True]}
+    'sp':[12], 'max_p':[2], 'max_q':[2],  'suppress_warnings':[True]}
 
 pred, mape, score, tiempo, resultados = tuner(forecaster_fun=AutoARIMA, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
 
@@ -393,76 +376,73 @@ metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
 ```{python}
 # PROPHET
 
-pred, mape, score, tiempo, resultados = tuner(forecaster_fun=Prophet, datos_train=datos_train, datos_test=datos_test)
+pred, mape, score, tiempo, resultados = tuner(forecaster_fun=Prophet, datos=datos)
 
 metricas.loc[len(metricas)] = ['Prophet', mape, score, tiempo]
 ```
 
+# Machine learning
 
 ```{python}
-# LSTM
-
-# creating model instance configuring the hyperparameters
-
-model = NeuralForecastLSTM(max_steps=200)
-
-
-# fitting the model
-fh = ForecastingHorizon(datos_test.index, is_relative=False)
-
-model.fit(datos_train['y'], fh=fh)  
-
-y_pred_lstm = model.predict()  
-
-mape = mean_absolute_percentage_error(datos_test['y'], y_pred_lstm)
-
-metricas.loc[len(metricas)] = ['LSTM', mape]
-```
-
-```{python}
-# LightGBM y XGBoost
+# XGBoost
 from xgboost import XGBRegressor
 import lightgbm as lgb
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 
-datos_train['month'] = datos_train['ds'].dt.month
-datos_train['year'] = datos_train['ds'].dt.year
-datos_test['month'] = datos_test['ds'].dt.month
-datos_test['year'] = datos_test['ds'].dt.year
+# Creamos variables que pueden ayudar a pronosticar
+datos_ml = datos.copy()
 
-X_train = datos_train[['month', 'year']]
-X_test = datos_test[['month', 'year']]
+datos_ml['month'] = datos_ml['ds'].dt.month
+datos_ml['year'] = datos_ml['ds'].dt.year
+datos_ml["promedio_3_meses"] = datos_ml["y"].shift(1).rolling(window=3).mean() # Promedio en una ventana de 3 meses
+datos_ml["desvio_3_meses"] = datos_ml["y"].shift(1).rolling(window=3).std() # Desvio en una ventana de 3 meses
+datos_ml["lag_1"] = datos_ml["y"].shift(1)
+datos_ml["lag_2"] = datos_ml["y"].shift(2)
+datos_ml["lag_12"] = datos_ml["y"].shift(12)
+
+# Dividimos en conjunto de entrenamiento y testeo
+
+corte = len(datos_ml)-12
+
+datos_ml_train = datos_ml[:corte]
+datos_ml_test = datos_ml[corte:]
+
+X_train = datos_ml_train[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
+X_test = datos_ml_test[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
 
 # XGBoost
 cv_split = TimeSeriesSplit(n_splits=4)
 model = XGBRegressor()
 parameters = {
-    "max_depth": [3, 4, 6, 5, 10],
+    "max_depth": [3, 4, 5, 7, 10],
     "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
-    "n_estimators": [100, 300, 500, 700, 900, 1000],
+    "n_estimators": [10, 20, 50, 100, 300, 500, 700],
     "colsample_bytree": [0.3, 0.5, 0.7]
 }
 
 
 grid_search = GridSearchCV(estimator=model, cv=cv_split, param_grid=parameters)
-grid_search.fit(X_train, datos_train['y'])
+grid_search.fit(X_train, datos_ml_train['y'])
 
 # Prediccion
 y_pred_xgb = grid_search.predict(X_test)
+y_ic_xgb = grid_search.predict_proba(X_test)
 
-mape = mean_absolute_percentage_error(datos_test['y'], y_pred_xgb)
+# MAPE y Interval Score
+mape = mean_absolute_percentage_error(datos_ml_test['y'], y_pred_xgb)
+score = interval_score(datos_ml_test['y'], )
 
 metricas.loc[len(metricas)] = ['XGBoost', mape]
 ```
 
 ```{python}
-# LGBMoost
+# LightGBM
 cv_split = TimeSeriesSplit(n_splits=3)
 model = lgb.LGBMRegressor()
 parameters = {
-    "max_depth": [3, 4],
+    "max_depth": [3, 4, 5, 7, 10],
     "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
-    "n_estimators": [50, 100, 300, 500, 700, 900, 1000],
+    "n_estimators": [10, 20, 50, 100, 300, 500, 700],
     "colsample_bytree": [0.3, 0.5, 0.7]
 }
 
@@ -478,16 +458,51 @@ mape = mean_absolute_percentage_error(datos_test['y'], y_pred_lgb)
 metricas.loc[len(metricas)] = ['LightGBM', mape]
 ```
 
-
+# Deep learning
 
 ```{python}
-# Chronos
+# LSTM
 
-parametros = {'model_path': ['amazon/chronos-t5-tiny']}
+corte = len(datos)-12
 
-pred, mape, tiempo, resultados = tuner(forecaster_fun=ChronosForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+datos.columns = ['ds', 'y']
 
-metricas.loc[len(metricas)] = ['Chronos', mape, tiempo]
+datos_train = datos[:corte]
+datos_test = datos[corte:]
+
+
+datos_train['unique_id'] = 0
+
+# Definición del modelo
+
+nf = NeuralForecast(
+    models=[LSTM(h=12, 
+                 input_size=3*12,
+                 max_steps = 200,
+                 loss = MQLoss(level = [90])
+                 )
+    ],
+    freq='M'
+)
+
+# Ajuste del modelo
+c = time.time()
+nf.fit(df=datos_train)
+f = time.time()
+
+tiempo = f-c
+
+# Predicción
+
+Y_hat_df = nf.predict()
+
+# Calculo de MAPE e Interval Score
+
+mape = mean_absolute_percentage_error(datos_test['y'], Y_hat_df['LSTM-median'])
+score = interval_score(obs = datos_test['y'], lower=Y_hat_df['LSTM-lo-90'], upper=Y_hat_df['LSTM-hi-90'], alpha=0.2)
+
+metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
+
 ```
 
 ```{python}
@@ -502,6 +517,31 @@ metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
 
 ```
 
+```{python}
+# Chronos
+
+parametros = {'model_path': ['amazon/chronos-t5-tiny']}
+
+pred, mape, tiempo, resultados = tuner(forecaster_fun=ChronosForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+
+metricas.loc[len(metricas)] = ['Chronos', mape, tiempo]
+```
+
+```{python}
+# Chronos - Autogluon
+
+from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+
+datos_gluon_train = datos_train.copy()
+
+datos_gluon_train.columns = ['timestamp', 'target', 'item_id']
+
+datos_gluon_train = TimeSeriesDataFrame(datos_gluon_train)
+
+predictor = TimeSeriesPredictor(prediction_length=12).fit(datos_gluon_train, presets="bolt_tiny")
+
+predictions = predictor.predict(datos_gluon_train)
+```
 
 ```{python}
 
@@ -529,3 +569,12 @@ load_env()
 
 
 ```
+
+
+# ARREGLAR
+
+- La funcion score interval a veces da error porquelos vectores son de distinto largo, nose que esta pasando
+
+- Usar timegpt en la funcion de hiperparametros no grafica los intervalos
+
+- Chronos no devuelve intervalos
