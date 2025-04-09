@@ -290,19 +290,15 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Enfocar la tesina a comparar modelos tradicionales vs machine learning vs deep learning
 
-- Mejorar LSTM
-- Conseguir intervalos de confianza para chronos y XGB y LGBM
-
-- Dividir la funcion de hiperparametros en mas funciones
-
 - Toda la modelización pasarla a .py y no .qmd
+
+- Implementar interval_score como metrica para chronos y timegpt?
 
 - Modelos que voy a usar: 
     Tradicionales: Arima y autoarima, Prophet
     Machine Learning: XGB, LGBM
     Deep Learning: LSTM
         Foundational models: TimeGPT, Chronos
-
 
 Completitud modelos:
 

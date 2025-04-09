@@ -1,3 +1,5 @@
+# ------------------------------------- LIBRERIAS -------------------------------------
+
 # Para el manejo de estructuras de datos
 import pandas as pd
 import numpy as np
@@ -22,6 +24,7 @@ from joblib import dump, load
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
 
+# ---------------------------------- CARGA DE DATOS ----------------------------------
 
 # Creamos una función para realizar llamadas a la API de datos argentina
 def get_api_call(ids, **kwargs):
@@ -41,21 +44,56 @@ datos = pd.DataFrame(json['data'], columns = ['fecha', 'consumo'])
 
 datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
 
-datos.columns = ['ds', 'y']
+# Renombramos las columnas de una forma que autogluon las pueda manejar
 
-from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+datos.columns = ['timestamp', 'target']
+
+datos['item_id'] = 0
+
+# Dividimos los datos que queremos pronosticar y con los que vamos a entrenar
 
 corte = len(datos)-12
 
 datos_train = datos[:corte]
 datos_test = datos[corte:]
 
-datos_train['item_id'] = 0
+# ---------------------------------- AJUSTE DEL MODELO ----------------------------------
 
-datos_train.columns = ['timestamp', 'target', 'item_id']
+from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 
+# Definimos una semilla
+seed = 11072001
+
+# Transformamos el dataset a TimeSeriesDataFrame
 datos_train = TimeSeriesDataFrame(datos_train)
 
-predictor = TimeSeriesPredictor(prediction_length=12).fit(datos_train, presets="bolt_tiny")
+# Definimos y ajustamos el modelo
+predictor = TimeSeriesPredictor(
+    
+    prediction_length=len(datos_test),
+    quantile_levels =  [0.1, 0.9],
+    eval_metric = 'MAPE',
+    ).fit(
+    datos_train, 
+    hyperparameters={
+        "Chronos": [
+            {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
+            {"model_path": "bolt_tiny", "fine_tune": True, "ag_args": {"name_suffix": "tiny-FineTuned"}},
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}},
+            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "small-FineTuned"}},
+        ]
+    },
+    random_seed = seed,
+    enable_ensemble = False
+    )
 
+# Realizamos las predicciones
 predictions = predictor.predict(datos_train)
+
+# Calculamos MAPE e Interval Score
+mape = mean_absolute_percentage_error(datos_test['y'], predictions['mean'])
+
+
+
+# Crear una metrica propia
+# https://auto.gluon.ai/stable/tutorials/tabular/advanced/tabular-custom-metric.html

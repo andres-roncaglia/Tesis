@@ -39,9 +39,6 @@ import statsmodels.api as sm
 # Para el test de kolmogorov-smirnov
 import scipy.stats as stats
 
-# Para calcular el error medio cuadratico
-from sklearn.metrics import mean_squared_error
-
 # Para cargar las claves
 import creds
 
@@ -56,21 +53,16 @@ import requests
 # Para guardar y cargar los modelos
 from joblib import dump, load
 
-# Para estandarizar los datos
-from sklearn.preprocessing import MinMaxScaler
-
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
+
+# Cargamos funciones
+from Funciones import get_api_call, interval_score, save_env, load_env, dict_expand, TGPT_tune
 ```
 
-
-
 ```{python}
-# Creamos una función para realizar llamadas a la API de datos argentina
-def get_api_call(ids, **kwargs):
-    API_BASE_URL = "https://apis.datos.gob.ar/series/api/"
-    kwargs["ids"] = ",".join(ids)
-    return "{}{}?{}".format(API_BASE_URL, "series", urllib.parse.urlencode(kwargs))
+# Definimos una semilla
+seed = 11072001
 ```
 
 
@@ -90,15 +82,15 @@ datos.columns = ['ds', 'y']
 
 
 ```{python}
-datos = pd.read_csv(filepath_or_buffer= 'Datos/exportaciones-actividad-saldocomercial-rangos-exportacion-empresa-exportadora-mensual.csv')
+# datos = pd.read_csv(filepath_or_buffer= 'Datos/exportaciones-actividad-saldocomercial-rangos-exportacion-empresa-exportadora-mensual.csv')
 
-datos = datos[['indice_tiempo','litoral_gas']]
+# datos = datos[['indice_tiempo','litoral_gas']]
 
-datos.columns = ['fecha', 'consumo']
+# datos.columns = ['fecha', 'consumo']
 
-datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
+# datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
 
-datos.dropna(inplace=True)
+# datos.dropna(inplace=True)
 ```
 
 ```{python}
@@ -115,6 +107,30 @@ plt.show()
 ```
 
 
+```{python}
+# Opciones de pronóstico
+
+# Largo del pronóstico
+
+long_pred = 12
+
+# Nivel de significación del intervalo de predicción
+
+alpha = 0.2
+
+
+
+# Dividimos el conjunto de datos que queremos pronosticar
+corte = len(datos)-long_pred
+
+datos.columns = ['ds', 'y']
+
+datos_train = datos[:corte]
+datos_test = datos[corte:]
+
+
+```
+
 # Predicciones con machine learning
 
 
@@ -126,10 +142,6 @@ from sktime.forecasting.base import ForecastingHorizon
 from sktime.forecasting.fbprophet import Prophet
 
 from sktime.forecasting.arima import AutoARIMA
-
-from sktime.forecasting.chronos import ChronosForecaster
-
-from sktime.forecasting.neuralforecast import NeuralForecastLSTM
 
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 
@@ -144,239 +156,81 @@ from neuralforecast.losses.pytorch import MQLoss
 ```
 
 ```{python}
-# Creamos un dataframe donde vasmos a guardar todos los resultados
+# Creamos un dataframe donde vamos a guardar todos los resultados
 metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Interval Score', 'Tiempo']))
 ```
 
-```{python}
-# Interval Score
-
-def interval_score(obs, lower, upper, alpha):
-
-    upper = upper.values
-    lower = lower.values
-    obs = obs.values
-
-    # Ancho del intervalo
-    W = upper - lower
-
-    # Penalización por sobre-estimación
-    O = 2/alpha * np.maximum(lower - obs, 0)
-
-    # Penalización por sub-estimación
-    U = 2/alpha * np.maximum(obs - upper, 0)
-
-    # Interval Score
-    score = np.average(W + O + U)
-
-    return score
-
-
-
-```
-
-```{python}
-# Tuner de hiperparametros
-
-def tuner(forecaster_fun, datos, parametros = '', metrica = 'MAPE', alpha = 0.05, long_pred = 12):
-
-    # Dividimos el conjunto de datos que queremos pronosticar
-    corte = len(datos)-long_pred
-
-    datos.columns = ['ds', 'y']
-
-    datos_train = datos[:corte]
-    datos_test = datos[corte:]
-
-    # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
-    train_y, test_y = temporal_train_test_split(datos_train['y'], test_size=0.1)
-
-    num_pred = ForecastingHorizon(test_y.index, is_relative=False)
-
-    # Si no se definen parametros, simplemente se devuelve el modelo base ajustado
-    if not isinstance(parametros, dict):
-        
-        fh = ForecastingHorizon(datos_test.index, is_relative=False)
-
-        timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-        forecaster = forecaster_fun().fit(datos_train['y'])
-          
-        # Obtenemos predicciones
-        pred = forecaster.predict(fh)
-        pred_int = forecaster.predict_interval(fh, coverage=1-alpha*2)
-        timer_final = time.time()
-        tiempo = timer_final - timer_comienzo
-
-        # Calculamos MAPE
-        mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
-
-        # Calculamos Interval Score
-        pred_int.columns = ['lower', 'upper']
-        score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
-
-        # Graficamos el pronostico
-        datos = pd.concat([datos_train, datos_test])
-        plt.plot(datos['ds'], datos['y'])
-        sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
-        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = f'IC: {1-alpha*2}%')
-
-        # Devolvemos las predicciones
-        return pred, mape_final, score_final, tiempo, []
-
-
-    
-    mapes = []
-    scores = []
-    nombre_cols = list(parametros.keys())
-
-    # Expandimos la grilla de parametros para evaluar todas las opciones
-    ## Paso 1: Pasar los valores del diccionario como vectores de una lista
-    grilla_lista = list(parametros.values())
-
-    ## Paso 2: Expandimos la lista por todos los parametros. '*' sirve para desempaquetar los elementos de la lista, en lugar de pasarse como '[elem1, elem2]' se pasan como 'elem1, elem2'
-    grilla_expan = list(map(np.ravel, np.meshgrid(*grilla_lista)))
-
-    ## Paso 3: Guardamos todo como un Dataframe
-    grilla = pd.DataFrame(np.array(grilla_expan).T, columns= nombre_cols)
-
-    # Vamos a probar cada combinacion de filas 
-    for j in range(0,grilla.shape[0]):
-
-        # Primero pasamos la fila como diccionario para usar los argumentos
-        kwargs = grilla.iloc[j].to_dict()
-            
-
-        # TimeGPT no necesita una funcion para ajustar el modelo
-        
-        if forecaster_fun.__name__ == 'forecast':
-            gpttrain_y = pd.DataFrame({'y': train_y, 'ds': datos_train['ds'][:len(train_y)]})
-            forecaster = forecaster_fun(df = gpttrain_y, h = len(test_y), time_col= 'ds',
-            target_col= 'y', freq= 'M', level=[1-alpha*2], **kwargs)
-
-            # Calculamos MAPE
-            mape = mean_absolute_percentage_error(test_y, forecaster['TimeGPT'])
-            mapes.append(mape)
-
-            # Calculamos interval score
-            score = interval_score(obs=test_y, lower= forecaster[f'TimeGPT-lo-{1-alpha*2}'], upper= forecaster[f'TimeGPT-hi-{1-alpha*2}'], alpha = alpha)
-            scores.append(score)
-
-            continue
-
-
-        # Luego especificamos el pronosticador
-        forecaster = forecaster_fun(**kwargs)
-
-
-        # Ajustamos el modelo
-        try:
-            forecaster.fit(train_y)
-          
-            # Obtenemos predicciones
-            pred = forecaster.predict(num_pred)
-            pred_int = forecaster.predict_interval(num_pred, coverage=1-alpha*2)
-
-            # Calculamos MAPE
-            mape = mean_absolute_percentage_error(test_y, pred)
-            mapes.append(mape)
-
-            # Calculamos Interval Score
-            pred_int.columns = ['lower', 'upper']
-            score = interval_score(obs=test_y, lower=pred_int['lower'], upper=pred_int['upper'], alpha = 1-alpha*2)
-            scores.append(score)
-        except:
-            # Si el modelo falla en ajustar, asignamos NaN
-            mapes.append(np.NaN)
-            scores.append(np.NaN)
-
-    # Una vez probamos todas las opciones, vemos con cual modelo se obtuvo el menor error
-    if metrica == 'MAPE': 
-        mejor_combinacion = mapes.index(np.nanmin(mapes))
-    else :
-        mejor_combinacion = scores.index(np.nanmin(scores))
-        
-
-    # Por ultimo ajustamos el mejor modelo con todo el conjunto de entrenamiento:
-
-    kwargs = grilla.iloc[mejor_combinacion].to_dict()
-
-    # Time GPT no necesita llamar a una funcion para ajustar el modelo
-
-    if forecaster_fun.__name__ == 'forecast':
-        timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-        
-        forecaster = forecaster_fun(df = datos_train, h = len(datos_test), time_col= 'ds',
-            target_col= 'y', freq= 'M', level=[1-alpha*2], **kwargs)
-        
-        timer_final = time.time()
-        tiempo = timer_final - timer_comienzo
-
-        pred = forecaster['TimeGPT']
-        pred_int = forecaster[[f'TimeGPT-lo-{1-alpha*2}', f'TimeGPT-hi-{1-alpha*2}']]
-    
-    else: 
-        forecaster = forecaster_fun(**kwargs)
-        
-        timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-        forecaster.fit(datos_train['y'])
-            
-        # Obtenemos predicciones
-        fh = ForecastingHorizon(datos_test.index, is_relative=False)
-        pred = forecaster.predict(fh)
-        pred_int = forecaster.predict_interval(num_pred, coverage=1-alpha*2)
-
-        timer_final = time.time()
-        tiempo = timer_final - timer_comienzo
-    
-    # Agregamos a la grilla los mapes de cada combinacion
-    grilla['MAPE'] = mapes
-    mape_final = mean_absolute_percentage_error(datos_test['y'], pred)
-
-    # Agregamos a la grilla los scores de cada combinacion
-    grilla['Interval Scores'] = scores
-    pred_int.columns = ['lower', 'upper']
-    score_final = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
-
-    if metrica == 'MAPE':
-        grilla['Seleccionado'] = mapes == np.nanmin(mapes)
-    else:
-        grilla['Seleccionado'] = scores == np.nanmin(scores)
-
-    # Graficamos el pronostico
-    datos = pd.concat([datos_train, datos_test])
-    plt.plot(datos['ds'], datos['y'])
-    if forecaster_fun.__name__ == 'forecast':
-        sns.lineplot(x = forecaster['ds'], y= pred, color = 'red', label = 'Prediccion')
-        plt.fill_between(forecaster['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3)
-
-        print(pred_int)   
-    else : 
-        sns.lineplot(x = datos_test['ds'], y= pred, color = 'red', label = 'Prediccion')
-        plt.fill_between(datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3)
-
-    # Devolvemos las predicciones
-    return pred, mape_final, score_final, tiempo, grilla
-
-```
 
 # Tradicionales
 
 ```{python}
 # AUTOARIMA
 
-parametros = {'start_p': [0], 'start_q' : [0],
-    'sp':[12], 'max_p':[2], 'max_q':[2],  'suppress_warnings':[True]}
+# Definimos el horizonte de pronostico
+fh = ForecastingHorizon(datos_test.index, is_relative=False)
 
-pred, mape, score, tiempo, resultados = tuner(forecaster_fun=AutoARIMA, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
+
+# Ajustamos el modelo
+timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+forecaster = AutoARIMA(
+    start_p= 0, start_q= 0, sp= 12, max_p=3, max_q= 3, suppress_warnings= True, max_d=2, max_D= 2
+).fit(datos_train['y'])
+  
+# Obtenemos predicciones
+pred = forecaster.predict(fh)
+pred_int = forecaster.predict_interval(fh, coverage=1-alpha/2)
+timer_final = time.time()
+tiempo = timer_final - timer_comienzo
+
+# Calculamos MAPE
+mape = mean_absolute_percentage_error(datos_test['y'], pred)
+
+# Calculamos Interval Score
+pred_int.columns = ['lower', 'upper']
+score = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
+
+# Graficamos el pronostico
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
+plt.fill_between(
+    datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = f'IC: {1-alpha/2}%')
+
 
 metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
+
 ```
 
 
 ```{python}
 # PROPHET
 
-pred, mape, score, tiempo, resultados = tuner(forecaster_fun=Prophet, datos=datos)
+# Definimos el horizonte de pronostico
+fh = ForecastingHorizon(datos_test.index, is_relative=False)
+
+
+# Ajustamos el modelo
+timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+forecaster = Prophet().fit(datos_train['y'])
+  
+# Obtenemos predicciones
+pred = forecaster.predict(fh)
+pred_int = forecaster.predict_interval(fh, coverage=1-alpha/2)
+timer_final = time.time()
+tiempo = timer_final - timer_comienzo
+
+# Calculamos MAPE
+mape = mean_absolute_percentage_error(datos_test['y'], pred)
+
+# Calculamos Interval Score
+pred_int.columns = ['lower', 'upper']
+score = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
+
+# Graficamos el pronostico
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
+plt.fill_between(
+    datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = f'IC: {1-alpha/2}%')
+
 
 metricas.loc[len(metricas)] = ['Prophet', mape, score, tiempo]
 ```
@@ -412,27 +266,69 @@ X_test = datos_ml_test[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', '
 
 # XGBoost
 cv_split = TimeSeriesSplit(n_splits=4)
-model = XGBRegressor()
-parameters = {
-    "max_depth": [3, 4, 5, 7, 10],
-    "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
-    "n_estimators": [10, 20, 50, 100, 300, 500, 700],
-    "colsample_bytree": [0.3, 0.5, 0.7]
-}
+model = XGBRegressor(parameters = {
+    "max_depth": 3,
+    "learning_rate": 0.1,
+    "n_estimators": 100
+})
+# parameters = {
+#     "max_depth": [3, 4, 5, 7, 10],
+#     "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
+#     "n_estimators": [10, 20, 50, 100, 300, 500, 700],
+#     "colsample_bytree": [0.3, 0.5, 0.7]
+# }
 
+model.fit(X_train, datos_ml_train['y'])
+model.predict(X_test)
 
 grid_search = GridSearchCV(estimator=model, cv=cv_split, param_grid=parameters)
 grid_search.fit(X_train, datos_ml_train['y'])
 
 # Prediccion
 y_pred_xgb = grid_search.predict(X_test)
-y_ic_xgb = grid_search.predict_proba(X_test)
 
 # MAPE y Interval Score
 mape = mean_absolute_percentage_error(datos_ml_test['y'], y_pred_xgb)
 score = interval_score(datos_ml_test['y'], )
 
 metricas.loc[len(metricas)] = ['XGBoost', mape]
+```
+
+```{python}
+def quantile_loss(q):
+    def objective(y_pred, d_train):
+        y_true = dtrain.get_label()
+        err = y_true - y_pred
+        grad = np.where(err < 0, -q, 1 - q)
+        hess = np.ones_like(y_true)  
+        return grad, hess
+    return objective
+
+from xgboost import XGBRegressor, DMatrix, train
+
+q = 0.9
+
+dtrain = DMatrix(X_train, label=datos_train['y'])
+
+params = {
+    "objective": "reg:squarederror",
+    "max_depth": 3,
+    "base_score": np.median(datos_train['y']), # Valor inicial para mejorar la performance
+    "learning_rate": 0.1,
+    "n_estimators": 100
+}
+
+model10 = train(params, dtrain, num_boost_round=100, obj=quantile_loss(0.1))
+
+pred_90 = model90.predict(DMatrix(X_test))
+pred_10 = model10.predict(DMatrix(X_test))
+
+
+# Graficamos el pronostico
+plt.plot(datos['ds'], datos['y'])
+# sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
+plt.fill_between(
+    datos_test['ds'], pred_10, pred_90, color = 'red', alpha = 0.3)
 ```
 
 ```{python}
@@ -511,70 +407,22 @@ metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
 parametros = {
     'finetune_loss' : ['mape']}
 
-pred, mape, score, tiempo, resultados = tuner(forecaster_fun=nixtla_client.forecast, parametros= parametros, datos_train=datos_train, datos_test=datos_test)
+pred, mape, score, tiempo, resultados = TGPT_tune(datos=datos, parametros= parametros)
 
 metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
 
-```
+pred
 
-```{python}
-# Chronos
-
-parametros = {'model_path': ['amazon/chronos-t5-tiny']}
-
-pred, mape, tiempo, resultados = tuner(forecaster_fun=ChronosForecaster, parametros=parametros, datos_train=datos_train, datos_test=datos_test)
-
-metricas.loc[len(metricas)] = ['Chronos', mape, tiempo]
-```
-
-```{python}
-# Chronos - Autogluon
-
-from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
-
-datos_gluon_train = datos_train.copy()
-
-datos_gluon_train.columns = ['timestamp', 'target', 'item_id']
-
-datos_gluon_train = TimeSeriesDataFrame(datos_gluon_train)
-
-predictor = TimeSeriesPredictor(prediction_length=12).fit(datos_gluon_train, presets="bolt_tiny")
-
-predictions = predictor.predict(datos_gluon_train)
-```
-
-```{python}
-
-def is_pickleable(obj):
-    """Check if an object can be pickled."""
-    try:
-        pickle.dumps(obj)
-        return True
-    except (pickle.PickleError, AttributeError, TypeError):
-        return False
-
-def save_env(filename="modelos_consumo_gas.pkl"):
-    global_vars = {k: v for k, v in globals().items() if not k.startswith("__") and is_pickleable(v)}
-    with open(filename, "wb") as f:
-        pickle.dump(global_vars, f)
-
-def load_env(filename="modelos_consumo_gas.pkl"):
-    with open(filename, "rb") as f:
-        global_vars = pickle.load(f)
-        globals().update(global_vars)
-
-# Usage
-save_env()
-load_env()
-
+plt.plot(datos['ds'], datos['y'])
+sns.lineplot(x = pred['ds'], y= pred['TimeGPT'], color = 'red', label = 'Prediccion')
+plt.fill_between(pred['ds'], pred['TimeGPT-lo-0.975'], pred['TimeGPT-hi-0.975'], color = 'red', alpha = 0.3)
 
 ```
-
 
 # ARREGLAR
 
-- La funcion score interval a veces da error porquelos vectores son de distinto largo, nose que esta pasando
+- averiguar como funciona el coverage, (es un intervalo probabilistico siquiera?)
 
-- Usar timegpt en la funcion de hiperparametros no grafica los intervalos
+- Los intervalos de TimeGPt estan muy chicos
 
-- Chronos no devuelve intervalos
+- Implementar grid search para XGB sin usar grid_search
