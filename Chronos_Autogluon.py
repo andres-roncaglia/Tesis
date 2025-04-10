@@ -18,21 +18,13 @@ import requests
 # Para calcular el error medio cuadratico
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 
-# Para guardar y cargar los modelos
-from joblib import dump, load
+# Funciones utiles
+from Funciones import interval_score, save_env, load_env, get_api_call
 
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
 
 # ---------------------------------- CARGA DE DATOS ----------------------------------
-
-# Creamos una función para realizar llamadas a la API de datos argentina
-def get_api_call(ids, **kwargs):
-    API_BASE_URL = "https://apis.datos.gob.ar/series/api/"
-    kwargs["ids"] = ",".join(ids)
-    return "{}{}?{}".format(API_BASE_URL, "series", urllib.parse.urlencode(kwargs))
-
-
 
 # Llamada a la API y carga de datos
 

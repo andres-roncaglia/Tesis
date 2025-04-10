@@ -5,6 +5,7 @@ echo: False
 warning: False
 ---
 
+# Carga de datos y librerias
 
 ```{python}
 # CARGA DE LIBRERIAS ------------------
@@ -20,44 +21,24 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Para la transformacion de box y cox
-from scipy import stats
-
-# Para el calculo de autocorrelaciones
-from statsmodels.graphics.tsaplots import plot_acf
-from statsmodels.graphics.tsaplots import plot_pacf
-from statsmodels.tsa.stattools import acf, pacf
-
-# Para ajustar modelos arima
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.arima.model import ARIMAResults
-from pmdarima import auto_arima
-
-# Para calcular el test de ljung box
-import statsmodels.api as sm
-
-# Para el test de kolmogorov-smirnov
-import scipy.stats as stats
-
 # Para cargar las claves
 import creds
-
-# Para time GPT
-from nixtla import NixtlaClient
-nixtla_client = NixtlaClient(api_key= creds.api_key)
 
 # Para realizar consultas a la base de datos
 import urllib.parse
 import requests
 
-# Para guardar y cargar los modelos
-from joblib import dump, load
-
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
 
 # Cargamos funciones
-from Funciones import get_api_call, interval_score, save_env, load_env, dict_expand, TGPT_tune
+from Funciones import get_api_call, interval_score, save_env, load_env, Tuner
+
+# Para los modelos de SKtime
+from sktime.forecasting.base import ForecastingHorizon
+from sktime.forecasting.fbprophet import Prophet
+from sktime.forecasting.arima import AutoARIMA
+from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 ```
 
 ```{python}
@@ -119,7 +100,6 @@ long_pred = 12
 alpha = 0.2
 
 
-
 # Dividimos el conjunto de datos que queremos pronosticar
 corte = len(datos)-long_pred
 
@@ -131,37 +111,14 @@ datos_test = datos[corte:]
 
 ```
 
-# Predicciones con machine learning
-
-
-```{python}
-# Prueba con sktime
-
-from sktime.forecasting.base import ForecastingHorizon
-
-from sktime.forecasting.fbprophet import Prophet
-
-from sktime.forecasting.arima import AutoARIMA
-
-from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
-
-from sktime.split import temporal_train_test_split
-
-from neuralforecast import NeuralForecast
-
-from neuralforecast.models import LSTM
-
-from neuralforecast.losses.pytorch import MQLoss
-
-```
-
 ```{python}
 # Creamos un dataframe donde vamos a guardar todos los resultados
 metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Interval Score', 'Tiempo']))
 ```
 
+# MODELOS
 
-# Tradicionales
+## Tradicionales
 
 ```{python}
 # AUTOARIMA
@@ -235,170 +192,47 @@ plt.fill_between(
 metricas.loc[len(metricas)] = ['Prophet', mape, score, tiempo]
 ```
 
-# Machine learning
+## Machine learning
 
 ```{python}
 # XGBoost
-from xgboost import XGBRegressor
-import lightgbm as lgb
-from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
-
-# Creamos variables que pueden ayudar a pronosticar
-datos_ml = datos.copy()
-
-datos_ml['month'] = datos_ml['ds'].dt.month
-datos_ml['year'] = datos_ml['ds'].dt.year
-datos_ml["promedio_3_meses"] = datos_ml["y"].shift(1).rolling(window=3).mean() # Promedio en una ventana de 3 meses
-datos_ml["desvio_3_meses"] = datos_ml["y"].shift(1).rolling(window=3).std() # Desvio en una ventana de 3 meses
-datos_ml["lag_1"] = datos_ml["y"].shift(1)
-datos_ml["lag_2"] = datos_ml["y"].shift(2)
-datos_ml["lag_12"] = datos_ml["y"].shift(12)
-
-# Dividimos en conjunto de entrenamiento y testeo
-
-corte = len(datos_ml)-12
-
-datos_ml_train = datos_ml[:corte]
-datos_ml_test = datos_ml[corte:]
-
-X_train = datos_ml_train[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
-X_test = datos_ml_test[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
-
-# XGBoost
-cv_split = TimeSeriesSplit(n_splits=4)
-model = XGBRegressor(parameters = {
-    "max_depth": 3,
-    "learning_rate": 0.1,
-    "n_estimators": 100
-})
-# parameters = {
-#     "max_depth": [3, 4, 5, 7, 10],
-#     "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
-#     "n_estimators": [10, 20, 50, 100, 300, 500, 700],
-#     "colsample_bytree": [0.3, 0.5, 0.7]
-# }
-
-model.fit(X_train, datos_ml_train['y'])
-model.predict(X_test)
-
-grid_search = GridSearchCV(estimator=model, cv=cv_split, param_grid=parameters)
-grid_search.fit(X_train, datos_ml_train['y'])
-
-# Prediccion
-y_pred_xgb = grid_search.predict(X_test)
-
-# MAPE y Interval Score
-mape = mean_absolute_percentage_error(datos_ml_test['y'], y_pred_xgb)
-score = interval_score(datos_ml_test['y'], )
-
-metricas.loc[len(metricas)] = ['XGBoost', mape]
-```
-
-```{python}
-def quantile_loss(q):
-    def objective(y_pred, d_train):
-        y_true = dtrain.get_label()
-        err = y_true - y_pred
-        grad = np.where(err < 0, -q, 1 - q)
-        hess = np.ones_like(y_true)  
-        return grad, hess
-    return objective
-
-from xgboost import XGBRegressor, DMatrix, train
-
-q = 0.9
-
-dtrain = DMatrix(X_train, label=datos_train['y'])
 
 params = {
-    "objective": "reg:squarederror",
-    "max_depth": 3,
-    "base_score": np.median(datos_train['y']), # Valor inicial para mejorar la performance
+    "max_depth": [3,5],
     "learning_rate": 0.1,
     "n_estimators": 100
 }
 
-model10 = train(params, dtrain, num_boost_round=100, obj=quantile_loss(0.1))
+pred, mape, score, tiempo, resultados_xgb = Tuner(forecaster_fun= 'XGBoost', datos=datos, parametros=params, alpha= alpha)
 
-pred_90 = model90.predict(DMatrix(X_test))
-pred_10 = model10.predict(DMatrix(X_test))
-
-
-# Graficamos el pronostico
-plt.plot(datos['ds'], datos['y'])
-# sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
-plt.fill_between(
-    datos_test['ds'], pred_10, pred_90, color = 'red', alpha = 0.3)
+metricas.loc[len(metricas)] = ['XGBoost', mape, score, tiempo]
 ```
 
 ```{python}
 # LightGBM
-cv_split = TimeSeriesSplit(n_splits=3)
-model = lgb.LGBMRegressor()
-parameters = {
-    "max_depth": [3, 4, 5, 7, 10],
-    "learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3],
-    "n_estimators": [10, 20, 50, 100, 300, 500, 700],
-    "colsample_bytree": [0.3, 0.5, 0.7]
+
+params = {
+    "max_depth": [3,5],
+    "learning_rate": 0.1,
+    "n_estimators": 100
 }
 
+pred, mape, score, tiempo, resultados_lightgbm = Tuner(forecaster_fun= 'LightGBM', datos=datos, parametros=params, alpha= alpha)
 
-grid_search = GridSearchCV(estimator=model, cv=cv_split, param_grid=parameters)
-grid_search.fit(X_train, datos_train['y'])
-
-# Prediccion
-y_pred_lgb = grid_search.predict(X_test)
-
-mape = mean_absolute_percentage_error(datos_test['y'], y_pred_lgb)
-
-metricas.loc[len(metricas)] = ['LightGBM', mape]
+metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
 ```
 
-# Deep learning
+## Deep learning
 
 ```{python}
 # LSTM
 
-corte = len(datos)-12
+parametros = {
+    'max_steps' : [20]}
 
-datos.columns = ['ds', 'y']
+pred, mape, score, tiempo, resultados_lstm = Tuner(forecaster_fun= 'LSTM', datos=datos, parametros= parametros, alpha= alpha)
 
-datos_train = datos[:corte]
-datos_test = datos[corte:]
-
-
-datos_train['unique_id'] = 0
-
-# Definición del modelo
-
-nf = NeuralForecast(
-    models=[LSTM(h=12, 
-                 input_size=3*12,
-                 max_steps = 200,
-                 loss = MQLoss(level = [90])
-                 )
-    ],
-    freq='M'
-)
-
-# Ajuste del modelo
-c = time.time()
-nf.fit(df=datos_train)
-f = time.time()
-
-tiempo = f-c
-
-# Predicción
-
-Y_hat_df = nf.predict()
-
-# Calculo de MAPE e Interval Score
-
-mape = mean_absolute_percentage_error(datos_test['y'], Y_hat_df['LSTM-median'])
-score = interval_score(obs = datos_test['y'], lower=Y_hat_df['LSTM-lo-90'], upper=Y_hat_df['LSTM-hi-90'], alpha=0.2)
-
-metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
-
+metricas.loc[len(metricas)] = ['LSTM', mape, score, tiempo]
 ```
 
 ```{python}
@@ -407,15 +241,9 @@ metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
 parametros = {
     'finetune_loss' : ['mape']}
 
-pred, mape, score, tiempo, resultados = TGPT_tune(datos=datos, parametros= parametros)
+pred, mape, score, tiempo, resultados_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=datos, parametros= parametros, alpha= alpha)
 
 metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
-
-pred
-
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = pred['ds'], y= pred['TimeGPT'], color = 'red', label = 'Prediccion')
-plt.fill_between(pred['ds'], pred['TimeGPT-lo-0.975'], pred['TimeGPT-hi-0.975'], color = 'red', alpha = 0.3)
 
 ```
 
@@ -425,4 +253,6 @@ plt.fill_between(pred['ds'], pred['TimeGPT-lo-0.975'], pred['TimeGPT-hi-0.975'],
 
 - Los intervalos de TimeGPt estan muy chicos
 
-- Implementar grid search para XGB sin usar grid_search
+- Corregir los intervalos de XGBoost Y LSTM
+
+- Agregar mas parametros a todos los modelos
