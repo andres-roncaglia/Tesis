@@ -300,15 +300,6 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
     Deep Learning: LSTM
         Foundational models: TimeGPT, Chronos
 
-Completitud modelos:
-
-Arima: hacer
-Prophet: listo (hiperparametros?)
-XGB: Buscar intervalos (bootstrap?)
-LGBM; hacer
-LSTM: Listo (hiperparametros)
-TimeGPT: hiperparametros, corregir graficos
-Chronos: hacer
 
 
 

@@ -248,6 +248,10 @@ metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
 
 ```
 
+
+```{python}
+save_env(filename='Ambiente/modelizacion.pkl')
+```
 # ARREGLAR
 
 - averiguar como funciona el coverage, (es un intervalo probabilistico siquiera?)

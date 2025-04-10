@@ -94,5 +94,8 @@ plt.fill_between(
    datos_test['timestamp'], predictions['0.1'], predictions['0.9'], color = 'red', alpha = 0.3)
 plt.show()
 
+# Guardamos los resultados
+save_env(filename='Ambiente/modelizacion_chronos.pkl')
+
 # Crear una metrica propia
 # https://auto.gluon.ai/stable/tutorials/tabular/advanced/tabular-custom-metric.html
