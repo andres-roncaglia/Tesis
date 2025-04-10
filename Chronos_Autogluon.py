@@ -83,9 +83,16 @@ predictor = TimeSeriesPredictor(
 predictions = predictor.predict(datos_train)
 
 # Calculamos MAPE e Interval Score
-mape = mean_absolute_percentage_error(datos_test['y'], predictions['mean'])
+mape = mean_absolute_percentage_error(datos_test['target'], predictions['mean'])
+score = interval_score(obs=datos_test['target'], lower=predictions['0.1'], upper= predictions['0.9'], alpha=0.2)
 
 
+# Graficamos el pronostico
+plt.plot(datos['timestamp'], datos['target'])
+sns.lineplot(x = datos_test['timestamp'], y= predictions['mean'].values, color = 'red', label = 'Prediccion')
+plt.fill_between(
+   datos_test['timestamp'], predictions['0.1'], predictions['0.9'], color = 'red', alpha = 0.3)
+plt.show()
 
 # Crear una metrica propia
 # https://auto.gluon.ai/stable/tutorials/tabular/advanced/tabular-custom-metric.html

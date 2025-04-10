@@ -32,7 +32,8 @@ import requests
 import time
 
 # Cargamos funciones
-from Funciones import get_api_call, interval_score, save_env, load_env, Tuner
+from Funciones import get_api_call, interval_score, save_env, load_env
+from tuner_fun import Tuner
 
 # Para los modelos de SKtime
 from sktime.forecasting.base import ForecastingHorizon
