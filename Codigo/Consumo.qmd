@@ -17,22 +17,22 @@ import numpy as np
 # Para dar formato fecha
 from datetime import datetime
 
-# Para graficos
-import matplotlib.pyplot as plt
-import seaborn as sns
+# Para realizar consultas a la base de datos
+import urllib.parse
+import requests
 
 # Para cargar las claves
 import creds
 
-# Para realizar consultas a la base de datos
-import urllib.parse
-import requests
+# Para graficos
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
 
 # Cargamos funciones
-from Funciones import get_api_call, interval_score, save_env, load_env
+from Funciones import get_api_call, interval_score, plot_forecast, save_env, load_env
 from tuner_fun import Tuner
 
 # Para los modelos de SKtime
@@ -40,6 +40,12 @@ from sktime.forecasting.base import ForecastingHorizon
 from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.arima import AutoARIMA
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
+```
+
+```{python}
+# Cargamos el ambiente
+
+globals().update(load_env('Ambiente/resultados.pkl'))
 ```
 
 ```{python}
@@ -100,16 +106,6 @@ long_pred = 12
 
 alpha = 0.2
 
-
-# Dividimos el conjunto de datos que queremos pronosticar
-corte = len(datos)-long_pred
-
-datos.columns = ['ds', 'y']
-
-datos_train = datos[:corte]
-datos_test = datos[corte:]
-
-
 ```
 
 ```{python}
@@ -120,6 +116,16 @@ metricas = pd.DataFrame(columns=(['Modelo', 'MAPE', 'Interval Score', 'Tiempo'])
 # MODELOS
 
 ## Tradicionales
+
+```{python}
+# Dividimos el conjunto de datos que queremos pronosticar
+corte = len(datos)-long_pred
+
+datos.columns = ['ds', 'y']
+
+datos_train = datos[:corte]
+datos_test = datos[corte:]
+```
 
 ```{python}
 # AUTOARIMA
@@ -136,24 +142,30 @@ forecaster = AutoARIMA(
   
 # Obtenemos predicciones
 pred = forecaster.predict(fh)
-pred_int = forecaster.predict_interval(fh, coverage=1-alpha/2)
+pred_int = forecaster.predict_quantiles(fh, alpha=[alpha/2,1-alpha/2])
 timer_final = time.time()
 tiempo = timer_final - timer_comienzo
 
+# Guardamos los pronosticos en un dataframe
+pred_int.columns = ['lower', 'upper']
+pred_arima = pd.DataFrame({
+    'ds' : datos_test['ds'],
+    'pred' : pred,
+    'lower' : pred_int['lower'],
+    'upper' : pred_int['upper']
+})
+
 # Calculamos MAPE
-mape = mean_absolute_percentage_error(datos_test['y'], pred)
+mape = mean_absolute_percentage_error(datos_test['y'], pred_arima['pred'])
 
 # Calculamos Interval Score
 pred_int.columns = ['lower', 'upper']
-score = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
+score = interval_score(obs=datos_test['y'], lower=pred_arima['lower'], upper=pred_arima['upper'], alpha = alpha)
 
 # Graficamos el pronostico
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
-plt.fill_between(
-    datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = f'IC: {1-alpha/2}%')
+plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoARIMA')
 
-
+# Guardamos las metricas
 metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
 
 ```
@@ -176,88 +188,128 @@ pred_int = forecaster.predict_interval(fh, coverage=1-alpha/2)
 timer_final = time.time()
 tiempo = timer_final - timer_comienzo
 
+# Guardamos los pronosticos en un dataframe
+pred_int.columns = ['lower', 'upper']
+pred_prophet = pd.DataFrame({
+    'ds' : datos_test['ds'],
+    'pred' : pred,
+    'lower' : pred_int['lower'],
+    'upper' : pred_int['upper']
+})
+
 # Calculamos MAPE
 mape = mean_absolute_percentage_error(datos_test['y'], pred)
 
 # Calculamos Interval Score
-pred_int.columns = ['lower', 'upper']
 score = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
 
 # Graficamos el pronostico
-plt.plot(datos['ds'], datos['y'])
-sns.lineplot(x = datos['ds'], y= pred, color = 'red', label = 'Prediccion')
-plt.fill_between(
-    datos_test['ds'], pred_int['lower'], pred_int['upper'], color = 'red', alpha = 0.3, label = f'IC: {1-alpha/2}%')
+plot_forecast(data = datos, forecast = pred_prophet, color = 'red', label = 'Prophet')
 
-
+# Guardamos las metricas
 metricas.loc[len(metricas)] = ['Prophet', mape, score, tiempo]
 ```
 
 ## Machine learning
 
 ```{python}
-# XGBoost
+# XGBoost (https://cloud.google.com/python/docs/reference/bigframes/latest/bigframes.ml.ensemble.XGBRegressor)
 
+# Definimos los parametros a tunear
 params = {
-    "max_depth": [3,5],
-    "learning_rate": 0.1,
-    "n_estimators": 100
+    "max_depth": [2,3,4,5],
+    "learning_rate": [0.1, 0.2, 0.3],
+    "n_estimators": [20, 50, 100, 150],
+    'max_iterations' : [5, 10, 20, 30]
+
 }
 
-pred, mape, score, tiempo, resultados_xgb = Tuner(forecaster_fun= 'XGBoost', datos=datos, parametros=params, alpha= alpha)
+# Tuneamos los parametros y ajustamos el modelo
+pred_xgb, mape, score, tiempo, resultados_xgb = Tuner(forecaster_fun= 'XGBoost', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
 
+# Graficamos el pronostico
+plot_forecast(data = datos, forecast = pred_xgb, color = 'green', label = 'XGBoost')
+
+# Guardamos las metricas
 metricas.loc[len(metricas)] = ['XGBoost', mape, score, tiempo]
 ```
 
 ```{python}
-# LightGBM
+# LightGBM (https://lightgbm.readthedocs.io/en/latest/Parameters.html)
 
+# Definimos los parametros a tunear
 params = {
-    "max_depth": [3,5],
-    "learning_rate": 0.1,
-    "n_estimators": 100
+    "max_depth": [2,3,4,5],
+    "learning_rate": [0.1, 0.2, 0.3],
+    "n_estimators": [20, 50, 100, 150],
+    'num_leaves' : [5, 10, 20, 30, 50],
+    # 'extra_trees' : ['true', 'false']
 }
 
-pred, mape, score, tiempo, resultados_lightgbm = Tuner(forecaster_fun= 'LightGBM', datos=datos, parametros=params, alpha= alpha)
+# Tuneamos los parametros y ajustamos el modelo
+pred_lgbm, mape, score, tiempo, resultados_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
 
+# Graficamos el pronostico
+plot_forecast(data = datos, forecast = pred_lgbm, color = 'green', label = 'LightGBM')
+
+# Guardamos las metricas
 metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
 ```
 
 ## Deep learning
 
 ```{python}
-# LSTM
+# LSTM (https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html)
 
+# Definimos los parametros a tunear
 parametros = {
-    'max_steps' : [20]}
+    'max_steps' : [20, 50, 100, 200],
+    'random_seed' : [seed],
+    'encoder_n_layers' : [1,2,3],
+    'decoder_layers' : [1,2,3]
+    }
 
-pred, mape, score, tiempo, resultados_lstm = Tuner(forecaster_fun= 'LSTM', datos=datos, parametros= parametros, alpha= alpha)
+# Tuneamos los parametros y ajustamos el modelo
+pred_lstm, mape, score, tiempo, resultados_lstm = Tuner(forecaster_fun= 'LSTM', datos=datos, parametros= parametros, alpha= alpha, long_pred = long_pred)
 
+# Graficamos el pronostico
+plot_forecast(data = datos, forecast = pred_lstm, color = 'violet', label = 'LSTM')
+
+# Guardamos las metricas
 metricas.loc[len(metricas)] = ['LSTM', mape, score, tiempo]
 ```
 
 ```{python}
-# TIME GPT
+# TIME GPT (https://docs.nixtla.io/docs/capabilities-forecast-forecast)
 
+# Definimos los parametros a tunear
 parametros = {
-    'finetune_loss' : ['mape']}
+    'finetune_loss' : ['mape'],
+    'finetune_steps' : [1,2,5,10,15],
+    'finetune_depth' : [1, 2, 3, 5]
+    }
 
-pred, mape, score, tiempo, resultados_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=datos, parametros= parametros, alpha= alpha)
+# Tuneamos los parametros y ajustamos el modelo
+pred_gpt, mape, score, tiempo, resultados_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=datos, parametros= parametros, alpha= alpha, long_pred = long_pred)
 
+# Graficamos el pronostico
+plot_forecast(data = datos, forecast = pred_gpt, color = 'violet', label = 'TimeGPT')
+
+# Guardamos las metricas
 metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
 
 ```
 
 
 ```{python}
-save_env(filename='Ambiente/modelizacion.pkl')
+# Guardamos el ambiente
+# save_env(env_dict=globals(), filename="Ambiente/resultados.pkl")
 ```
+
 # ARREGLAR
 
-- averiguar como funciona el coverage, (es un intervalo probabilistico siquiera?)
+- Los intervalos de TimeGPt Y LSTM estan muy chicos. Ademas puede haber overfitting.
 
-- Los intervalos de TimeGPt estan muy chicos
+- Corregir los intervalos de XGBoost
 
-- Corregir los intervalos de XGBoost Y LSTM
-
-- Agregar mas parametros a todos los modelos
+- Arreglar los nombres de los ejes en los graficos

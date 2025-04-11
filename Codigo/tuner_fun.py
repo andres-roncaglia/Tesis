@@ -34,10 +34,6 @@ from sktime.split import temporal_train_test_split
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
 
-# Para graficos
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 # Para calcular el interval score
 from Funciones import interval_score
 
@@ -78,6 +74,10 @@ def dict_expand(parametros):
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
 def fit_pred_tgpt(df, h, time_col, target_col, freq, level, kwargs, devolver_tiempo = False):
+
+    # Debemos garantizar que los int se mantengan como tal
+    kwargs = {k: int(v) if isinstance(v, str) and v.isdigit() else v
+    for k, v in kwargs.items()}
 
     timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
         
@@ -366,7 +366,7 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
     datos_test = datos[corte:]
 
     # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
-    train_y, test_y = temporal_train_test_split(datos_train, test_size=0.1)
+    train_y, test_y = temporal_train_test_split(datos_train, test_size=0.15)
     
     # Creamos vectores para guardar los resultados
     mapes = []
@@ -437,11 +437,6 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
     else:
         grilla['Seleccionado'] = scores == np.nanmin(scores)
 
-    # Graficamos el pronostico
-    plt.plot(datos['ds'], datos['y'])
-    sns.lineplot(x = forecast['ds'], y= forecast['pred'], color = 'red', label = 'Prediccion')
-    plt.fill_between(forecast['ds'], forecast['lower'], forecast['upper'], color = 'red', alpha = 0.3)
-        
     # Devolvemos las predicciones
     return forecast, mape_final, score_final, tiempo, grilla
 

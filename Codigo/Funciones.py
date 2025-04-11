@@ -11,6 +11,10 @@ import requests
 # Para guardar y cargar los modelos
 import pickle
 
+# Para graficos
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 # ---------------------------------------- FUNCIONES ------------------------------------
 
@@ -57,6 +61,26 @@ def interval_score(obs, lower, upper, alpha):
 
     return score
 
+
+# ------------------------------------------------------------------------------------
+
+# Funcion plot_forecast()
+# Grafica los pronosticos
+# argumentos:
+# - data : Pandas dataframe con los valores observados. Con columnas 'ds' e 'y'
+# - forecast : Pandas dataframe con los pronosticos. Con columnas 'ds', 'pred', 'lower' y 'upper'
+# - color : Color de los pronosticos en el grafico (opcional)
+# - label : Etiqueta de los pronosticos en el grafico (opcional)
+# salida: matplotlib plot
+
+def plot_forecast(data, forecast, color = 'red', label = 'Prediccion', xlabel = 'Año', ylabel = 'Consumo'):
+    plt.plot(data['ds'], data['y'])
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    sns.lineplot(x = forecast['ds'], y= forecast['pred'], color = color, label = label)
+    plt.fill_between(forecast['ds'], forecast['lower'], forecast['upper'], color = color, alpha = 0.3)
+
+
 # ------------------------------------------------------------------------------------
 
 # Funcion is_pickleable()
@@ -81,8 +105,15 @@ def is_pickleable(obj):
 # - filename : Nombre del archivo .pkl a generar
 # salida: Nada, Crea un archivo .pkl
 
-def save_env(filename="environment.pkl"):
-    global_vars = {k: v for k, v in globals().items() if not k.startswith("__") and is_pickleable(v)}
+def save_env(env_dict=None, filename="environment.pkl"):
+    if env_dict is None:
+        env_dict = globals()
+
+    global_vars = {
+        k: v for k, v in env_dict.items()
+        if not k.startswith("__") and is_pickleable(v)
+    }
+
     with open(filename, "wb") as f:
         pickle.dump(global_vars, f)
 
@@ -96,8 +127,7 @@ def save_env(filename="environment.pkl"):
 
 def load_env(filename="environment.pkl"):
     with open(filename, "rb") as f:
-        global_vars = pickle.load(f)
-        globals().update(global_vars)
+        return pickle.load(f)
 
 
 # ------------------------------------------------------------------------------------
