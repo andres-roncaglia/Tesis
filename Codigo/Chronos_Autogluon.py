@@ -98,8 +98,8 @@ predictions = predictor.predict(datos_train)
 predictions.columns = ['pred', 'lower', 'upper']
 
 # Calculamos MAPE e Interval Score
-mape = mean_absolute_percentage_error(datos_test['target'], predictions['pred'])
-score = interval_score(obs=datos_test['target'], lower=predictions['lower'], upper= predictions['upper'], alpha=0.2)
+mape_chronos = mean_absolute_percentage_error(datos_test['target'], predictions['pred'])
+score_chronos = interval_score(obs=datos_test['target'], lower=predictions['lower'], upper= predictions['upper'], alpha=0.2)
 
 
 # Modificamos los datasets para tener el mismo formato que con el resto de modelos
@@ -126,7 +126,11 @@ salida = predictor.fit_summary()
 resultados_chronos = salida['leaderboard']
 
 # Guardamos los resultados
-save_env(env_dict=globals(), filename="Codigo/Ambiente/resultados_chronos.pkl")
+save_env(env_dict={
+    'resultados_chronos' : resultados_chronos, 'datos_b': datos_b,
+    'pred_chronos' : pred_chronos, 'mape_chronos' : mape_chronos, 
+    'score_chronos' : score_chronos
+    }, filename="Codigo/Ambiente/resultados_chronos.pkl")
 
 # Crear una metrica propia
 # https://auto.gluon.ai/stable/tutorials/tabular/advanced/tabular-custom-metric.html

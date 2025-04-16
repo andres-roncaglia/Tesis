@@ -1,6 +1,13 @@
 ---
 title: "Untitled"
 format: pdf
+engine: python
+metadata:
+  quarto-python:
+    python: ".venv/Scripts/python.exe"
+echo: False
+warning: False
+message: False
 ---
 
 ```{python}
@@ -9,6 +16,9 @@ format: pdf
 # Para imprimir imagenes
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+
+# Para mostrar los resultados
+from Funciones import plot_forecast, load_env
 ```
 
 # Carátula 
@@ -23,10 +33,10 @@ Palabras clave: series temporales, predicción, ARIMA, TimeGPT, redes neuronales
 # Tabla de contenidos
 
 # Introducción
-
+<!-- 
 Contexto de la predicción de series temporales en Argentina.
 Motivación del uso de modelos avanzados como TimeGPT.
-Preguntas de investigación y estructura del documento.
+Preguntas de investigación y estructura del documento. -->
 
 
 Desde antaño, el deseo de saber que traerá el mañana invade los pensamientos de las personas, y tener una predicción del futuro es crucial para la toma de decisiones. 
@@ -150,7 +160,7 @@ TimeGPT es un modelo de tipo transformer con mecanismos de autoatención (del in
 
 La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
 
-![Diagrama de la estructura del modelo](../Info%20tesis/Imgs/modelo2.png){#fig-modelo}
+![Diagrama de la estructura del modelo](../Imgs/modelo2.png){#fig-modelo}
 
 #### Paso a paso del funcionamiento del modelo
 
@@ -164,11 +174,11 @@ La arquitectura del modelo consiste en una estructura con codificador y decodifi
 
 La verificación del contexto funciona gracias a una matriz la cúal se llamará *Query* ($W_Q$) que examina ciertas características, y es multiplicada por el vector de entrada ($\vec E$) resultando en un vector de consultas ($\vec Q$) para cada token. Una matriz de claves (*Key matrix*) ($W_K$) que comprueba las relaciones con las características en la matriz de consultas y tiene las mismas dimensiones que esta es también multiplicada por $\vec E$ generando así el vector de claves ($\vec K$). Luego se forma una nueva matriz a partir de los productos cruzados entre los vectores $\vec K$ y $\vec Q$ de cada token, se divide por la raíz de la dimensión de los vectores^[Es útil para mantener estabilidad numérica, la cual describe cómo los errores en los datos de entrada se propagan a través del algoritmo. En un método estable, los errores debidos a las aproximaciones se atenúan a medida que la computación procede.] ($\sqrt{d_k}$) y se normaliza con *softmax*^[ $softmax(x) = \frac{e^{x_i/t}}{\sum_j e^{x_j/t}}$] por columna^[Aplicar *softmax* hace que cada columna se comporte como una distribución de probabilidad.] ($\vec S$), valores más altos indican que un token (de las columnas) esta siendo influenciado por el comportamiento de otro token (de las filas).
 
-![(before applying softmax) for example: Fluffy and Blue contribute to creature](../Info%20tesis/Imgs/attention_matrix.png)
+![(before applying softmax) for example: Fluffy and Blue contribute to creature](../Imgs/attention_matrix.png)
 
 Ahora que se sabe que tokens son relevantes para otros tokens, es necesario saber como son afectados. Para esto existe otra matriz de valores ($W_V$) que es multiplicada por cada vector de entrada resultando en los vectores de valor ($\vec V$) que son multiplicados a cada columna. La suma por filas devuelven el vector ($\Delta \vec E$) que debe ser sumado al vector de entrada original de cada token.
 
-![](../Info%20tesis/Imgs/attention_matrix_softmax.png)
+![](../Imgs/attention_matrix_softmax.png)
 
 $$
 \Delta \vec E_j = \sum_i S_j \cdot \vec V_i
@@ -245,7 +255,11 @@ $$
 Donde:
 
 $$
-W_l = IS_l - II_l \hspace{1, cm} O_l = \left \{ \matrix{ \frac{2}{\alpha}(Z_n(l) - Z_{n+l}) \hspace{10,mm} \text{si } Z_n(l) > Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill}\right. \hspace{1, cm} U_l = \left \{ \matrix{ \frac{2}{\alpha}(Z_{n+l} - Z_n(l)) \hspace{10,mm} \text{si } Z_n(l) < Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill}\right.
+W_l = IS_l - II_l \hspace{1, cm}
+$$
+
+$$
+O_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_n(l) - Z_{n+l}) \hspace{10,mm} \text{si } Z_n(l) > Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right. \hspace{1, cm} U_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_{n+l} - Z_n(l)) \hspace{10,mm} \text{si } Z_n(l) < Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.
 $$
 
 Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ésimo pronóstico respectivamente. Es fácil darse cuenta que $W$ es una penalización por el ancho del intervalo, y que $O$ y $U$ son penalizaciones por sobre y subestimación respectivamente.
@@ -262,6 +276,79 @@ Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ési
 
 - Descripción de los resultados obtenidos con cada modelo.
 - Comparación de desempeño en distintos horizontes de predicción.
+
+```{python}
+
+# Primero cargamos los ambientes donde tenemos todos los resultados
+
+globals().update(load_env('Ambiente/resultados.pkl'))
+globals().update(load_env('Ambiente/resultados_chronos.pkl'))
+
+```
+
+### Métodos Tradicionales
+
+#### ARIMA
+
+```{python}
+plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoARIMA')
+```
+
+#### Prophet
+
+```{python}
+plot_forecast(data = datos, forecast = pred_prophet, color = 'red', label = 'Prophet')
+
+```
+
+
+### Métodos de Machine Learning
+
+#### XGBoost
+
+```{python}
+plot_forecast(data = datos, forecast = pred_xgb, color = 'green', label = 'XGBoost')
+```
+
+#### LightGBM
+
+```{python}
+plot_forecast(data = datos, forecast = pred_lgbm, color = 'green', label = 'LightGBM')
+```
+
+
+### Deep Learning
+
+#### LSTM
+
+```{python}
+plot_forecast(data = datos, forecast = pred_lstm, color = 'violet', label = 'LSTM')
+
+```
+
+#### Chronos
+
+```{python}
+# Cargamos las metricas de chronos
+tiempo_chronos = resultados_chronos['fit_time_marginal'][0]
+metricas.loc[len(metricas)] = ['Chronos', mape_chronos, score_chronos, tiempo_chronos]
+
+plot_forecast(data = datos, forecast = pred_chronos, color = 'violet', label = 'Chronos')
+```
+
+
+#### TimeGPT
+
+```{python}
+plot_forecast(data = datos, forecast = pred_gpt, color = 'violet', label = 'TimeGPT')
+```
+
+### Comparaciones
+
+```{python}
+metricas
+
+```
 
 #	Conclusiones	
 
@@ -283,12 +370,13 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 # IDEAS
 
-## Distintos modelos a usar para el apartado machine learning
-
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
+
 - Hacer equivalencia del documento en GitBook
 
-- Enfocar la tesina a comparar modelos tradicionales vs machine learning vs deep learning
+- Datos: Graciela N. Klekailo Facultad de Ciencias Agrarias, Direccion general de estadistica municipalidad 
+
+- Investigar mas sobre medidas de error
 
 - Toda la modelización pasarla a .py y no .qmd
 
@@ -300,6 +388,11 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
     Deep Learning: LSTM
         Foundational models: TimeGPT, Chronos
 
+- leer fpp3 que tiene unas cosas que pueden servir  
+
+- incluir varios tipos de series? con estacionalidad, con tendencia, con ambas, con variables exogenas?
+
+- Incluir prophet como un modelo tradicional?
 
 
 

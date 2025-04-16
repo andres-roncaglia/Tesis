@@ -311,5 +311,3 @@ metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
 - Los intervalos de TimeGPt Y LSTM estan muy chicos. Ademas puede haber overfitting.
 
 - Corregir los intervalos de XGBoost
-
-- Arreglar los nombres de los ejes en los graficos

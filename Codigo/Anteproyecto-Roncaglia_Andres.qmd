@@ -1,0 +1,98 @@
+---
+title: "Untitled"
+subtitle: "Anteproyecto de tesina"
+author: "RONCAGLIA, Andrés"
+format: pdf
+engine: python
+metadata:
+  quarto-python:
+    python: ".venv/Scripts/python.exe"
+toc: true
+lang: es
+echo: False
+warning: False
+message: False
+---
+
+```{python}
+# LIBRERIAS
+
+# Para imprimir imagenes
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Para mostrar los resultados
+from Funciones import plot_forecast, load_env
+```
+
+# 1. Introducción
+
+
+Desde antaño el deseo de saber que traerá el mañana invade los pensamientos de las personas, quien no quisiera conocer los números ganadores del próximo 'Quini' o que acciones tendrán una importante subida para ganar mucho en muy poco tiempo. El análisis de datos ordenados en el tiempo puede ayudar a desenmascarar un poco de este futuro incierto, si bien no precisamente para ganar la quiniela o ganar mucho en el mercado accionista (aunque más de uno lo habrá intentado), sí puede colaborar en objetivos menos egoístas como encontrar los picos de consumo de luz para preparar los equipos y que no falle el sistema, o estudiar la ocupación de camas en hospitales para garantizar atención para todos, o tal vez analizar el clima para advertir a la población de temporales peligrosos. Estos ejemplos y muchos más prueban que tener una idea del futuro, o más bien una predicción, es crucial para la toma de buenas decisiones. 
+
+El estudio de las series de tiempo lleva años en desarrollo y permite realizar inferencias en datos temporales de diversas áreas, ya sea finanzas, medicina, medio ambiente, entre otras. Con un buen conocimiento de matemáticas, estadística e informática es sencillo hacer un pronóstico aproximado de casi cualquier dato que se mida en el tiempo. 
+
+Estos últimos años se vieron caracterizados por el gran aumento en los volúmenes de datos, el '*Big Data*' es presente y futuro, y en un mundo en donde todo se vuelve más complejo y el tiempo es cada vez más valioso, es conveniente tener herramientas que faciliten y acorten los tiempos de trabajo. Si bien los métodos actuales para trabajar series de tiempo son precisos, los modelos clásicos como ARIMA requieren que la persona se capacite en el tema y requieren de un trabajo manual que es dificil de automatizar, mientras que los métodos de *machine learning* que se utilizan actualemte pueden tomar un largo tiempo de entrenamiento y un gran coste computacional. Para resolver estos problemas llegan los modelos fundacionales pre-entrenados tales como *TimeGPT* o *Chronos*, que se encargan de buscar el mejor modelo para la serie especificada de manera automatizada, sin que el usuario tenga que hacer algún esfuerzo o tener algún conocimiento de como trabajar con datos temporales.
+
+Si bien el objetivo de los modelos para series de tiempo esta centrado en la predicción y no tanto así en la interpretación, es importante entender que está haciendo el modelo para justificar en cierta manera las predicciones que realiza. Es en este punto donde más pecan los modelos de aprendizaje profundo, entre los que se encuentran los modelos fundacionales, ya que no solo cuentan con un enorme número de parámetros, sino que también las metodologías usadas para el ajuste del modelo son muy complejas.
+
+También es importante preguntarse hasta que punto mejoran las predicciones y los tiempos de ajuste por sobre los modelos más establecidos en el análisis de series de tiempo, o si mejoran siquiera, ya que poco importa lo fácil que sea de realizar una predicción si la misma no es buena.
+
+\newpage
+
+# 2. Objetivos
+
+El objetivo de esta tesina es, en primer lugar, comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo con modelos de *deep learning* en contraposición con otros métodos ya más establecidos como los tradicionales modelos ARIMA o modelos a partir del uso de *machine learning*.
+
+Por otro lado también se busca que el lector obtenga conocimientos acerca de:
+
+- Qué es una serie de tiempo y cúales son sus principales características
+
+- Como funcionan los modelos que se comparan
+
+- Que métricas se utilizan para comparar pronósticos
+
+- Bajo qué condiciones un modelo funciona mejor que otro
+
+Dado que naturalmente se necesitan datos que requieran ser pronosticados, otro objetivo propuesto es realizar predicciones sobre series univariadas de distintos ámbitos y características.
+
+\newpage
+
+# 3. Metodología
+
+Siendo el foco de la tesina la comparación de modelos complejos para series de tiempo, la mayor parte del documento estará centrada en la explicación del funcionamiento de estos y sus diversos parámetros ajustables. También será importante hacer mención a las características principales de una serie de tiempo y a las distintas formas que existen de comparar pronósticos.
+
+## 3.1 Modelos tradicionales
+
+Son llamados modelos tradicionales a aquellos que surgen antes del 'boom' del *machine learning* y los modelos de aprendizaje profundo. Son caracterizados por sus fuertes fundamentos estadísticos y su capacidad en capturar dependencias temporales en los datos.
+
+### 3.1.1 ARIMA y SARIMA
+
+Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son combinaciones lineales de las $p$ observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de las $q$ observaciones pasadas. Además, generaliza en el sentido de los modelos diferenciados (I), en los que se resta a cada observacion los $d$-ésimo valores anteriores para estacionarizar en media, eliminando así la tendencias determinísticas.
+
+Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad que puede tener una serie, es por esto que se introducen los modelos $SARIMA(p,d,q)(P,D,Q)_s$ que agregan componentes AR, MA y diferenciaciones a la parte estacional de la serie con período $s$.
+
+## 3.2 Modelos de *Machine Learning*
+
+El *machine learning* se define como una rama de la inteligencia artificial enfocada a permitir que las computadoras y máquinas imiten la forma en que los humanos aprenden, para realizar tareas de forma autónoma y mejorar la eficiencia y eficacia a través de la experiencia y la exposición a mas información. Si bien los métodos que se presentan no fueron diseñados especificamente para el análisis de datos temporales como los modelos tradicionales o aquellos que utilizan aprendizaje profundo que se mencionarán más adelante, si probaron ser útiles a lo largo del tiempo y a través de distintas pruebas.
+
+Los métodos de machine learning a diferencia de los modelos tradicionales se enfocan principalmente en identificar los patrones que describen el comportamiento del proceso que sean relevantes para pronosticar la variable de interés, y no se componen de reglas ni supuestos que tengan que seguir. Para la identificación de patrones, estos modelos requieren la generación de características. 
+
+Es importante remarcar que lo que se presenta a continuación como modelos, no son más que técnicas de *boosting* aplicadas a modelos de bosques aleatorios. El concepto de *boosting* es crear modelos de forma secuencial con la idea de que los últimos modelos corrijan los errores de los previos. 
+
+### 3.2.1 XGBoost
+
+XGBoost construye árboles de forma secuencial donde cada nuevo árbol busca predecir los residuos de los árboles anteriores. Es así entonces que el primer árbol buscará predecir los valores futuros de la serie, mientras que el segundo intentará predecir los valores reales menos los pronosticados por el primer árbol, el tercero tratará de inferir la diferencia entre los valores reales y el valor pronosticado del primer árbol menos los errores del segundo, y así sucesivamente.
+
+Sin embargo, los modelos no se construyen infinitamente, sino que XGBoost busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen.
+
+### 3.2.2 LightGBM
+
+LightGBM funciona de una forma similar a XGBoost, la diferencias radican en la forma en que cada uno identifica las mejores divisiones dentro de los árboles y de que forma los hacen crecer. Mientras que XGBoost usa un método en el que se construyen histogramas para cada una de las características generadas para elegir la mejor división por característica, LightGBM usa un método más eficiente llamado *Gradient-Based One-Side Sample* (GOSS). GOSS calcula los gradientes para cada punto y lo usa para filtrar afuera aquellos puntos que tengan un bajo gradiente, ya que esto significaría que estos puntos están mejor pronosticados que el resto y no hace falta enfocarse tanto en ellos. Además, LightGBM utiliza un procedimiento que acelera el ajuste cuando se tienen muchas características correlacionadas de las cuáles elegir. 
+
+A la hora de hacer crecer los árboles, XGBoost los hace nivel a nivel, es decir que primero se crean todas las divisiones de un nivel, y luego se pasa al siguiente, priorizando que el árbol sea simétrico y tenga la misma profundidad en todas sus ramas. LigthGBM, en cambio, se expande a partir de la hoja que más reduce el error, mejorando la precisión y eficiencia en series largas, pero arriesgando a posibles sobreajustes si no se limita correctamente la profundidad de los árboles.
+
+## 3.3 Modelos de aprendizaje profundo
+
+El *Deep learning* (aprendizaje profundo) es una rama del *machine learning* que tiene como base un conjunto de algoritmos (entre ellos las redes neuronales) que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
