@@ -376,7 +376,7 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Datos: Graciela N. Klekailo Facultad de Ciencias Agrarias, Direccion general de estadistica municipalidad 
 
-- Investigar mas sobre medidas de error
+- Investigar mas sobre medidas de error (weighted quantile loss)
 
 - Toda la modelización pasarla a .py y no .qmd
 
@@ -393,6 +393,5 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 - incluir varios tipos de series? con estacionalidad, con tendencia, con ambas, con variables exogenas?
 
 - Incluir prophet como un modelo tradicional?
-
 
 
