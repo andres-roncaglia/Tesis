@@ -21,9 +21,6 @@ from datetime import datetime
 import urllib.parse
 import requests
 
-# Para cargar las claves
-import creds
-
 # Para graficos
 import matplotlib.pyplot as plt
 import seaborn as sns
