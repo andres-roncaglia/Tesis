@@ -8,7 +8,7 @@ import numpy as np
 import creds
 
 # Para XGBoost
-from xgboost import XGBRegressor, DMatrix, train
+from xgboost import XGBRegressor
 
 # Para LightGBM
 import lightgbm as lgb
@@ -16,7 +16,7 @@ import lightgbm as lgb
 # Para LSTM
 from neuralforecast import NeuralForecast
 from neuralforecast.models import LSTM
-from neuralforecast.losses.pytorch import MQLoss
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
 
 # Para time GPT
 from nixtla import NixtlaClient
@@ -73,7 +73,7 @@ def dict_expand(parametros):
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_tgpt(df, h, time_col, target_col, freq, level, kwargs, devolver_tiempo = False):
+def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, devolver_tiempo = False):
 
     # Debemos garantizar que los int se mantengan como tal
     kwargs = {k: int(v) if isinstance(v, str) and v.isdigit() else v
@@ -83,7 +83,7 @@ def fit_pred_tgpt(df, h, time_col, target_col, freq, level, kwargs, devolver_tie
         
     # Ajustamos el modelo y pronosticamos 
     forecaster = nixtla_client.forecast(df = df, h = h, time_col= time_col,
-            target_col= target_col, freq= freq, level=level, **kwargs)
+            target_col= target_col, freq= freq, level=[(1-alpha/2)*100], **kwargs)
         
     timer_final = time.time()
 
@@ -120,7 +120,7 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False):
     parametros = kwargs.copy()
     parametros['h'] = long_pred
     parametros['input_size'] = long_pred*3
-    parametros['loss'] = MQLoss(level = [1-alpha/2])
+    parametros['loss'] = MQLoss(level = [(1-alpha/2)*100])
 
     timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
         
@@ -136,6 +136,7 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False):
 
     # Renombramos las columnas para generalizar
     forecaster.drop('unique_id', axis=1, inplace=True)
+    
     forecaster.columns = ['ds', 'pred', 'upper', 'lower']
 
     if devolver_tiempo:
@@ -143,22 +144,6 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False):
     else :
         return forecaster
 
-# ------------------------------------------------------------------------------------
-
-# Funcion quantile_loss()
-# Función auxiliar para que XGB pronostique los quantiles
-# argumentos:
-# - q : Cuantil a pronosticar
-# salida: Objetivo de prediccion
-
-def quantile_loss(q):
-    def objective(y_pred, d_train):
-        y_true = d_train.get_label()
-        err = y_true - y_pred
-        grad = np.where(err < 0, -q, 1 - q)
-        hess = np.ones_like(y_true)  
-        return grad, hess
-    return objective
 
 # ------------------------------------------------------------------------------------
 
@@ -185,32 +170,24 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
     datos_xgb["lag_2"] = datos_xgb["y"].shift(2)
     datos_xgb["lag_12"] = datos_xgb["y"].shift(12)
 
-    # Dividimos en entrenamiento y testeo
+    # Dividimos en entrenamiento, validacion y testeo
     corte = len(datos_xgb)-long_pred
 
-    datos_xgb_train = datos_xgb[:corte]
+    datos_xgb_fulltrain = datos_xgb[:corte]
     datos_xgb_test = datos_xgb[corte:]
+    datos_xgb_train, datos_xgb_val = temporal_train_test_split(datos_xgb_fulltrain, test_size=0.2)
 
     # Extraemos las características
-    X_train = datos_xgb_train[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
+    X_fulltrain = datos_xgb_fulltrain[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
     X_test = datos_xgb_test[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
+    X_train = datos_xgb_train[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
+    X_val = datos_xgb_val[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
 
     # Calculamos los cuantiles a pronosticar
     q_lower = alpha/2
     q_upper = 1-alpha/2
 
-    # Transformamos los datos de entrenamiento en un formato tal que xgb.train los pueda usar
-    dtrain = DMatrix(X_train, label=datos_xgb_train['y'])
-
-    # Añadimos unos argumentos extras a kwargs para que xgb.train funcione correctamente
-    train_args = kwargs.copy()
-    train_args.pop('n_estimators')
-    train_args['objective'] = "reg:squarederror"
-    train_args['base_score'] = np.median(datos_xgb_train['y'])
-
     # Por un error de train, debemos garantizar que los int y los floats se mantengan como tal
-    train_args = {k: int(v) if isinstance(v, float) and v.is_integer() else v
-    for k, v in train_args.items()}
     kwargs = {k: int(v) if isinstance(v, float) and v.is_integer() else v
     for k, v in kwargs.items()}
 
@@ -220,19 +197,24 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
     # Ajustamos los modelos y pronosticamos
 
     timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-    
-    # Media
+
+    # Primero debemos obtener la distribucion de los residuos para el calculo de los intervalos
     model.fit(X_train, datos_xgb_train['y'])
+    pred_val = model.predict(X_val)
+    residuals = np.abs(datos_xgb_val['y'] - pred_val)
+
+    # Calculamos el cuantil superior
+    q = np.quantile(residuals, q_upper)
+
+    # Volvemos a ajustar el modelo, ahora con todos lo datos de entrenamiento
+    model.fit(X_fulltrain, datos_xgb_fulltrain['y'])
     pred = model.predict(X_test)
 
+    # Calculamos los intervalos usando corformal predictions
     # Cuantil inferior
-    model_low = train(dtrain= dtrain, obj=quantile_loss(q_lower), num_boost_round= kwargs['n_estimators'], params= train_args)
-    pred_low = model_low.predict(DMatrix(X_test))
-    
+    pred_low = pred - q
     # Cuantil superior
-    model_upper = train(dtrain= dtrain, obj=quantile_loss(q_upper), num_boost_round= kwargs['n_estimators'], params= train_args)
-    pred_upper = model_upper.predict(DMatrix(X_test))
-
+    pred_upper = pred + q
         
     timer_final = time.time()
 
@@ -385,7 +367,7 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
         if forecaster_fun == 'XGBoost':
             forecast = fit_pred_xgb(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs)
         elif forecaster_fun == 'TimeGPT':
-            forecast = fit_pred_tgpt(df = train_y, h = len(test_y), time_col= 'ds', target_col= 'y', freq= 'M', level=[1-alpha/2], kwargs=kwargs)
+            forecast = fit_pred_tgpt(df = train_y, h = len(test_y), time_col= 'ds', target_col= 'y', freq= 'M', alpha = alpha, kwargs=kwargs)
         elif forecaster_fun == 'LSTM':
             forecast = fit_pred_lstm(datos= train_y, long_pred= len(test_y), kwargs= kwargs, alpha=alpha)
         elif forecaster_fun == 'LightGBM':
@@ -417,7 +399,7 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
     if forecaster_fun == 'XGBoost':
         forecast, tiempo = fit_pred_xgb(datos = datos, long_pred= len(datos_test), alpha = alpha, kwargs = kwargs, devolver_tiempo=True)
     elif forecaster_fun == 'TimeGPT':
-        forecast, tiempo = fit_pred_tgpt(df = datos_train, h = len(datos_test), time_col= 'ds', target_col= 'y', freq= 'M', level=[1-alpha/2], kwargs=kwargs, devolver_tiempo=True)
+        forecast, tiempo = fit_pred_tgpt(df = datos_train, h = len(datos_test), time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True)
     elif forecaster_fun == 'LSTM':
         forecast, tiempo = fit_pred_lstm(datos= datos_train, long_pred= len(datos_test), kwargs= kwargs, alpha=alpha, devolver_tiempo=True)
     elif forecaster_fun == 'LightGBM':

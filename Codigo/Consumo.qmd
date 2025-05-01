@@ -34,7 +34,6 @@ from tuner_fun import Tuner
 
 # Para los modelos de SKtime
 from sktime.forecasting.base import ForecastingHorizon
-from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.arima import AutoARIMA
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 ```
@@ -127,36 +126,46 @@ datos_test = datos[corte:]
 ```{python}
 # AUTOARIMA
 
-# Definimos el horizonte de pronostico
-fh = ForecastingHorizon(datos_test.index, is_relative=False)
-
-
 # Ajustamos el modelo
 timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-forecaster = AutoARIMA(
-    start_p= 0, start_q= 0, sp= 12, max_p=3, max_q= 3, suppress_warnings= True, max_d=2, max_D= 2
-).fit(datos_train['y'])
-  
+
+from pmdarima import auto_arima
+
+modelo = auto_arima(datos_train['y'], 
+                        start_p = 0, max_p = 3,
+                        start_q = 0, max_q = 3,
+                        start_P = 0, max_P = 3,
+                        start_Q = 0, max_Q = 3,
+                        max_d=2, max_D= 2,
+                        m = 12,
+                        trace = False, 
+                        error_action ='ignore',   
+                        suppress_warnings = True, 
+                        stepwise = True,
+                        random_state = seed)
+
 # Obtenemos predicciones
-pred = forecaster.predict(fh)
-pred_int = forecaster.predict_quantiles(fh, alpha=[alpha/2,1-alpha/2])
+pred, pred_int = modelo.predict(n_periods = long_pred, alpha = alpha/2, return_conf_int=True)
+  
 timer_final = time.time()
 tiempo = timer_final - timer_comienzo
 
 # Guardamos los pronosticos en un dataframe
-pred_int.columns = ['lower', 'upper']
-pred_arima = pd.DataFrame({
-    'ds' : datos_test['ds'],
-    'pred' : pred,
-    'lower' : pred_int['lower'],
-    'upper' : pred_int['upper']
-})
+pred_int = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_int.reset_index(drop=True, inplace=True)
 
+pred_arima = pd.concat([
+    datos_test['ds'].reset_index(drop=True),
+    pred.reset_index(drop=True),
+    pred_int['lower'].reset_index(drop=True),
+    pred_int['upper'].reset_index(drop=True)
+], axis=1)
+
+pred_arima.columns = ['ds', 'pred', 'lower', 'upper']
 # Calculamos MAPE
 mape = mean_absolute_percentage_error(datos_test['y'], pred_arima['pred'])
 
 # Calculamos Interval Score
-pred_int.columns = ['lower', 'upper']
 score = interval_score(obs=datos_test['y'], lower=pred_arima['lower'], upper=pred_arima['upper'], alpha = alpha)
 
 # Graficamos el pronostico
@@ -167,57 +176,58 @@ metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
 
 ```
 
-
 ```{python}
-# PROPHET
+from ngboost import NGBRegressor
 
-# Definimos el horizonte de pronostico
-fh = ForecastingHorizon(datos_test.index, is_relative=False)
+# Creamos una copia del dataset
+datos_xgb = datos.copy()
 
+# Calculamos las características a usar
+datos_xgb['month'] = datos_xgb['ds'].dt.month
+datos_xgb['year'] = datos_xgb['ds'].dt.year
+datos_xgb["promedio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).mean() # Promedio en una ventana de 3 meses
+datos_xgb["desvio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).std() # Desvio en una ventana de 3 meses
+datos_xgb["lag_1"] = datos_xgb["y"].shift(1)
+datos_xgb["lag_2"] = datos_xgb["y"].shift(2)
+datos_xgb["lag_12"] = datos_xgb["y"].shift(12)
 
-# Ajustamos el modelo
-timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-forecaster = Prophet().fit(datos_train['y'])
-  
-# Obtenemos predicciones
-pred = forecaster.predict(fh)
-pred_int = forecaster.predict_interval(fh, coverage=1-alpha/2)
-timer_final = time.time()
-tiempo = timer_final - timer_comienzo
+# Dividimos en entrenamiento y testeo
+corte = len(datos_xgb)-long_pred
 
-# Guardamos los pronosticos en un dataframe
-pred_int.columns = ['lower', 'upper']
-pred_prophet = pd.DataFrame({
+datos_xgb_train = datos_xgb[:corte]
+datos_xgb_test = datos_xgb[corte:]
+
+# Extraemos las características
+X_train = datos_xgb_train[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
+X_test = datos_xgb_test[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
+
+ngb = NGBRegressor().fit(X_train, datos_xgb_train['y'])
+Y_preds = ngb.predict(X_test)
+Y_dists = ngb.pred_dist(X_test)
+
+pred_ngb = pd.DataFrame({
     'ds' : datos_test['ds'],
-    'pred' : pred,
-    'lower' : pred_int['lower'],
-    'upper' : pred_int['upper']
+    'pred' : Y_preds,
+    'lower' : Y_dists.ppf(alpha/2),
+    'upper' : Y_dists.ppf(1-alpha/2),
 })
 
-# Calculamos MAPE
-mape = mean_absolute_percentage_error(datos_test['y'], pred)
-
-# Calculamos Interval Score
-score = interval_score(obs=datos_test['y'], lower=pred_int['lower'], upper=pred_int['upper'], alpha = alpha)
-
-# Graficamos el pronostico
-plot_forecast(data = datos, forecast = pred_prophet, color = 'red', label = 'Prophet')
-
-# Guardamos las metricas
-metricas.loc[len(metricas)] = ['Prophet', mape, score, tiempo]
+plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'NGBoost')
 ```
 
 ## Machine learning
 
 ```{python}
-# XGBoost (https://cloud.google.com/python/docs/reference/bigframes/latest/bigframes.ml.ensemble.XGBRegressor)
+# XGBoost (https://cloud.google.com/python/docs/reference/bigframes/latest/bigframes.ml.ensemble.XGBRegressor)(https://xgboost.readthedocs.io/en/latest/python/python_api.html#module-xgboost.sklearn)
 
 # Definimos los parametros a tunear
 params = {
+    "tree_method": ['exact'],
+    "random_state": [seed],
+    "max_leaves": [2,4,8,16],
     "max_depth": [2,3,4,5],
     "learning_rate": [0.1, 0.2, 0.3],
-    "n_estimators": [20, 50, 100, 150],
-    'max_iterations' : [5, 10, 20, 30]
+    "n_estimators": [20, 50, 100, 150]
 
 }
 
@@ -236,6 +246,7 @@ metricas.loc[len(metricas)] = ['XGBoost', mape, score, tiempo]
 
 # Definimos los parametros a tunear
 params = {
+    "random_state": [seed],
     "max_depth": [2,3,4,5],
     "learning_rate": [0.1, 0.2, 0.3],
     "n_estimators": [20, 50, 100, 150],
@@ -260,7 +271,7 @@ metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
 
 # Definimos los parametros a tunear
 parametros = {
-    'max_steps' : [20, 50, 100, 200],
+    'max_steps' : [50, 100, 200, 500],
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
     'decoder_layers' : [1,2,3]
@@ -303,8 +314,3 @@ metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
 # save_env(env_dict=globals(), filename="Ambiente/resultados.pkl")
 ```
 
-# ARREGLAR
-
-- Los intervalos de TimeGPt Y LSTM estan muy chicos. Ademas puede haber overfitting.
-
-- Corregir los intervalos de XGBoost

@@ -1,13 +1,22 @@
 ---
-title: "Untitled"
-format: pdf
+format: 
+  pdf:
+    papersize: A4
 engine: python
 metadata:
   quarto-python:
     python: ".venv/Scripts/python.exe"
+fig-pos: H
+toc: false
+lang: es
 echo: False
 warning: False
 message: False
+geometry: 
+  - top= 25.4mm
+  - left= 25.4mm
+  - right = 25.4mm
+  - bottom = 25.4mm
 ---
 
 ```{python}
@@ -16,109 +25,104 @@ message: False
 # Para imprimir imagenes
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Para mostrar los resultados
 from Funciones import plot_forecast, load_env
 ```
 
-# Carátula 
 
-(ver en otras tesinas la información que debe contener la carátula)
+\newgeometry{margin=0mm}
+
+\pagenumbering{gobble}
+ 
+\thispagestyle{empty}
+
+\begin{figure}[htbp]
+    \noindent
+    \includegraphics[width=\paperwidth, height=\paperheight]{../Imgs/Portada.png}
+\end{figure}
+
+
+\newpage
+
+\newpage
+
+
+\restoregeometry
+
 
 # Agradecimientos (esto es opcional)
+
+\newpage
 
 # Resumen
 Palabras clave: series temporales, predicción, ARIMA, TimeGPT, redes neuronales, ¿? 
 
-# Tabla de contenidos
+\newpage
 
-# Introducción
-<!-- 
-Contexto de la predicción de series temporales en Argentina.
-Motivación del uso de modelos avanzados como TimeGPT.
-Preguntas de investigación y estructura del documento. -->
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
 
-
-Desde antaño, el deseo de saber que traerá el mañana invade los pensamientos de las personas, y tener una predicción del futuro es crucial para la toma de decisiones. 
-
-El estudio de las series de tiempo lleva años en desarrollo y permite realizar inferencias en datos temporales de diversas áreas, ya sea finanzas, medicina, medio ambiente u otras tantas más. Con un buen conocimiento de matemáticas, estadística e informática es sencillo hacer un pronóstico aproximado de casi cualquier dato que se mida en el tiempo. 
-
-Estos últimos años se vieron caracterizados por el gran aumento en los volúmenes de datos, el '*Big Data*' es presente y futuro, y en un mundo en donde todo se vuelve más complejo y el tiempo es cada vez más valioso, es conveniente tener herramientas que faciliten y acorten los tiempos de trabajo. Si bien los métodos actuales para trabajar series de tiempo son precisos, los modelos clásicos como ARIMA requieren conocimientos y trabajo manual, mientras que los métodos basados en *machine learning* actuales toman tiempo de entrenamiento y un gran coste computacional. Para resolver estos problemas llega *TimeGPT*, un modelo pre-entrenado exclusivamente para series de tiempo fácil de usar.
-
-Este documento tendrá el trabajo de explicar el funcionamiento de esta nueva tecnología y compararla con otros métodos más asentados en el campo de predicciones de series de tiempo. 
-
-# Objetivos
-
-<!-- Redactar los objetivos de la tesina. Podes especificar un objetivo principal y objetivos específicos.
-
-## Objetivo General
-
-Evaluar el desempeño del modelo TimeGPT en la predicción de una serie temporal mensual de Argentina con tendencia y estacionalidad, comparándolo con modelos tradicionales (ARIMA) y técnicas de Machine Learning.
-
-## Objetivos Específicos
-
-- Revisión teórica sobre modelos de series temporales tradicionales y modernos, incluyendo ARIMA, Machine Learning y TimeGPT.
-- Preprocesamiento y análisis exploratorio de una serie temporal mensual de Argentina.
-- Entrenamiento y evaluación de modelos ARIMA, modelos de Machine Learning (p.ej., XGBoost, LSTM) y TimeGPT.
-- Comparación del desempeño de los modelos según métricas como RMSE, MAE y MASE.
-- Discusión de ventajas y desventajas de cada enfoque en términos de precisión, interpretabilidad y facilidad de implementación. -->
-
-El objetivo de esta tesina es, en primer lugar, comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo con *TimeGPT* en contraposición con otros métodos ya más establecidos como los modelos ARIMA o modelos a partir del uso de *machine learning*.
-
-Por otro lado también se busca que el lector obtenga conocimientos acerca de:
-
-- que es una serie de tiempo y para que sirve pronosticarlas
-
-- conceptos básicos del pronóstico de series de tiempo
-
-- como funcionan los modelos de pronóstico utilizados
-
-Para probar y ejemplificar estos puntos es necesario tener datos con los que trabajar, por lo que además de los objetivos planteados anteriormente se propone estimar el consumo mensual de gas natural de la empresa Litoral Gas entre noviembre de 2023 y abril de 2024.
+# 1. Introducción
 
 
-# Metodología
-<!-- 
-## Conceptos básicos de series temporales y datos faltantes
+La predicción de valores futuros en series de tiempo es una herramienta clave en múltiples ámbitos, tales como la economía, el comercio, la salud, la energía y el ambiente. En estos contextos, anticipar el comportamiento de una variable permite mejorar la planificación, asignar recursos de forma más eficiente y reducir la incertidumbre.
 
-- Conceptos básicos de series temporales: Introduce los conceptos fundamentales de series temporales, como serie de tiempo, componentes de una serie temporal, estacionariedad, autocorrelación. -->
+Actualmente, la ciencia de datos se encuentra en una etapa de constante expansión e innovación, impulsada por la gran cantidad de datos generados diariamente, por lo que en un contexto creciente de complejidad y exigencia temporal, resulta conveniente contar con herramientas que faciliten y acorten los tiempos de trabajo. Si bien los métodos más conocidos para trabajar series de tiempo son precisos, los modelos tradicionales como ARIMA son difíciles de automatizar y requieren de amplios conocimientos para encontrar un buen ajuste, mientras que los algoritmos de aprendizaje automatizado que se utilizan actualmente pueden demandar largos tiempos de entrenamiento y un gran coste computacional. Frente a estas limitaciones, han surgido recientemente modelos capaces de seleccionar de forma automática el mejor ajuste para una serie temporal dada, sin requerir entrenamiento previo ni conocimientos especializados en análisis de series de tiempo. Estos son los denominados modelos fundacionales preentrenados, tales como TimeGPT o Chronos.
 
-## Conceptos básicos de series de tiempo
+Sin embargo, aún persisten interrogantes sobre el desempeño de estos nuevos modelos y la falta de acceso al código fuente de algunos de estos limita la posibilidad de auditar sus resultados o replicar su implementación. Es por esto que en esta tesina se propone realizar una comparación sistemática de modelos de pronóstico para series de tiempo, abordando tres enfoques metodológicos: modelos estadísticos tradicionales, algoritmos de *machine learning* y modelos de aprendizaje profundo. El objetivo es evaluar su desempeño en distintos contextos, utilizando métricas como el porcentaje del error absoluto medio (MAPE) y el *Interval Score*, con el fin de analizar ventajas, limitaciones y potenciales usos de cada uno.
 
-Una serie de tiempo es un conjunto de observaciones ordenadas por el tiempo, generalmente de forma equiespaciada, sobre una variable de interés. El análisis de series de tiempo consiste en resumir y extraer información estadística útil para poder diagnosticar los valores históricos de la variable de interés y pronosticar los futuros.
+Este análisis busca aportar una mirada crítica e informada sobre el uso de nuevas tecnologías en la predicción de series de tiempo, contribuyendo a la toma de decisiones metodológicas más sólidas desde una perspectiva estadística.
 
-El gran volúmen de producción de este tipo de datos dado al auge del *Big Data* hace que saber entederlos y analizarlos correctamente sea esencial en el mundo de la estadística.
+\newpage
 
-Las series de tiempo se pueden presentar con distintos patrones, por lo que es de utilidad 'dividir' la serie en distintas componentes, en las que cada una representa una categoría del patrón de la serie:
+# 2. Objetivos
 
-- La componente estacional reconoce los patrones que se repiten en cada intervalo de tiempo, por ejemplo la temperatura, que baja en invierno y en verano sube repitiendo este patrón cada año. 
+## 2.1 Objetivo general
 
-- La componente tendencia-ciclo (de forma abreviada simplemente tendencia) reconoce como se ve afectada la media a medida que avanza el tiempo, por ejemplo la pobación mundial, que crece cada año.
+El objetivo de esta tesina es, en primer lugar, comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo con distintos modelos, incluyendo enfoques estadísticos clásicos, algoritmos de *machine learning* y modelos de *deep learning*, analizando al mismo tiempo sus ventajas, limitaciones y condiciones de uso más apropiadas.
+
+## 2.2 Objetivos específicos
+
+- Implementar modelos clásicos de series de tiempo, como ARIMA y SARIMA, explicando y garantizando el cumplimiento de los fundamentos teóricos y supuestos que los sostienen.
+
+- Aplicar modelos de aprendizaje automático supervisado, como XGBoost y LightGBM, explorando distintas configuraciones para garantizar el mejor ajuste.
+
+- Desarrollar modelos de aprendizaje profundo, en particular redes LSTM, dando introducción a las redes neuronales y modelos de pronóstico más complejos.
+
+- Realizar pronósticos con modelos fundacionales tales como TimeGPT y Chronos, buscando entender como funcionan.
+
+- Definir y aplicar métricas de evaluación (MAPE, *Interval Score*) para comparar el rendimiento de todos los modelos bajo un mismo conjunto de datos.
+
+- Reflexionar críticamente sobre los criterios de selección de modelos en función del contexto de aplicación, la complejidad computacional y la interpretabilidad de los resultados.
+
+\newpage
+
+# 3. Metodología
+
+El enfoque metodológico adoptado en esta tesina se basa en la comparación del desempeño de distintos modelos de pronóstico aplicados a series temporales. Para ello, se seleccionarán modelos representativos de tres enfoques principales: estadísticos tradicionales, algoritmos de aprendizaje automático (machine learning) y modelos de aprendizaje profundo. El análisis se estructura en tres componentes fundamentales: la caracterización de los modelos, la implementación práctica sobre series con distintas características y la evaluación comparativa mediante métricas cuantitativas.
+
+## 3.1 Conceptos básicos de series de tiempo
+
+Se denomina serie de tiempo a un conjunto de observaciones cuantitativas ordenadas en el tiempo, usualmente de forma equidistante, sobre una variable de interés. El análisis de series de tiempo tiene como objetivo sintetizar y extraer información estadística relevante, tanto para interpretar el comportamiento histórico de la variable como para generar pronósticos sobre su evolución futura.
+
+Dado que las series temporales pueden exhibir diversos patrones subyacentes, resulta útil descomponerlas en componentes diferenciadas, cada una de las cuales representa una característica estructural específica del comportamiento de la serie.
+
+- Estacionalidad: corresponde a las fluctuaciones periódicas que se repiten a intervalos regulares de tiempo. Un ejemplo típico es la temperatura, que tiende a disminuir en invierno y aumentar en verano, repitiendo este patrón anualmente.
+
+- Tendencia (o tendencia-ciclo): refleja la evolución a largo plazo de la media de la serie, asociada a procesos de crecimiento o decrecimiento sostenido. Por ejemplo, la población mundial exhibe una tendencia creciente a lo largo del tiempo.
+
+- Residuos: representa las variaciones no sistemáticas que no pueden ser explicadas por la tendencia ni la estacionalidad. Estas fluctuaciones suelen deberse a eventos impredecibles o factores exógenos, y se asume que siguen un comportamiento aleatorio.
+
+## 3.2 Modelos estadísticos tradicionales
+
+### 3.2.1 SARIMA
 
 Se dice que una serie es débilmente estacionaria si la media y la variancia se mantienen constantes en el tiempo y la correlación entre distintas observaciones solo depende de la distancia en el tiempo entre estas. Por comodidad, cuando se mencione estacionariedad se estará haciendo referencia al cumplimiento de estas propiedades. 
 
 Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas.
-
-## Introducción a los modelos transformadores
-
-En los últimos años '*ChatGPT*' ganó una popularidad excesiva a nivel mundial, y rápidamente muchos competidores salieron a la luz para agarrar una parte del gran mercado de la inteligencia artificial. El chatbot de OpenAI hizo que muchas las empresas de tecnología quieran crear su propia versión y usar la tecnología implementada para distintos usos. Las siglas *GPT* provienen de *Generative Pre-trained Transformer*, un tipo de inteligencia artificial de la familia de las redes neuronales que usa arquitectura *transformer*. Entender que significa esto no es tarea sencilla si no se tiene ya una base de conocimientos en el tema, es por eso que a continuación se explican brevemente ciertos conceptos para luego dar pie a los modelos transformadores.
-
-- Inteligencia Artificial (IA): Es la ciencia que busca construir computadoras, máquinas y programas que puedan razonar, aprender y actuar de la misma manera que lo haría un ser humano.
-
-- *Machine Learning* (ML): Es una rama de la inteligencia artificial enfocada a permitir que las computadoras y máquinas imiten la forma en que los humanos aprenden, para realizar tareas de forma autónoma y mejorar la eficiencia y eficacia a través de la experiencia y la exposición a mas información.
-
-- Red Neuronal (*neuronal network*): Las redes neuronales son un tipo de programa o modelo de *machine learning* que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biologica en la que trabajan la neuronas para indentificar fenómenos, evaluar opciones y llegar a conclusiones. **EXTENDER CON BREVE EXPLICACION SOBRE CAPAS Y TIPOS COMO CNN Y RNN**
-
-- Aprendizaje profundo (*Deep learning*): Es una rama del *machine learning* que tiene como base un conjuntos de algoritmos (entre ellos las redes neuronales) que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
-
-Los modelos transformadores (*transformer models*) son un tipo de modelos con arquitectura de aprendizaje profundo. Su auge se ve explicado por su alta eficiencia para entrenar y realizar inferencias en comparación con otros métodos de aprendizaje profundo tales como las redes neuronales recurrentes (RNN) o redes neuronales convolucionales (CNN). Esta eficiencia se debe al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google, este mecanismo se detallará más adelante para poder ser seguido con ejemplos.
-
-## Modelos utlilizados para pronosticar las series temporales
-
-<!-- - Modelos tradicionales para series temporales (ARIMA, ETS).
-- Modelos de Machine Learning aplicados a pronósticos (Random Forest, XGBoost, LSTM).
-- Introducción a TimeGPT y su enfoque basado en redes neuronales profundas. -->
-
-### ARIMA
 
 Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además generaliza en el sentido de los modelos diferenciados (I), en los que se resta a cada observacion los $d$-ésimo valores anteriores para estacionarizar en media.
 
@@ -152,7 +156,33 @@ Un buen modelo $SARIMA$ debe cumplir las siguientes propiedades:
 
 - Es estable en los parámetros, que se cumple cuando las correlaciones entre los parámetros no son altas.
 
-### TimeGPt
+## 3.3 Algoritmos de apredizaje automático
+
+El aprendizaje automático (del inglés *machine learning*) se define como una rama de la inteligencia artificial enfocada a permitir que las computadoras y máquinas imiten la forma en que los humanos aprenden, para realizar tareas de forma autónoma y mejorar la eficiencia y eficacia a través de la experiencia y la exposición a mas información. Si bien los métodos que se presentan no fueron diseñados especificamente para el análisis de datos temporales, como los modelos tradicionales o aquellos que utilizan aprendizaje profundo que se mencionarán más adelante, si probaron ser útiles a lo largo del tiempo y a través de distintas pruebas.
+
+Los métodos de *machine learning*, a diferencia de los modelos tradicionales, se enfocan principalmente en identificar los patrones que describen el comportamiento del proceso que sean relevantes para pronosticar la variable de interés, y no se componen de reglas ni supuestos que tengan que seguir. Para la identificación de patrones, estos modelos requieren la generación de características. 
+
+Es importante remarcar que lo que se presenta a continuación como modelos, no son más que técnicas de *boosting* aplicadas a modelos de bosques aleatorios. El concepto de *boosting* es crear modelos de forma secuencial con el objetivo de que los últimos modelos corrijan los errores de los previos. 
+
+### 3.3.1 XGBoost
+
+### 3.3.2 LightGBM
+
+## 3.4 Modelos de apredizaje profundo
+
+El *deep learning* (aprendizaje profundo) es una rama del *machine learning* que tiene como base un conjunto de algoritmos que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
+
+Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. Una red neuronal funciona con varias neuronas de entrada y salida, y distintos pesos. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
+
+![Red neuronal completamente conectada](../Imgs/red_conectada.png)
+
+Hay distintos tipos de redes neuronales según la forma en la que se conectan las neuronas. En esta tesina son de interés especialmente las *Convolutional Neural Networks* (CNN) y las *Recurrent Neural Networks* (RNN), redes neuronales convolucionales y recurrentes respectivamente. Las primeras son útiles para el reconocimiento de patrones en los datos, mientras que las últimas son especialmente buenas en la predicción de datos secuenciales.
+
+Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las CNNs y las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google.
+
+## 3.4.1 *Long Short Term Memory (LSTM)*
+
+### 3.4.2 TimeGPT
 
 TimeGPT es el primer modelo fundacional (modelos entrenados con conjuntos de datos masivos)^[Según los creadores de TimeGPT, fue entrenado con una colección de 100 mil millones de observaciones provenientes de datos públicos.] pre-entrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos pre-entrenados constituyen una gran innovación haciendo que el pronóstico de series de tiempo sea más accesible, preciso, tenga menor complejidad computacional y consuma menos tiempo.
 
@@ -220,8 +250,6 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 
 ## Métricas de evaluación
 
-<!-- - RMSE, MAE, MAPE, o cualquier otra métrica relevante para la comparación de pronósticos. -->
-
 Es muy posible que más de un modelo ajuste bien, por eso es necesario tener alguna forma de compararlos para elegir el mejor con un criterio formal. Para esto se usan medidas del error sobre los valores pronosticados.
 
 Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $L$ pasos hacia adelante son:
@@ -264,8 +292,9 @@ $$
 
 Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ésimo pronóstico respectivamente. Es fácil darse cuenta que $W$ es una penalización por el ancho del intervalo, y que $O$ y $U$ son penalizaciones por sobre y subestimación respectivamente.
 
+\newpage
 
-# Aplicación
+# 4. Aplicación
 
 - Selección de la serie temporal: Descripción de la serie mensual utilizada (ejemplo: inflación, exportaciones, producción industrial, etc.).
 - Tratamiento de datos: Limpieza, detección de valores atípicos y transformación de variables.
@@ -294,23 +323,19 @@ globals().update(load_env('Ambiente/resultados_chronos.pkl'))
 plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoARIMA')
 ```
 
-#### Prophet
-
-```{python}
-plot_forecast(data = datos, forecast = pred_prophet, color = 'red', label = 'Prophet')
-
-```
-
-
 ### Métodos de Machine Learning
 
 #### XGBoost
+
+los intervalos de estos pronosticos no son probabilisticos, estoy usando conformal predictions
 
 ```{python}
 plot_forecast(data = datos, forecast = pred_xgb, color = 'green', label = 'XGBoost')
 ```
 
 #### LightGBM
+
+importante, los quantiles de estos pronosticos son independientes
 
 ```{python}
 plot_forecast(data = datos, forecast = pred_lgbm, color = 'green', label = 'LightGBM')
@@ -350,25 +375,67 @@ metricas
 
 ```
 
-#	Conclusiones	
+\newpage
+
+# 5. Conclusiones	
 
 -  Resume las principales conclusiones del estudio.
 -  Destaca las contribuciones del trabajo y su relevancia para el campo de la estadística y el análisis de datos.
 - Fortalezas y limitaciones de TimeGPT en comparación con otros modelos.
 - Proporciona recomendaciones finales y reflexiones sobre posibles direcciones futuras de investigación.
 
-# Referencias Bibliográficas
+\newpage
 
-Ir completando a medida que vas consultando artículos o libros
+# 6. Bibliografía
 
-# Anexo
+**Ansari et al.** (4 de noviembre de 2024). Chronos: Learning the Language of Time Series. Transactions on Machine Learning Research. [https://arxiv.org/abs/2403.07815](https://arxiv.org/abs/2403.07815)
+
+**Awan, A. A.** (2 de septiembre de 2024). Time Series Forecasting With TimeGPT. Datacamp. [https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt](https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt)
+
+**Elhariri, K.** (1 de marzo de 2022). The Transformer Model. Medium. [https://medium.com/data-science/attention-is-all-you-need-e498378552f9](https://medium.com/data-science/attention-is-all-you-need-e498378552f9)
+
+**Gilliland, M., Sglavo, U., & Tashman, L.** (2016). Forecast Error Measures: Critical Review and Practical Recommendations. John Wiley & Sons Inc.
+
+**Gneiting, T., & Raftery A. E.** (2007). Strictly Proper Scoring Rules, Prediction, and Estimation. Journal of the American Statistical Association.
+
+**Hyndman, R. J., & Athanasopoulos, G.** (2021). Forecasting: principles and practice (3rd ed.).
+OTexts. [https://otexts.com/fpp3/](https://otexts.com/fpp3/)
+
+**IBM**. (s.f.). Explainers. Recuperado el 14 de marzo de 2025 en [https://www.ibm.com/think/topics](https://www.ibm.com/think/topics)
+
+**Kamtziris, G.** (27 de febrero de 2023). Time Series Forecasting with XGBoost and LightGBM: Predicting Energy Consumption. Medium. [https://medium.com/@geokam/time-series-forecasting-with-xgboost-and-lightgbm-predicting-energy-consumption-460b675a9cee](https://medium.com/@geokam/time-series-forecasting-with-xgboost-and-lightgbm-predicting-energy-consumption-460b675a9cee)
+
+**Korstanje, J.** (2021). Advanced Forecasting with Python. Apress.
+
+**Nielsen, A.** (2019). Practical Time Series Analysis: Prediction with Statistics and Machine Learning. O'Reilly Media.
+
+**Nixtla**. (s.f.-a). About TimeGPT. Recuperado en diciembre de 2024 de [https://docs.nixtla.io/docs/getting-started-about_timegpt](https://docs.nixtla.io/docs/getting-started-about_timegpt)
+
+**Nixtla**. (s.f.-b). LSTM. Recuperado el 9 de abril de 2025 en [https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
+
+**Parmezan, A., Souza, V., & Batista, G.** (1 de mayo de 2019). Evaluation of statistical and machine learning models for time series prediction: Identifying the state-of-the-art and the best conditions for the use of each model. Information Sciences. [https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945](https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945)
+
+**Sanderson, G.** [3Blue1Brown]. (2024). Attention in transformers, step-by-step | DL6 [Video]. Youtube. [https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s](https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s)
+
+**Sanderson, G.** [3Blue1Brown]. (2024). Transformers (how LLMs work) explained visually | DL5 [Video]. Youtube. [https://www.youtube.com/watch?v=wjZofJX0v4M](https://www.youtube.com/watch?v=wjZofJX0v4M)
+
+**Shastri, Y.** (26 de abril de 2024). Attention Mechanism in LLMs: An Intuitive Explanation. Datacamp. [https://www.datacamp.com/blog/attention-mechanism-in-llms-intuition](https://www.datacamp.com/blog/attention-mechanism-in-llms-intuition)
+
+**Silberstein, E.** (7 de noviembre de 2024). Tracing the Transformer in Diagrams. Medium. [https://medium.com/data-science/tracing-the-transformer-in-diagrams-95dbeb68160c](https://medium.com/data-science/tracing-the-transformer-in-diagrams-95dbeb68160c)
+
+**Vaswani et al.** (2017). Attention is all you need. Google. [https://arxiv.org/pdf/1706.03762](https://arxiv.org/pdf/1706.03762)
+
+
+\newpage
+
+# 7. Anexo
 
 Incluye cualquier material adicional, como código fuente, datos adicionales, detalles sobre la implementación en R o Python, entre otros.
 
 
 
 
-# IDEAS
+# NOTAS
 
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
 
@@ -380,18 +447,23 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Toda la modelización pasarla a .py y no .qmd
 
-- Implementar interval_score como metrica para chronos y timegpt?
-
-- Modelos que voy a usar: 
-    Tradicionales: Arima y autoarima, Prophet
-    Machine Learning: XGB, LGBM
-    Deep Learning: LSTM
-        Foundational models: TimeGPT, Chronos
-
 - leer fpp3 que tiene unas cosas que pueden servir  
 
 - incluir varios tipos de series? con estacionalidad, con tendencia, con ambas, con variables exogenas?
 
-- Incluir prophet como un modelo tradicional?
+- Series a utilizar: 
+      Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado
+      Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional
+      
 
+
+# Mejoras a la investigacion (en las que no me voy a centrar)
+
+- Hacer que los modelos elijan el mejor ajuste con otras medidas del error en lugar de minimizar el mape, como el interval score
+
+- explorar otras medidas del error
+
+- implementar boosting y ensamblaje con otros metodos
+
+- medir el tiempo de ejecucion de los algoritmos de otra manera
 
