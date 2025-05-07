@@ -174,6 +174,8 @@ plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoA
 # Guardamos las metricas
 metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
 
+resultados_arima = {'pred': pred_arima, 'mape': mape, 'score': score, 'tiempo': tiempo}
+
 ```
 
 ```{python}
@@ -232,13 +234,13 @@ params = {
 }
 
 # Tuneamos los parametros y ajustamos el modelo
-pred_xgb, mape, score, tiempo, resultados_xgb = Tuner(forecaster_fun= 'XGBoost', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_xgb = Tuner(forecaster_fun= 'XGBoost', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
 
 # Graficamos el pronostico
-plot_forecast(data = datos, forecast = pred_xgb, color = 'green', label = 'XGBoost')
+plot_forecast(data = datos, forecast = resultados_xgb['pred'], color = 'green', label = 'XGBoost')
 
 # Guardamos las metricas
-metricas.loc[len(metricas)] = ['XGBoost', mape, score, tiempo]
+metricas.loc[len(metricas)] = ['XGBoost', resultados_xgb['mape'], resultados_xgb['score'], resultados_xgb['tiempo']]
 ```
 
 ```{python}
@@ -255,13 +257,13 @@ params = {
 }
 
 # Tuneamos los parametros y ajustamos el modelo
-pred_lgbm, mape, score, tiempo, resultados_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
 
 # Graficamos el pronostico
-plot_forecast(data = datos, forecast = pred_lgbm, color = 'green', label = 'LightGBM')
+plot_forecast(data = datos, forecast = resultados_lgbm['pred'], color = 'green', label = 'LightGBM')
 
 # Guardamos las metricas
-metricas.loc[len(metricas)] = ['LightGBM', mape, score, tiempo]
+metricas.loc[len(metricas)] = ['LightGBM', resultados_lgbm['mape'], resultados_lgbm['score'], resultados_lgbm['tiempo']]
 ```
 
 ## Deep learning
@@ -278,13 +280,13 @@ parametros = {
     }
 
 # Tuneamos los parametros y ajustamos el modelo
-pred_lstm, mape, score, tiempo, resultados_lstm = Tuner(forecaster_fun= 'LSTM', datos=datos, parametros= parametros, alpha= alpha, long_pred = long_pred)
+resultados_lstm = Tuner(forecaster_fun= 'LSTM', datos=datos, parametros= parametros, alpha= alpha, long_pred = long_pred)
 
 # Graficamos el pronostico
-plot_forecast(data = datos, forecast = pred_lstm, color = 'violet', label = 'LSTM')
+plot_forecast(data = datos, forecast = resultados_lstm['pred'], color = 'violet', label = 'LSTM')
 
 # Guardamos las metricas
-metricas.loc[len(metricas)] = ['LSTM', mape, score, tiempo]
+metricas.loc[len(metricas)] = ['LSTM', resultados_lstm['mape'], resultados_lstm['score'], resultados_lstm['tiempo']]
 ```
 
 ```{python}
@@ -298,19 +300,19 @@ parametros = {
     }
 
 # Tuneamos los parametros y ajustamos el modelo
-pred_gpt, mape, score, tiempo, resultados_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=datos, parametros= parametros, alpha= alpha, long_pred = long_pred)
+resultados_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=datos, parametros= parametros, alpha= alpha, long_pred = long_pred)
 
 # Graficamos el pronostico
-plot_forecast(data = datos, forecast = pred_gpt, color = 'violet', label = 'TimeGPT')
+plot_forecast(data = datos, forecast = resultados_gpt['pred'], color = 'violet', label = 'TimeGPT')
 
 # Guardamos las metricas
-metricas.loc[len(metricas)] = ['TimeGPT', mape, score, tiempo]
+metricas.loc[len(metricas)] = ['TimeGPT', resultados_gpt['mape'], resultados_gpt['score'], resultados_gpt['tiempo']]
 
 ```
 
 
 ```{python}
 # Guardamos el ambiente
-# save_env(env_dict=globals(), filename="Ambiente/resultados.pkl")
+save_env(env_dict=globals(), filename="Ambiente/resultados.pkl")
 ```
 

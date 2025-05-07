@@ -73,7 +73,7 @@ def dict_expand(parametros):
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, devolver_tiempo = False):
+def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, devolver_tiempo = False, devolver_modelo = False):
 
     # Debemos garantizar que los int se mantengan como tal
     kwargs = {k: int(v) if isinstance(v, str) and v.isdigit() else v
@@ -93,9 +93,15 @@ def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, devolver_tie
     # Renombramos las columnas para generalizar
     forecaster.columns = ['ds', 'pred', 'upper', 'lower']
 
-    if devolver_tiempo:
+    model= np.NaN
+
+    if devolver_tiempo & devolver_modelo:
+        return forecaster, tiempo, model
+    elif devolver_modelo:
+        return forecaster, model
+    elif devolver_tiempo:
         return forecaster, tiempo
-    else :
+    else:
         return forecaster
 
 # ------------------------------------------------------------------------------------
@@ -110,7 +116,7 @@ def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, devolver_tie
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False):
+def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False, devolver_modelo = False):
 
     # Agregamos la columna unique_id necesaria por Neuralforecast
     datos_lstm = datos.copy()
@@ -139,9 +145,13 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False):
     
     forecaster.columns = ['ds', 'pred', 'upper', 'lower']
 
-    if devolver_tiempo:
+    if devolver_tiempo & devolver_modelo:
+        return forecaster, tiempo, model
+    elif devolver_modelo:
+        return forecaster, model
+    elif devolver_tiempo:
         return forecaster, tiempo
-    else :
+    else:
         return forecaster
 
 
@@ -156,7 +166,7 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, devolver_tiempo = False):
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
+def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False, devolver_modelo = False):
 
     # Creamos una copia del dataset
     datos_xgb = datos.copy()
@@ -188,8 +198,13 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
     q_upper = 1-alpha/2
 
     # Por un error de train, debemos garantizar que los int y los floats se mantengan como tal
-    kwargs = {k: int(v) if isinstance(v, float) and v.is_integer() else v
-    for k, v in kwargs.items()}
+    kwargs = {
+        k: int(v) if (
+            (isinstance(v, float) and v.is_integer()) or 
+            (isinstance(v, str) and v.isdigit())
+        ) else v
+        for k, v in kwargs.items()
+    }
 
     # Definimos los modelos
     model = XGBRegressor(**kwargs)
@@ -229,9 +244,13 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
         'upper' : pred_upper
     })
 
-    if devolver_tiempo:
+    if devolver_tiempo & devolver_modelo:
+        return forecaster, tiempo, model
+    elif devolver_modelo:
+        return forecaster, model
+    elif devolver_tiempo:
         return forecaster, tiempo
-    else :
+    else:
         return forecaster
 
 
@@ -246,7 +265,7 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
+def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, devolver_tiempo = False, devolver_modelo = False):
 
     # Creamos una copia del dataset
     datos_xgb = datos.copy()
@@ -313,9 +332,13 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, devolver_tiempo = False):
         'upper' : pred_upper
     })
 
-    if devolver_tiempo:
+    if devolver_tiempo & devolver_modelo:
+        return forecaster, tiempo, [model, model_low, model_upper]
+    elif devolver_modelo:
+        return forecaster, [model, model_low, model_upper]
+    elif devolver_tiempo:
         return forecaster, tiempo
-    else :
+    else:
         return forecaster
 
 
@@ -397,13 +420,13 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
 
     # Ajustamos el modelo
     if forecaster_fun == 'XGBoost':
-        forecast, tiempo = fit_pred_xgb(datos = datos, long_pred= len(datos_test), alpha = alpha, kwargs = kwargs, devolver_tiempo=True)
+        forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= len(datos_test), alpha = alpha, kwargs = kwargs, devolver_tiempo=True, devolver_modelo=True)
     elif forecaster_fun == 'TimeGPT':
-        forecast, tiempo = fit_pred_tgpt(df = datos_train, h = len(datos_test), time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True)
+        forecast, tiempo, model = fit_pred_tgpt(df = datos_train, h = len(datos_test), time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True)
     elif forecaster_fun == 'LSTM':
-        forecast, tiempo = fit_pred_lstm(datos= datos_train, long_pred= len(datos_test), kwargs= kwargs, alpha=alpha, devolver_tiempo=True)
+        forecast, tiempo, model = fit_pred_lstm(datos= datos_train, long_pred= len(datos_test), kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True)
     elif forecaster_fun == 'LightGBM':
-        forecast, tiempo = fit_pred_lightgbm(datos = datos, long_pred= len(datos_test), alpha = alpha, kwargs = kwargs, devolver_tiempo=True)
+        forecast, tiempo, model = fit_pred_lightgbm(datos = datos, long_pred= len(datos_test), alpha = alpha, kwargs = kwargs, devolver_tiempo=True, devolver_modelo=True)
     
     
     # Agregamos a la grilla los mapes de cada combinacion
@@ -420,5 +443,5 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
         grilla['Seleccionado'] = scores == np.nanmin(scores)
 
     # Devolvemos las predicciones
-    return forecast, mape_final, score_final, tiempo, grilla
+    return {'pred': forecast, 'mape': mape_final, 'score': score_final, 'tiempo': tiempo, 'grilla': grilla, 'modelo': model}
 

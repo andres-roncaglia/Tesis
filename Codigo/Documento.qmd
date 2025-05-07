@@ -52,15 +52,15 @@ from Funciones import plot_forecast, load_env
 \restoregeometry
 
 
-# Agradecimientos (esto es opcional)
+\section*{Agradecimientos}
 
 \newpage
 
-# Resumen
-Palabras clave: series temporales, predicción, ARIMA, TimeGPT, redes neuronales, ¿? 
+\section*{Resumen}
+Palabras clave: series temporales, predicción, ARIMA, aprendizaje automático, redes neuronales, transformers, TimeGPT. 
 
 \newpage
-
+\renewcommand{\contentsname}{Índice}
 \tableofcontents
 \newpage
 \pagenumbering{arabic}
@@ -162,17 +162,36 @@ El aprendizaje automático (del inglés *machine learning*) se define como una r
 
 Los métodos de *machine learning*, a diferencia de los modelos tradicionales, se enfocan principalmente en identificar los patrones que describen el comportamiento del proceso que sean relevantes para pronosticar la variable de interés, y no se componen de reglas ni supuestos que tengan que seguir. Para la identificación de patrones, estos modelos requieren la generación de características. 
 
-Es importante remarcar que lo que se presenta a continuación como modelos, no son más que técnicas de *boosting* aplicadas a modelos de bosques aleatorios. El concepto de *boosting* es crear modelos de forma secuencial con el objetivo de que los últimos modelos corrijan los errores de los previos. 
+### 3.3.1 Introducción a árboles de decisión y ensamblado
 
-### 3.3.1 XGBoost
+Los árboles de decisión pueden ser explicados sencillamente como un conjunto extenso de estructuras condicionales *if-else*. El modelo pronosticará un cierto valor $x$ si una cierta condición es verdadera, u otro valor $y$ si es falsa. Es importante ver que no hay una tendencia lineal en este tipo de lógica, por lo que los árboles de decisión pueden ajustar tendencias no lineales. El resultado que se obtiene al aplicar esta técnica puede resumirse gráficamente como un camino que toma diferentes bifurcaciones (o un tronco con diferentes ramas), y de esta característica surge su nombre.
 
-### 3.3.2 LightGBM
+Un árbol puede tener distinta cantidad de divisiones en un mismo nivel, llamadas hojas, y profundidad, las cúales determinan que tanto se ajusta el modelo a los datos con los cúales se entrena. Lógicamente árboles más profundos y con más hojas producirán un sobreajuste, y es esta la mayor desventaja que tienen este tipo de modelos.
+
+![Ejemplo de árbol de decisión](../Imgs/arbol_decision.png)
+
+
+Los métodos de ensamblaje combinan la predicción de varios estimadores base con el objetivo de mejorar la robustez de la predicción. Existen numerosos métodos de ensamblaje entre los cúales se encuentran los bosques de decisión y los árboles potenciados por gradiente (del inglés *Gradient-boosted trees*). 
+
+*Boosting* es un proceso iterativo, que consiste en la construcción de árboles de forma secuencial donde cada nuevo árbol busca predecir los residuos de los árboles anteriores. Es así entonces que el primer árbol buscará predecir los valores futuros de la serie, mientras que el segundo intentará predecir los valores reales menos los pronosticados por el primer árbol, el tercero tratará de inferir la diferencia entre los valores reales y el valor pronosticado del primer árbol menos los errores del segundo, y así sucesivamente. En cada iteración se pesan los puntos y se corrigen aquellos que tengan un mayor error por el método del gradiente. **(prfundizar sobre el gradiente???)**
+
+![Proceso de ensamblado](../Imgs/Ensamblaje.png)
+
+Sin embargo, los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamblaje (XGBoost, LightGBM, CatBoost, AdaBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos XGBoost y LightGBM.
+
+### 3.3.2 Diferencias entre XGBoost y LightGBM
+
+Las diferencias entre XGBoost y LightGBM radican en la forma en que cada uno identifica las mejores divisiones dentro de los árboles y de que forma los hacen crecer.
+
+Mientras que XGBoost usa un método en el que se construyen histogramas para cada una de las características generadas para elegir la mejor división por característica, LightGBM usa un método más eficiente llamado *Gradient-Based One-Side Sample* (GOSS). GOSS calcula los gradientes para cada punto y lo usa para filtrar afuera aquellos puntos que tengan un bajo gradiente, ya que esto significaría que estos están mejor pronosticados que el resto y no es necesario enfocarse tanto en ellos. Además, LightGBM utiliza un procedimiento que acelera el ajuste cuando se tienen muchas características correlacionadas de las cuáles elegir. 
+
+A la hora de hacer crecer los árboles, XGBoost lo hace nivel a nivel, es decir que primero se crean todas las divisiones de un nivel, y luego se pasa al siguiente, priorizando que el árbol sea simétrico y tenga la misma profundidad en todas sus ramas. LigthGBM, en cambio, se expande a partir de la hoja que más reduce el error, mejorando la precisión y eficiencia en series largas, pero arriesgándose a posibles sobreajustes si no se limita correctamente la profundidad de los árboles.
 
 ## 3.4 Modelos de apredizaje profundo
 
 El *deep learning* (aprendizaje profundo) es una rama del *machine learning* que tiene como base un conjunto de algoritmos que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
 
-Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. Una red neuronal funciona con varias neuronas de entrada y salida, y distintos pesos. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
+Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. Una red neuronal funciona con varias neuronas y pesos. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
 
 ![Red neuronal completamente conectada](../Imgs/red_conectada.png)
 
@@ -180,17 +199,29 @@ Hay distintos tipos de redes neuronales según la forma en la que se conectan la
 
 Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las CNNs y las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google.
 
-## 3.4.1 *Long Short Term Memory (LSTM)*
+### 3.4.1 *Long Short Term Memory (LSTM)*
+
+Lo que caracterizan a las redes neuronales recurrentes son los bucles de retroalimentación que se presentan en la @fig-rnn. Mientras que cada neurona de entrada en una red neuronal completamente conectada es independiente, en las redes neuronales recurrentes se relacionan entre ellas y se retroalimentan.
+
+![Ejemplo de RNN](../Imgs/red_recurrente.png){#fig-rnn}
+
+Las redes neuronales con memoria a corto y largo plazo (LSTM) son un tipo de RNN que, para evitar que los gradientes se vayan a cero o al infinito muy rápidamente al actualizar los parámetros, usa un algoritmo logístico de 3 puertas:
+
+  - Puerta de guardado: Guarda la información relevante del estado actual de la red neuronal.
+
+  - Puerta de entrada: Guarda la información que debe ser actualizada en la red neuronal.
+
+  - Puerta de salida: Combina la información de las puertas de guardado y entrada, y decide que tanto de esa información usar para seguir utilizando en la red neuronal.
 
 ### 3.4.2 TimeGPT
 
-TimeGPT es el primer modelo fundacional (modelos entrenados con conjuntos de datos masivos)^[Según los creadores de TimeGPT, fue entrenado con una colección de 100 mil millones de observaciones provenientes de datos públicos.] pre-entrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos pre-entrenados constituyen una gran innovación haciendo que el pronóstico de series de tiempo sea más accesible, preciso, tenga menor complejidad computacional y consuma menos tiempo.
+TimeGPT es un modelo fundacional preentrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
 
-TimeGPT es un modelo de tipo transformer con mecanismos de autoatención (del inglés *self-attention mechanisms*) que **no** es de código abierto. La autoatención captura dependencias y relaciónes en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
+TimeGPT es un modelo de tipo transformer con mecanismos de autoatención que no es de código abierto. La autoatención captura dependencias y relaciónes en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
 La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
 
-![Diagrama de la estructura del modelo](../Imgs/modelo2.png){#fig-modelo}
+![Diagrama de la estructura del modelo](../Imgs/modelo_timegpt.png){#fig-modelo}
 
 #### Paso a paso del funcionamiento del modelo
 
@@ -248,9 +279,14 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 
 5. Conexión lineal: Es una capa completamente conectada que traduce las representaciones de atributos aprendidas en predicciones relevantes.
 
-## Métricas de evaluación
+### 3.4.3 Chronos
 
-Es muy posible que más de un modelo ajuste bien, por eso es necesario tener alguna forma de compararlos para elegir el mejor con un criterio formal. Para esto se usan medidas del error sobre los valores pronosticados.
+Chronos es una familia de modelos fundacionales preentrenados para series de tiempo basados en arquitecturas de modelos de lenguaje. Chronos trabaja transformando la serie de tiempo en una secuencia de *tokens* por medio de escalado y cuantificación, para luego entrenar un modelo de lenguaje con estos, usando entropía cruzada. Una vez entrenado el modelo, se generan múltiples pronósticos probabilísticos a partir del contexto historico. 
+
+## 3.5 Métricas de evaluación
+
+
+Para comparar el rendimiento de los modelos, se utilizarán métricas cuantitativas. Para los pronósticos puntuales se usará el porcentaje del error absoluto medio (MAPE), mientras que para los pronósticos probabilísticos se aplicará el *Interval Score*, propuesto por Gneiting y Raftery (2007), que penaliza tanto la amplitud de los intervalos como la falta de cobertura. Las comparaciones permitirán evaluar precisión, robustez y eficiencia de cada enfoque.
 
 Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $L$ pasos hacia adelante son:
 
@@ -292,19 +328,41 @@ $$
 
 Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ésimo pronóstico respectivamente. Es fácil darse cuenta que $W$ es una penalización por el ancho del intervalo, y que $O$ y $U$ son penalizaciones por sobre y subestimación respectivamente.
 
+## 3.6 Técnicas para la estimación de parámetros
+
+https://www.researchgate.net/publication/330742498_Evaluation_of_statistical_and_machine_learning_models_for_time_series_prediction_Identifying_the_state-of-the-art_and_the_best_conditions_for_the_use_of_each_model
+
+### 3.6.1 Holdout
+
+### 3.6.2 Box-Jenkins
+
 \newpage
 
 # 4. Aplicación
 
-- Selección de la serie temporal: Descripción de la serie mensual utilizada (ejemplo: inflación, exportaciones, producción industrial, etc.).
-- Tratamiento de datos: Limpieza, detección de valores atípicos y transformación de variables.
-- Implementación de modelos: Configuración y parámetros utilizados en ARIMA, ML y TimeGPT.
-- Criterios de evaluación: Explicación de métricas utilizadas (RMSE, MAE, MASE, etc.).
+La aplicación empírica del trabajo se desarrollará en varias etapas, con el objetivo de implementar, ajustar y comparar los modelos previamente detallados sobre un conjunto de series temporales seleccionadas, usando el software de programación de código abierto Python.
 
-## Resultados y Comparación de Modelos
+## 4.1 Etapa 1: Selección y preparación de los datos 
 
-- Descripción de los resultados obtenidos con cada modelo.
-- Comparación de desempeño en distintos horizontes de predicción.
+Se trabajará con series temporales reales obtenidas de bases de datos públicas y confiables. Las series seleccionadas presentarán diferentes características, incluyendo, por ejemplo, estacionalidad, tendencia o diferentes periodicidades, con el fin de evaluar el comportamiento de los modelos bajo condiciones variadas.
+
+Una vez seleccionadas, las series serán sometidas a un proceso de limpieza y transformación, que incluirá la conversión de fechas a formatos estándar, el tratamiento de valores faltantes (si los hubiera) y la división de los datos en subconjuntos de entrenamiento y validación. Se explorará también la opción de aplicar una normalización o estandarización de las series para facilitar el entrenamiento de los modelos de aprendizaje profundo.
+
+## 4.2 Etapa 2: Implementación de los modelos
+
+En esta etapa se implementarán los distintos modelos de pronóstico contemplados en el trabajo, agrupados en función de su enfoque metodológico: estadístico tradicional, aprendizaje automático y modelos de aprendizaje profundo.
+
+Los modelos estadísticos clásicos, como ARIMA y SARIMA, serán ajustados utilizando la librería `pmdarima`, basando la selección de parámetros en el criterio de información de Akaike (AIC) y usando validación cruzada temporal. 
+
+En el caso de los modelos de aprendizaje automático, se emplearán bosques aleatorios con *boosting* haciendo uso de los algoritmos XGBoost y LightGBM. Estos modelos serán implementados con las librerías `xgboost` y `lightgbm`.
+
+Para los modelos de aprendizaje profundo, se desarrollarán redes neuronales del tipo LSTM, con diferentes configuraciones de capas y funciones de activación, usando en este caso la librería `neuralforecast`.
+
+Por último, se explorarán dos modelos fundacionales preentrenados. El primero es TimeGPT, que será accedido a través de la API provista por Nixtla y haciendo uso de la librería `nixtla`. El segundo es Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services* cuya implementación será llevada a cabo con la librería `autogluon`.
+
+## 4.3 Etapa 3: Evaluación y comparación
+
+Cada modelo será evaluado en función de su desempeño predictivo, utilizando métricas como MAPE e *Interval Score*, junto con observaciones sobre el tiempo de cómputo, la facilidad de implementación e interpretabilidad de cada uno. Los resultados se sistematizarán en tablas comparativas y visualizaciones gráficas, acompañadas de un análisis crítico.
 
 ```{python}
 
@@ -320,7 +378,7 @@ globals().update(load_env('Ambiente/resultados_chronos.pkl'))
 #### ARIMA
 
 ```{python}
-plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoARIMA')
+plot_forecast(data = datos, forecast = resultados_arima['pred'], color = 'red', label = 'AutoARIMA')
 ```
 
 ### Métodos de Machine Learning
@@ -330,7 +388,7 @@ plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoA
 los intervalos de estos pronosticos no son probabilisticos, estoy usando conformal predictions
 
 ```{python}
-plot_forecast(data = datos, forecast = pred_xgb, color = 'green', label = 'XGBoost')
+plot_forecast(data = datos, forecast = resultados_xgb['pred'], color = 'green', label = 'XGBoost')
 ```
 
 #### LightGBM
@@ -338,7 +396,7 @@ plot_forecast(data = datos, forecast = pred_xgb, color = 'green', label = 'XGBoo
 importante, los quantiles de estos pronosticos son independientes
 
 ```{python}
-plot_forecast(data = datos, forecast = pred_lgbm, color = 'green', label = 'LightGBM')
+plot_forecast(data = datos, forecast = resultados_lgbm['pred'], color = 'green', label = 'LigthGBM')
 ```
 
 
@@ -347,7 +405,7 @@ plot_forecast(data = datos, forecast = pred_lgbm, color = 'green', label = 'Ligh
 #### LSTM
 
 ```{python}
-plot_forecast(data = datos, forecast = pred_lstm, color = 'violet', label = 'LSTM')
+plot_forecast(data = datos, forecast = resultados_lstm['pred'], color = 'violet', label = 'LSTM')
 
 ```
 
@@ -365,7 +423,7 @@ plot_forecast(data = datos, forecast = pred_chronos, color = 'violet', label = '
 #### TimeGPT
 
 ```{python}
-plot_forecast(data = datos, forecast = pred_gpt, color = 'violet', label = 'TimeGPT')
+plot_forecast(data = datos, forecast = resultados_gpt['pred'], color = 'violet', label = 'TimeGPT')
 ```
 
 ### Comparaciones
@@ -415,6 +473,8 @@ OTexts. [https://otexts.com/fpp3/](https://otexts.com/fpp3/)
 
 **Parmezan, A., Souza, V., & Batista, G.** (1 de mayo de 2019). Evaluation of statistical and machine learning models for time series prediction: Identifying the state-of-the-art and the best conditions for the use of each model. Information Sciences. [https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945](https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945)
 
+**Prunello, M., & Marfetán, D.** (12 de mayo de 2024). Árboles de decisión. Facultad de Ciencias Económicas y Estadística de la Universidad Nacional de Rosario.
+
 **Sanderson, G.** [3Blue1Brown]. (2024). Attention in transformers, step-by-step | DL6 [Video]. Youtube. [https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s](https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s)
 
 **Sanderson, G.** [3Blue1Brown]. (2024). Transformers (how LLMs work) explained visually | DL5 [Video]. Youtube. [https://www.youtube.com/watch?v=wjZofJX0v4M](https://www.youtube.com/watch?v=wjZofJX0v4M)
@@ -454,8 +514,17 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 - Series a utilizar: 
       Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado
       Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional
+      variable exogena >
       
+- Orden: 
+      Redes neuronales
+      LSTM
+      Modelos transformer y fundacionales
+      Chronos
+      Revisar TimeGPT
+      Revisar Arima
 
+- Hacer dendograma de importancia de variables para los modelos de machine learning
 
 # Mejoras a la investigacion (en las que no me voy a centrar)
 
