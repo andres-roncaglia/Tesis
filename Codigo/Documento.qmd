@@ -173,9 +173,13 @@ Un árbol puede tener distinta cantidad de divisiones en un mismo nivel, llamada
 
 Los métodos de ensamblaje combinan la predicción de varios estimadores base con el objetivo de mejorar la robustez de la predicción. Existen numerosos métodos de ensamblaje entre los cúales se encuentran los bosques de decisión y los árboles potenciados por gradiente (del inglés *Gradient-boosted trees*). 
 
-*Boosting* es un proceso iterativo, que consiste en la construcción de árboles de forma secuencial donde cada nuevo árbol busca predecir los residuos de los árboles anteriores. Es así entonces que el primer árbol buscará predecir los valores futuros de la serie, mientras que el segundo intentará predecir los valores reales menos los pronosticados por el primer árbol, el tercero tratará de inferir la diferencia entre los valores reales y el valor pronosticado del primer árbol menos los errores del segundo, y así sucesivamente. En cada iteración se pesan los puntos y se corrigen aquellos que tengan un mayor error por el método del gradiente. **(prfundizar sobre el gradiente???)**
+*Boosting* es un proceso iterativo, que consiste en la construcción de árboles de forma secuencial donde cada nuevo árbol busca predecir los residuos de los árboles anteriores. Es así entonces que el primer árbol buscará predecir los valores futuros de la serie, mientras que el segundo intentará predecir los valores reales menos los pronosticados por el primer árbol, el tercero tratará de inferir la diferencia entre los valores reales y el valor pronosticado del primer árbol menos los errores del segundo, y así sucesivamente. En cada iteración se pesan los puntos y se corrigen aquellos que tengan un mayor error por medio del descenso del gradiente. 
 
 ![Proceso de ensamblado](../Imgs/Ensamblaje.png)
+
+La dirección de máximo crecimiento para una función está determinada por su gradiente, y del mismo modo, la dirección contraria a este gradiente es la dirección de máximo decrecimiento. De este modo, el descenso del gradiente busca encontrar los valores más bajos para una función de pérdida. El algoritmo de descenso de gradiente propone calcular el gradiente de la función de costo bajo el valor actual de parámetros, para luego modificarlo moviéndose en la dirección de mayor descenso. Este resultado se basa en derivadas, tasas de cambio instantáneo, por lo que conviene desplazarse una magnitud pequeña $\eta$, llamada “tasa de aprendizaje”. Es un algoritmo iterativo, en el que en cada paso la regla de actualización consiste en calcular la derivada de la función de costo respecto a cada parámetro y desplazarse una cierta magnitud $\eta$ en la dirección contraria. Esto se repite un cierto número de veces hasta alcanzar la convergencia.
+
+foto del descenso del gradiente
 
 Sin embargo, los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamblaje (XGBoost, LightGBM, CatBoost, AdaBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos XGBoost y LightGBM.
 
@@ -191,13 +195,24 @@ A la hora de hacer crecer los árboles, XGBoost lo hace nivel a nivel, es decir 
 
 El *deep learning* (aprendizaje profundo) es una rama del *machine learning* que tiene como base un conjunto de algoritmos que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
 
-Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. Una red neuronal funciona con varias neuronas y pesos. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
-
-![Red neuronal completamente conectada](../Imgs/red_conectada.png)
-
-Hay distintos tipos de redes neuronales según la forma en la que se conectan las neuronas. En esta tesina son de interés especialmente las *Convolutional Neural Networks* (CNN) y las *Recurrent Neural Networks* (RNN), redes neuronales convolucionales y recurrentes respectivamente. Las primeras son útiles para el reconocimiento de patrones en los datos, mientras que las últimas son especialmente buenas en la predicción de datos secuenciales.
+Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. 
 
 Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las CNNs y las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google.
+
+### 3.4.1 Introducción a redes neuronales
+
+Una red neuronal esta compuesta en grandes rasgos de 3 capas: entrada, oculta y salida. Dentro de cada capa se pueden encontrar neuronas y conexiones entre estas, donde cada neurona representa una variable y cada conexión un peso, y es por esto que a estas conexiones las llamaremos así en adelante. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
+
+![Red neuronal completamente conectada](../Imgs/red_conectada.png){#fig-redneuro}
+
+En la capa de entrada se introducen las variables explicativas, y luego cada neurona fuera de esta capa es una función de las neuronas anteriores conectadas a la misma. Estas funciones son llamadas funciones de activación.
+
+![Red neuronal completamente conectada](../Imgs/conexiones_redneuro.png){#fig-conexiones}
+
+Los parámetros se estiman buscando minimizar una función de costo, esto se logra con el descenso del gradiente y por medio de retropropagación. La retropropagación consiste en realizar una estimación inicial de la variable respuesta con los valores iniciales de la red neuronal, que pueden estar dados por ejemplo por una distribución normal, y de manera inversa a la dirección de la red neuronal calcular derivadas para encontrar la dirección de máximo decrecimiento de la función de costo para cada parámetro en la red neuronal. 
+
+Existen distintos tipos de redes neuronales según la forma en la que se conectan las neuronas. En esta tesina son de interés especialmente las *Convolutional Neural Networks* (CNN) y las *Recurrent Neural Networks* (RNN), en español, redes neuronales convolucionales y recurrentes respectivamente. Las primeras son útiles para el reconocimiento de patrones en los datos, mientras que las últimas son especialmente buenas en la predicción de datos secuenciales.
+
 
 ### 3.4.1 *Long Short Term Memory (LSTM)*
 
@@ -205,19 +220,72 @@ Lo que caracterizan a las redes neuronales recurrentes son los bucles de retroal
 
 ![Ejemplo de RNN](../Imgs/red_recurrente.png){#fig-rnn}
 
-Las redes neuronales con memoria a corto y largo plazo (LSTM) son un tipo de RNN que, para evitar que los gradientes se vayan a cero o al infinito muy rápidamente al actualizar los parámetros, usa un algoritmo logístico de 3 puertas:
 
-  - Puerta de guardado: Guarda la información relevante del estado actual de la red neuronal.
+Un problema común de las RNN es la dificultad que tienen para capturar dependencias a largo plazo en los datos. Esto puede tener 2 causas, el desvanecimiento o la explosión del gradiente. El desvanecimiento del gradiente ocurre cuando, iteración tras iteración, el gradiente se aproxima a cero y se estabiliza, evitando que la red siga aprendiendo. Por el contrario, cuando el gradiente crece exponencialmente se habla de una explosión, esto lleva a inestabilidades en el aprendizaje, haciendo que las actualizaciones de los parámetros sean erráticas e impredecibles.
 
-  - Puerta de entrada: Guarda la información que debe ser actualizada en la red neuronal.
+Las redes neuronales con memoria a corto y largo plazo (LSTM) son un tipo de RNN que solucionan este problema mediante un algoritmo logístico de 3 puertas, y usando una neurona que guarda la información histórica necesaria para la red.
 
-  - Puerta de salida: Combina la información de las puertas de guardado y entrada, y decide que tanto de esa información usar para seguir utilizando en la red neuronal.
+![Estructura *Long Short Term Memory*](../Imgs/lstm.png)
+
+**Puerta de guardado**
+
+La puerta de guardado se encarga de decidir si mantener o descartar la información actualmente guardada en la neurona de memoria de la red neuronal. Esta puerta recibe la entrada y el estado de la RNN, y las pasa como argumentos de una función sigmoide. 
+
+$$
+\sigma(x) =  \frac{1}{1+e^{-x}}
+$$
+
+$$
+K_t = \sigma(W_k \times [S_{t-1}, x_t] + B_k)
+$$
+
+Si $K_t$ es igual a 1, significa que la información guardada debe ser mantenida perfectamente. Si $K_t$ fuera igual a 0, la información guardada debe ser descartada completamente.
+
+Sean $S_{t-1}$ el estado actual de la RNN, $x_t$ la entrada actual, y $W_t$ y $B_t$ los pesos y sesgos de la puerta de guardado respectivamente:
+
+$$
+Old_t = K_t \times C_{t-1}
+$$
+
+Donde $Old_{t-1}$ es la información guardada actualmente y $Old_t$ la información que se mantendrá para la próxima iteración de la red.
+
+**Puerta de entrada**
+
+La puerta de entrada controla que información añadir a la neurona de memoria. Sean $W_i$ y $B_i$ los pesos y sesgos de la puerta de guardado:
+
+$$
+I_t = \sigma(W_i\times[S_{t-1},x_t]+B_i)
+$$
+
+$$
+New_t = I_t \times N_t
+$$
+
+Donde $N_t$ es el nuevo valor propuesto por la red neuronal y $New_t$ es la información que se va a agregar a la neurona de memoria. Luego, el nuevo valor de la neurona de memoria es:
+
+$C_t = Old_t + New_t$
+
+**Puerta de salida**
+
+La puerta de salida se encarga de extraer la información más importante del estado actual de la neurona para usar como salida. Sean $W_o$ y $B_o$ los pesos y sesgos de la puerta de salida y $tanh(x)$ la función tangente:
+
+$$
+O_t = \sigma(W_o \times [S_{t-1},x_t] + B_o)
+$$
+
+$$
+S_t = O_t \times tanh(C_t)
+$$
+
+Donde $S_t$ es el nuevo estado de la red neuronal.
+
+Las 3 puertas son logísticas para que sea sencillo aplicar la retropropagación. Este sistema de puertas evita los problemas de desvanecimiento y explotación del gradiente, y evita que se acumulen muchos estados por largos períodos de tiempo eligiendo que información es relevante guardar.
 
 ### 3.4.2 TimeGPT
 
-TimeGPT es un modelo fundacional preentrenado para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
+TimeGPT es un modelo transformer preentrenado (de aquí las siglas GPT, *generative pre-trained transformer*) para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
 
-TimeGPT es un modelo de tipo transformer con mecanismos de autoatención que no es de código abierto. La autoatención captura dependencias y relaciónes en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
+TimeGPT es un modelo fundacional, con mecanismos de autoatención, que no es de código abierto. La autoatención captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
 La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
 
@@ -437,10 +505,10 @@ metricas
 
 # 5. Conclusiones	
 
--  Resume las principales conclusiones del estudio.
+<!-- -  Resume las principales conclusiones del estudio.
 -  Destaca las contribuciones del trabajo y su relevancia para el campo de la estadística y el análisis de datos.
 - Fortalezas y limitaciones de TimeGPT en comparación con otros modelos.
-- Proporciona recomendaciones finales y reflexiones sobre posibles direcciones futuras de investigación.
+- Proporciona recomendaciones finales y reflexiones sobre posibles direcciones futuras de investigación. -->
 
 \newpage
 
@@ -448,7 +516,9 @@ metricas
 
 **Ansari et al.** (4 de noviembre de 2024). Chronos: Learning the Language of Time Series. Transactions on Machine Learning Research. [https://arxiv.org/abs/2403.07815](https://arxiv.org/abs/2403.07815)
 
-**Awan, A. A.** (2 de septiembre de 2024). Time Series Forecasting With TimeGPT. Datacamp. [https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt](https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt)
+**Awan, A.** (2 de septiembre de 2024). Time Series Forecasting With TimeGPT. Datacamp. [https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt](https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt)
+
+**Bermejo, J.** (21 de mayo de 2024). Redes neuronales. Facultad de Ciencias Económicas y Estadística de la Universidad Nacional de Rosario.
 
 **Elhariri, K.** (1 de marzo de 2022). The Transformer Model. Medium. [https://medium.com/data-science/attention-is-all-you-need-e498378552f9](https://medium.com/data-science/attention-is-all-you-need-e498378552f9)
 
@@ -513,8 +583,8 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Series a utilizar: 
       Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado
-      Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional
-      variable exogena >
+      Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional, ENFERMEDADES RESPIRATORIAS
+      variable exogena > Temperatura + Lluvia?
       
 - Orden: 
       Redes neuronales
@@ -526,6 +596,10 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Hacer dendograma de importancia de variables para los modelos de machine learning
 
+Nombrar ls 3 opcions de calculo de intervalo de xgboost
+Tomar el tiempo como el ultimo modelo PERO EXPLICARLO
+Explicacion en la metodologia
+
 # Mejoras a la investigacion (en las que no me voy a centrar)
 
 - Hacer que los modelos elijan el mejor ajuste con otras medidas del error en lugar de minimizar el mape, como el interval score
@@ -536,3 +610,8 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - medir el tiempo de ejecucion de los algoritmos de otra manera
 
+- Series con distintas periodicidades (semestrales, trimestrales, etc) y distintas unidades (diarias. anuales, horarias, etc)
+
+- Explorar mas sobre conformal predictions y demas opciones para crear intervalos de confianza
+
+- usar ngboost para obtener pronosticos probabilisticos
