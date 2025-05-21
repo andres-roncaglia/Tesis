@@ -32,10 +32,10 @@ import time
 from Funciones import get_api_call, interval_score, plot_forecast, save_env, load_env
 from tuner_fun import Tuner
 
-# Para los modelos de SKtime
-from sktime.forecasting.base import ForecastingHorizon
-from sktime.forecasting.arima import AutoARIMA
-from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
+# # Para los modelos de SKtime
+# from sktime.forecasting.base import ForecastingHorizon
+# from sktime.forecasting.arima import AutoARIMA
+# from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 ```
 
 ```{python}
@@ -124,97 +124,26 @@ datos_test = datos[corte:]
 ```
 
 ```{python}
-# AUTOARIMA
+# ARIMA CON FUNCION
 
-# Ajustamos el modelo
-timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+# Definimos los parametros a tunear
+params = {
+    "start_p" : 0, "max_p" : 3,
+    "start_q" : 0, "max_q" : 3,
+    "start_P" : 0, "max_P" : 3,
+    "start_Q" : 0, "max_Q" : 3,
+    "max_d":2, "max_D": 2,
+    "random_state" : seed
+}
 
-from pmdarima import auto_arima
-
-modelo = auto_arima(datos_train['y'], 
-                        start_p = 0, max_p = 3,
-                        start_q = 0, max_q = 3,
-                        start_P = 0, max_P = 3,
-                        start_Q = 0, max_Q = 3,
-                        max_d=2, max_D= 2,
-                        m = 12,
-                        trace = False, 
-                        error_action ='ignore',   
-                        suppress_warnings = True, 
-                        stepwise = True,
-                        random_state = seed)
-
-# Obtenemos predicciones
-pred, pred_int = modelo.predict(n_periods = long_pred, alpha = alpha/2, return_conf_int=True)
-  
-timer_final = time.time()
-tiempo = timer_final - timer_comienzo
-
-# Guardamos los pronosticos en un dataframe
-pred_int = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_int.reset_index(drop=True, inplace=True)
-
-pred_arima = pd.concat([
-    datos_test['ds'].reset_index(drop=True),
-    pred.reset_index(drop=True),
-    pred_int['lower'].reset_index(drop=True),
-    pred_int['upper'].reset_index(drop=True)
-], axis=1)
-
-pred_arima.columns = ['ds', 'pred', 'lower', 'upper']
-# Calculamos MAPE
-mape = mean_absolute_percentage_error(datos_test['y'], pred_arima['pred'])
-
-# Calculamos Interval Score
-score = interval_score(obs=datos_test['y'], lower=pred_arima['lower'], upper=pred_arima['upper'], alpha = alpha)
+# Tuneamos los parametros y ajustamos el modelo
+resultados_arima = Tuner(forecaster_fun= 'ARIMA', datos=datos, parametros=params, alpha= alpha, long_pred = long_pred)
 
 # Graficamos el pronostico
-plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'AutoARIMA')
+plot_forecast(data = datos, forecast = resultados_arima['pred'], color = 'green', label = 'ARIMA')
 
 # Guardamos las metricas
-metricas.loc[len(metricas)] = ['AutoARIMA', mape, score, tiempo]
-
-resultados_arima = {'pred': pred_arima, 'mape': mape, 'score': score, 'tiempo': tiempo}
-
-```
-
-```{python}
-from ngboost import NGBRegressor
-
-# Creamos una copia del dataset
-datos_xgb = datos.copy()
-
-# Calculamos las características a usar
-datos_xgb['month'] = datos_xgb['ds'].dt.month
-datos_xgb['year'] = datos_xgb['ds'].dt.year
-datos_xgb["promedio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).mean() # Promedio en una ventana de 3 meses
-datos_xgb["desvio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).std() # Desvio en una ventana de 3 meses
-datos_xgb["lag_1"] = datos_xgb["y"].shift(1)
-datos_xgb["lag_2"] = datos_xgb["y"].shift(2)
-datos_xgb["lag_12"] = datos_xgb["y"].shift(12)
-
-# Dividimos en entrenamiento y testeo
-corte = len(datos_xgb)-long_pred
-
-datos_xgb_train = datos_xgb[:corte]
-datos_xgb_test = datos_xgb[corte:]
-
-# Extraemos las características
-X_train = datos_xgb_train[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
-X_test = datos_xgb_test[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
-
-ngb = NGBRegressor().fit(X_train, datos_xgb_train['y'])
-Y_preds = ngb.predict(X_test)
-Y_dists = ngb.pred_dist(X_test)
-
-pred_ngb = pd.DataFrame({
-    'ds' : datos_test['ds'],
-    'pred' : Y_preds,
-    'lower' : Y_dists.ppf(alpha/2),
-    'upper' : Y_dists.ppf(1-alpha/2),
-})
-
-plot_forecast(data = datos, forecast = pred_arima, color = 'red', label = 'NGBoost')
+metricas.loc[len(metricas)] = ['XGBoost', resultados_xgb['mape'], resultados_xgb['score'], resultados_xgb['tiempo']]
 ```
 
 ## Machine learning

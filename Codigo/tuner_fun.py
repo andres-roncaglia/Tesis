@@ -5,7 +5,11 @@ import pandas as pd
 import numpy as np
 
 # Para cargar las claves
+# from Codigo import creds
 import creds
+
+# Para ARIMA
+from pmdarima import auto_arima
 
 # Para XGBoost
 from xgboost import XGBRegressor
@@ -16,7 +20,7 @@ import lightgbm as lgb
 # Para LSTM
 from neuralforecast import NeuralForecast
 from neuralforecast.models import LSTM
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.losses.pytorch import MQLoss
 
 # Para time GPT
 from nixtla import NixtlaClient
@@ -28,13 +32,11 @@ logging.basicConfig(level=logging.WARNING) # Elimina los mensajes de INFO cuando
 # Para calcular el MAPE
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 
-# Para dividir el test de entrenamiento y testeo
-from sktime.split import temporal_train_test_split
-
 # Para medir el tiempo que tarda en ajustar los modelos
 import time
 
 # Para calcular el interval score
+# from Codigo.Funciones import interval_score
 from Funciones import interval_score
 
 
@@ -62,6 +64,61 @@ def dict_expand(parametros):
     grilla = pd.DataFrame(np.array(grilla_expan).T, columns= nombre_cols)
 
     return grilla
+
+# ------------------------------------------------------------------------------------
+
+# Funcion fit_pred_arima()
+# Ajusta un modelo de ARIMA y pronostica
+# argumentos:
+# - datos : Conjunto de datos entero con columnas 'ds' e 'y'
+# - long_pred : Horizonte de pronostico
+# - kwargs : Diccionario con los argumentos a tunear de XGBoost
+# - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
+# salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
+
+def fit_pred_arima(datos, long_pred, alpha, kwargs):
+
+    # Dividimos en entrenamiento, validacion y testeo
+    datos_arima = datos.copy()
+    datos_arima_train = datos_arima.head(len(datos_arima)-long_pred)
+    datos_arima_test = datos_arima.tail(long_pred)
+
+    # Ajustamos el modelo
+    timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+
+    modelo = auto_arima(datos_arima_train['y'],
+                        m = long_pred,
+                        trace = False, 
+                        error_action ='ignore',   
+                        suppress_warnings = True, 
+                        stepwise = True,
+                        **kwargs)
+
+    # Obtenemos predicciones
+    pred, pred_int = modelo.predict(n_periods = long_pred, alpha = alpha/2, return_conf_int=True)
+    
+    timer_final = time.time()
+    tiempo = timer_final - timer_comienzo
+
+    # Guardamos los pronosticos en un dataframe
+    pred_int = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+    pred_int.reset_index(drop=True, inplace=True)
+
+    pred_arima = pd.concat([
+        datos_arima_test['ds'].reset_index(drop=True),
+        pred.reset_index(drop=True),
+        pred_int['lower'].reset_index(drop=True),
+        pred_int['upper'].reset_index(drop=True)
+    ], axis=1)
+
+    pred_arima.columns = ['ds', 'pred', 'lower', 'upper']
+    # Calculamos MAPE
+    mape = mean_absolute_percentage_error(datos_arima_test['y'], pred_arima['pred'])
+
+    # Calculamos Interval Score
+    score = interval_score(obs=datos_arima_test['y'], lower=pred_arima['lower'], upper=pred_arima['upper'], alpha = alpha)
+
+    return pred_arima, tiempo, modelo, mape, score
 
 
 # ------------------------------------------------------------------------------------
@@ -181,11 +238,11 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, devolver_tiempo = False, devol
     datos_xgb["lag_12"] = datos_xgb["y"].shift(12)
 
     # Dividimos en entrenamiento, validacion y testeo
-    corte = len(datos_xgb)-long_pred
+    datos_xgb_fulltrain = datos_xgb.head(len(datos_xgb)-long_pred)
+    datos_xgb_test = datos_xgb.tail(long_pred)
 
-    datos_xgb_fulltrain = datos_xgb[:corte]
-    datos_xgb_test = datos_xgb[corte:]
-    datos_xgb_train, datos_xgb_val = temporal_train_test_split(datos_xgb_fulltrain, test_size=0.2)
+    datos_xgb_train = datos_xgb_fulltrain.head(datos_xgb_fulltrain.shape[0] - long_pred)
+    datos_xgb_val = datos_xgb_fulltrain.tail(long_pred)
 
     # Extraemos las características
     X_fulltrain = datos_xgb_fulltrain[['month', 'year', 'promedio_3_meses', 'desvio_3_meses', 'lag_1', 'lag_2', 'lag_12']]
@@ -363,63 +420,67 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, devolver_tiempo = False, 
 def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12):
 
     # Dividimos el conjunto de datos que queremos pronosticar
-    corte = len(datos)-long_pred
-
     datos.columns = ['ds', 'y']
 
-    datos_train = datos[:corte]
-    datos_test = datos[corte:]
+    datos_train = datos.head(len(datos)-long_pred)
+    datos_test = datos.tail(long_pred)
 
     # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
-    train_y, test_y = temporal_train_test_split(datos_train, test_size=0.15)
-    
-    # Creamos vectores para guardar los resultados
-    mapes = []
-    scores = []
+    train_y = datos_train.head(datos_train.shape[0] - long_pred)
+    test_y = datos_train.tail(long_pred)
 
-    # Expandimos la grilla de parametros
-    grilla = dict_expand(parametros)
+    if forecaster_fun != 'ARIMA':
 
-    # Vamos a probar cada combinacion de parametros 
-    for j in range(0,grilla.shape[0]):
+        # Creamos vectores para guardar los resultados
+        mapes = []
+        scores = []
 
-        # Primero pasamos la fila como diccionario para usar los argumentos
-        kwargs = grilla.iloc[j].to_dict()
-        
-        # Ajustamos el modelo
-        if forecaster_fun == 'XGBoost':
-            forecast = fit_pred_xgb(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs)
-        elif forecaster_fun == 'TimeGPT':
-            forecast = fit_pred_tgpt(df = train_y, h = len(test_y), time_col= 'ds', target_col= 'y', freq= 'M', alpha = alpha, kwargs=kwargs)
-        elif forecaster_fun == 'LSTM':
-            forecast = fit_pred_lstm(datos= train_y, long_pred= len(test_y), kwargs= kwargs, alpha=alpha)
-        elif forecaster_fun == 'LightGBM':
-            forecast = fit_pred_lightgbm(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs)
+        # Expandimos la grilla de parametros
+        grilla = dict_expand(parametros)
 
+        # Vamos a probar cada combinacion de parametros 
+        for j in range(0,grilla.shape[0]):
 
-        # Calculamos MAPE
-        mape = mean_absolute_percentage_error(test_y['y'], forecast['pred'])
-        mapes.append(mape)
-
-        # Calculamos interval score
-        score = interval_score(obs=test_y['y'], lower= forecast['lower'], upper= forecast['upper'], alpha = alpha)
-        scores.append(score)
+            # Primero pasamos la fila como diccionario para usar los argumentos
+            kwargs = grilla.iloc[j].to_dict()
+            
+            # Ajustamos el modelo
+            if forecaster_fun == 'XGBoost':
+                forecast = fit_pred_xgb(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs)
+            elif forecaster_fun == 'TimeGPT':
+                forecast = fit_pred_tgpt(df = train_y, h = len(test_y), time_col= 'ds', target_col= 'y', freq= 'M', alpha = alpha, kwargs=kwargs)
+            elif forecaster_fun == 'LSTM':
+                forecast = fit_pred_lstm(datos= train_y, long_pred= len(test_y), kwargs= kwargs, alpha=alpha)
+            elif forecaster_fun == 'LightGBM':
+                forecast = fit_pred_lightgbm(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs)
 
 
-    # Una vez probamos todas las opciones, vemos con cual modelo se obtuvo el menor error
-    if metrica == 'MAPE': 
-        mejor_combinacion = mapes.index(np.nanmin(mapes))
-    else :
-        mejor_combinacion = scores.index(np.nanmin(scores))
-        
+            # Calculamos MAPE
+            mape = mean_absolute_percentage_error(test_y['y'], forecast['pred'])
+            mapes.append(mape)
 
-    # Por ultimo ajustamos el mejor modelo con todo el conjunto de entrenamiento:
+            # Calculamos interval score
+            score = interval_score(obs=test_y['y'], lower= forecast['lower'], upper= forecast['upper'], alpha = alpha)
+            scores.append(score)
 
-    kwargs = grilla.iloc[mejor_combinacion].to_dict()
+
+        # Una vez probamos todas las opciones, vemos con cual modelo se obtuvo el menor error
+        if metrica == 'MAPE': 
+            mejor_combinacion = mapes.index(np.nanmin(mapes))
+        else :
+            mejor_combinacion = scores.index(np.nanmin(scores))
+            
+
+        # Por ultimo ajustamos el mejor modelo con todo el conjunto de entrenamiento:
+
+        kwargs = grilla.iloc[mejor_combinacion].to_dict()
 
 
     # Ajustamos el modelo
-    if forecaster_fun == 'XGBoost':
+    if forecaster_fun == 'ARIMA':
+        forecast, tiempo, model, mape, score = fit_pred_arima(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = parametros)
+        return {'pred': forecast, 'mape': mape, 'score': score, 'tiempo': tiempo, 'modelo': model}
+    elif forecaster_fun == 'XGBoost':
         forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= len(datos_test), alpha = alpha, kwargs = kwargs, devolver_tiempo=True, devolver_modelo=True)
     elif forecaster_fun == 'TimeGPT':
         forecast, tiempo, model = fit_pred_tgpt(df = datos_train, h = len(datos_test), time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True)

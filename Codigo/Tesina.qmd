@@ -40,7 +40,7 @@ from Funciones import plot_forecast, load_env
 
 \begin{figure}[htbp]
     \noindent
-    \includegraphics[width=\paperwidth, height=\paperheight]{../Imgs/Portada.png}
+    \includegraphics[width=\paperwidth, height=\paperheight]{../Imgs/Portada_tesina.png}
 \end{figure}
 
 
@@ -106,7 +106,7 @@ El enfoque metodológico adoptado en esta tesina se basa en la comparación del 
 
 ## 3.1 Conceptos básicos de series de tiempo
 
-Se denomina serie de tiempo a un conjunto de observaciones cuantitativas ordenadas en el tiempo, usualmente de forma equidistante, sobre una variable de interés. El análisis de series de tiempo tiene como objetivo sintetizar y extraer información estadística relevante, tanto para interpretar el comportamiento histórico de la variable como para generar pronósticos sobre su evolución futura.
+Se denomina serie de tiempo a un conjunto de observaciones $\{z_1, z_2, ..., z_t, ..., z_n\}$ cuantitativas ordenadas en el tiempo, usualmente de forma equidistante, sobre una variable de interés. El análisis de series de tiempo tiene como objetivo sintetizar y extraer información estadística relevante, tanto para interpretar el comportamiento histórico de la variable como para generar pronósticos $\{ z_{n+1}, ...,z_{n+l}, ...., z_{n+h} \}$.
 
 Dado que las series temporales pueden exhibir diversos patrones subyacentes, resulta útil descomponerlas en componentes diferenciadas, cada una de las cuales representa una característica estructural específica del comportamiento de la serie.
 
@@ -129,10 +129,10 @@ Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los 
 Formalmente un modelo $ARIMA(p,d,q)$ se define como:
 
 $$
-\psi_p(B)(1-B)^dZ_t = \theta_0 + \theta_q(B)\alpha_t
+\psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
 $$
 
-Donde $Z_t$ es la observación $t$-ésima, $\psi_p(B)$ y $\theta_q(B)$ son funciones de los rezagos ($B$), correspondientes a la parte autoregresiva y promedio móvil respectivamente, $d$ es el grado de diferenciación y $\alpha_t$ es el error de la $t$-ésima observación.
+Donde $z_t$ es la observación $t$-ésima, $\psi_p(B)$ y $\theta_q(B)$ son funciones de los rezagos ($B$), correspondientes a la parte autoregresiva y promedio móvil respectivamente, $d$ es el grado de diferenciación y $\alpha_t$ es el error de la $t$-ésima observación.
 
 Se debe tener en cuenta estos aspectos importantes:
 
@@ -179,7 +179,7 @@ Los métodos de ensamblaje combinan la predicción de varios estimadores base co
 
 La dirección de máximo crecimiento para una función está determinada por su gradiente, y del mismo modo, la dirección contraria a este gradiente es la dirección de máximo decrecimiento. De este modo, el descenso del gradiente busca encontrar los valores más bajos para una función de pérdida. El algoritmo de descenso de gradiente propone calcular el gradiente de la función de costo bajo el valor actual de parámetros, para luego modificarlo moviéndose en la dirección de mayor descenso. Este resultado se basa en derivadas, tasas de cambio instantáneo, por lo que conviene desplazarse una magnitud pequeña $\eta$, llamada “tasa de aprendizaje”. Es un algoritmo iterativo, en el que en cada paso la regla de actualización consiste en calcular la derivada de la función de costo respecto a cada parámetro y desplazarse una cierta magnitud $\eta$ en la dirección contraria. Esto se repite un cierto número de veces hasta alcanzar la convergencia.
 
-foto del descenso del gradiente
+![Ejemplo del descenso del gradiente en una función de pérdida](../Imgs/desc_gradiente.png)
 
 Sin embargo, los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamblaje (XGBoost, LightGBM, CatBoost, AdaBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos XGBoost y LightGBM.
 
@@ -197,8 +197,6 @@ El *deep learning* (aprendizaje profundo) es una rama del *machine learning* que
 
 Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. 
 
-Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las CNNs y las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google.
-
 ### 3.4.1 Introducción a redes neuronales
 
 Una red neuronal esta compuesta en grandes rasgos de 3 capas: entrada, oculta y salida. Dentro de cada capa se pueden encontrar neuronas y conexiones entre estas, donde cada neurona representa una variable y cada conexión un peso, y es por esto que a estas conexiones las llamaremos así en adelante. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
@@ -214,7 +212,7 @@ Los parámetros se estiman buscando minimizar una función de costo, esto se log
 Existen distintos tipos de redes neuronales según la forma en la que se conectan las neuronas. En esta tesina son de interés especialmente las *Convolutional Neural Networks* (CNN) y las *Recurrent Neural Networks* (RNN), en español, redes neuronales convolucionales y recurrentes respectivamente. Las primeras son útiles para el reconocimiento de patrones en los datos, mientras que las últimas son especialmente buenas en la predicción de datos secuenciales.
 
 
-### 3.4.1 *Long Short Term Memory (LSTM)*
+### 3.4.2 *Long Short Term Memory (LSTM)*
 
 Lo que caracterizan a las redes neuronales recurrentes son los bucles de retroalimentación que se presentan en la @fig-rnn. Mientras que cada neurona de entrada en una red neuronal completamente conectada es independiente, en las redes neuronales recurrentes se relacionan entre ellas y se retroalimentan.
 
@@ -247,7 +245,7 @@ $$
 Old_t = K_t \times C_{t-1}
 $$
 
-Donde $Old_{t-1}$ es la información guardada actualmente y $Old_t$ la información que se mantendrá para la próxima iteración de la red.
+Donde $C_{t-1}$ es la información guardada actualmente y $Old_t$ lo que se mantendrá para la próxima iteración de la red.
 
 **Puerta de entrada**
 
@@ -281,27 +279,38 @@ Donde $S_t$ es el nuevo estado de la red neuronal.
 
 Las 3 puertas son logísticas para que sea sencillo aplicar la retropropagación. Este sistema de puertas evita los problemas de desvanecimiento y explotación del gradiente, y evita que se acumulen muchos estados por largos períodos de tiempo eligiendo que información es relevante guardar.
 
-### 3.4.2 TimeGPT
+### 3.4.2 Modelos transformadores
 
-TimeGPT es un modelo transformer preentrenado (de aquí las siglas GPT, *generative pre-trained transformer*) para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
+Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. La autoatención captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
-TimeGPT es un modelo fundacional, con mecanismos de autoatención, que no es de código abierto. La autoatención captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
+Los modelos transformadores fueron creados originalmente con el propósito de generar texto. Sin embargo, tanto TimeGPT como Chronos explotan esta tecnología para el pronóstico de series de tiempo. Ambos modelos son preentrenados, lo cúal significa que la optimización de parámetros y pesos fue realizada antes de usarse el modelo. Esto se logra entrenando y generalizando el modelo en un conjunto de datos extenso, por lo general de fuentes públicas. El preentrenamiento permite que el modelo adquiera conocimientos generales sobre la estructura y los patrones de los datos, los cuales luego pueden ser reutilizados en tareas concretas mediante técnicas como *fine-tuning* (ajuste fino). Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
 
-La arquitectura del modelo consiste en una estructura con codificador y decodificador de múltiples capas, cada una con conexiones residuales y normalización de capas. Por último, contiene una capa lineal que mapea la salida del decodificador a la dimensión del pronóstico.
+Dado que los modelos de lenguaje de texto utilizan diccionarios de *tokens*, que son segmentos de caracteres representados vectorialmente según ciertos parámetros, es necesario tokenizar los valores de la serie temporal. El diccionario de *tokens* con el que operan los modelos de lenguaje no es infinito, por lo tanto es necesario proyectar las observaciones a un set finito de *tokens*. Para cumplir esto, Chronos escala y discretiza las observaciones. TimeGTP por su parte usa las mismas observaciones como *tokens*, esto dado que, si bien su arquitectura es la de un modelo transformador, esta no está basada en ningún modelo de lenguaje existente, y en cambio trabaja con un modelo especializado en series de tiempo entrenado para minimizar el error de pronóstico.
 
-![Diagrama de la estructura del modelo](../Imgs/modelo_timegpt.png){#fig-modelo}
+Para el escalado se aplica a las observaciones una transformación del tipo $f(x_i) = (x_i-m)/s$. Existen variadas técnicas de escalado eligiendo apropiadamente $m$ y $s$, pero se opta por elegir $m=0$ y $s = \frac{1}{C}\sum^C_{i=i}|x_i|$ debido a que preserva los valores iguales a cero, los cúales pueden ser importante de destacar en numerosas aplicaciones.
 
-#### Paso a paso del funcionamiento del modelo
+Sin embargo estos valores siguen siendo números reales y no pueden ser procesados directamente por un modelo de lenguaje. Es por esto que se discretizan las observaciones. Se seleccionan $B$ centros de intervalos en la recta real, $c_1, c_2, ..., c_B$, y $B-1$ extremos $b_i$ que los separen, $c_i < b_i < c_{i+1}$ para $i \in \{1,...,B-1 \}$. Las funciones de discretización $q:\Re \rightarrow \{1,2,...,B\}$, y de descuantificación $d: \{1,2,...,B\} \rightarrow \Re$ se definen como:
 
-##### Codificador
+$$
+q(x)= \left \{ \begin{matrix} 1 \ \ \ \ \ \ \ \ \text{si} \ \ -\infty \leq x < b_1 \hfill \\ 
+2 \ \ \ \ \ \ \ \ \text{si} \ \ b_1 \leq x < b_2 \hfill \\
+ \ \vdots \hfill \\
+B \ \ \ \ \ \ \ \ \text{si} \ \ b_{B-1} \leq x < \infty \hfill \end{matrix} \right. \hspace{2, cm} \text{and} \hspace{2, cm} d(j) = c_j
+$$
 
-1. *Input embedding*: Cada *token* (observaciones en el caso de TimeGPT) es transformado en un vector (vector de entrada) con muchas dimensiones ($\vec E$). Las dimensiones corresponden a diferentes caracteristicas que el modelo definió en el pre-entrenado con una numerosa cantidad de parámetros.
+Una vez se hayan transformado las observaciones para poder ser leídas por el modelo, el funcionamiento de un transformador es el siguiente: 
 
-2. Codificación posicional: Típicamente se introduce como un set de valores adicionales o vectores que son añadidos a los vectores de entrada antes de alimentarlos al modelo ($\vec E \Leftarrow \vec E + \vec P$). Estas codificaciones posicionales tienen patrones específicos que agregan la información posicional del token.
+![Diagrama de la estructura del modelo transformador de TimeGPT](../Imgs/modelo_timegpt.png){#fig-modelo}
 
-3. *Multi-Head Attention* (Atención multi-cabezal): La autoatención opera en múltiples 'cabezales de atención' para capturar los diferentes tipos de relaciones entre tokens. Una cabeza de atención verifica el contexto en el que el token está y manipula los valores del vector que lo representa para añadir esta información contextual.
+*Codificador*
 
-La verificación del contexto funciona gracias a una matriz la cúal se llamará *Query* ($W_Q$) que examina ciertas características, y es multiplicada por el vector de entrada ($\vec E$) resultando en un vector de consultas ($\vec Q$) para cada token. Una matriz de claves (*Key matrix*) ($W_K$) que comprueba las relaciones con las características en la matriz de consultas y tiene las mismas dimensiones que esta es también multiplicada por $\vec E$ generando así el vector de claves ($\vec K$). Luego se forma una nueva matriz a partir de los productos cruzados entre los vectores $\vec K$ y $\vec Q$ de cada token, se divide por la raíz de la dimensión de los vectores^[Es útil para mantener estabilidad numérica, la cual describe cómo los errores en los datos de entrada se propagan a través del algoritmo. En un método estable, los errores debidos a las aproximaciones se atenúan a medida que la computación procede.] ($\sqrt{d_k}$) y se normaliza con *softmax*^[ $softmax(x) = \frac{e^{x_i/t}}{\sum_j e^{x_j/t}}$] por columna^[Aplicar *softmax* hace que cada columna se comporte como una distribución de probabilidad.] ($\vec S$), valores más altos indican que un token (de las columnas) esta siendo influenciado por el comportamiento de otro token (de las filas).
+1. Representación vectorial: Cada *token* es transformado en un vector (vector de entrada) con muchas dimensiones ($\vec E$). Las dimensiones corresponden a diferentes características que el modelo definió en el preentrenado con una numerosa cantidad de parámetros.
+
+2. Codificación posicional: Un set de valores adicionales o vectores son añadidos a los vectores de entrada antes de alimentarlos al modelo ($\vec E \Leftarrow \vec E + \vec P$). Estas codificaciones posicionales tienen patrones específicos que agregan la información posicional del token.
+
+3. Atención multi-cabezal (del inglés *Multi-Head Attention*): La autoatención opera en múltiples 'cabezales de atención' para capturar los diferentes tipos de relaciones entre tokens. Una cabeza de atención verifica el contexto en el que se presenta el token, y manipula los valores del vector que lo representa para añadir esta información contextual.
+
+La verificación del contexto funciona gracias a una matriz denominada *Query* ($W_Q$) que examina ciertas características definidas con aterioridad en el preentrenado. El vector de entrada ($\vec E$) es multiplicado por esta matriz, resultando en un vector de consultas ($\vec Q$) para cada token. Una matriz de claves ($W_K$) que comprueba las relaciones con las características en la matriz de consultas, y tiene las mismas dimensiones que esta, es también multiplicada por $\vec E$ generando así el vector de claves ($\vec K$). Luego, se forma una nueva matriz a partir de los productos cruzados entre los vectores $\vec K$ y $\vec Q$ de cada token, se divide por la raíz de la dimensión de los vectores^[Es útil para mantener estabilidad numérica, la cual describe cómo los errores en los datos de entrada se propagan a través del algoritmo. En un método estable, los errores debidos a las aproximaciones se atenúan a medida que la computación procede.] ($\sqrt{d_k}$) y se normaliza con *softmax*^[ $softmax(x) = \frac{e^{x_i/t}}{\sum_j e^{x_j/t}}$] por columna^[Aplicar *softmax* hace que cada columna se comporte como una distribución de probabilidad.] ($\vec S$), valores más altos indican que un token (de las columnas) esta siendo influenciado por el comportamiento de otro token (de las filas).
 
 ![(before applying softmax) for example: Fluffy and Blue contribute to creature](../Imgs/attention_matrix.png)
 
@@ -319,13 +328,13 @@ $$
 \vec E \Leftarrow \vec E+ \sum_h \Delta \vec E_h
 $$
 
-En resumen, y haciendo referencia la publicación [Attention is all you need](https://arxiv.org/pdf/1706.03762):
+De forma resumida
 
 $$
-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}})V
+\text{Atención}(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}})V
 $$
 
-Es importante notar que todas las matrices $Q$, $K$ y $V$ son pre-entrenadas.
+Es importante notar que todas las matrices $Q$, $K$ y $V$ son preentrenadas.
 
 
 4. Sumar y normalizar (*Add and norm*): En lugar de simplemente pasar los datos por las capas, las conexiones residuales se añaden sobre el vector de entrada en la salida de cada capa. Esto es lo que se hizo cuando se sumaron los cambios al vector de entrada, en lugar de directamente modificar el vector.
@@ -334,12 +343,11 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 
 5. Red neuronal convolucional (CNN): A diferencia de otros modelos transformadores tradicionales, TimeGPT incorpora *CNN*s para descubrir dependencias locales y patrones de corto plazo, tratando de minimizar una función de costo (MAPE, MAE, RMSE, etc.).
 
-##### Decodificador
+*Decodificador*
 
 1. *Output embedding* (desplazado hacia la derecha): La entrada del decodificador son los tokens desplazados hacia la derecha.
 
 2. Codificación posicional
-
 
 3. *Masked multi-head attention* (Atención multicabezal enmascarada): Ahora que las predicciones deben hacerce únicamente con los valores previos a cada token, en el proceso de 'atención' y antes de aplicar la transformación softmax se debe reemplazar todos los valores debajo de la diagonal principal de la matriz $QK$ por $-\infty$ para prevenir que los tokens sean influenciados por tokens anteriores.
 
@@ -347,33 +355,51 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 
 5. Conexión lineal: Es una capa completamente conectada que traduce las representaciones de atributos aprendidas en predicciones relevantes.
 
-### 3.4.3 Chronos
 
-Chronos es una familia de modelos fundacionales preentrenados para series de tiempo basados en arquitecturas de modelos de lenguaje. Chronos trabaja transformando la serie de tiempo en una secuencia de *tokens* por medio de escalado y cuantificación, para luego entrenar un modelo de lenguaje con estos, usando entropía cruzada. Una vez entrenado el modelo, se generan múltiples pronósticos probabilísticos a partir del contexto historico. 
+### 3.4.3 Diferencias entre TimeGPT y Chronos
+
+TimeGPT es un modelo transformer preentrenado (de aquí las siglas GPT, *generative pre-trained transformer*) para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. El mismo fue desarrollado por Nixtla y tuvo su primera beta privada en Agosto de 2023, volviendose accesible a todo público desde el 18 de julio de 2024.
+
+Chronos es una familia de modelos transformadores preentrenados para series de tiempo basados en arquitecturas de modelos de lenguaje, el cúal fue desarrollado por Amazon y lanzado en marzo de 2024.
+
+La primera diferencia entre ambos modelos es la accesibilidad al código fuente, mientras que Chronos es de código abierto, el modelo desarrollado por Nixtla no lo es.
+
+Tal vez la diferencia más importante es como operan los modelos. Se mencionó anteriormente que TimeGPT utiliza la arquitectura transformer para diseñar un modelo que pueda trabajar directamente con series de tiempo. Chronos en cambio, aprovecha los modelos de lenguaje existentes para aplicarlos a datos temporales. Esto conlleva a otras diferencias clave, como que Chronos debe transformar los datos antes de poder procesarlos, y por trabajar con datos discretos, está entrenado para minimizar la entropía cruzada entre las distribuciones de las categorías reales contra las predichas.
+
+La función de pérdida utilizada por Chronos está dada por:
+$$
+\ell(\theta) = \sum^{h+1}_{l=1} \sum^{|\nu_{ts}|}_{i=1} \mathbfcal{1}_{z_{n+l+1}=i} log \ \mathcal{p}_\theta(z_{n+l+1}=i| z_{1:n+l})
+$$
+
+Donde $|\nu_{ts}|$ es el tamaño del diccionario de tokens, el cúal depende del número de intervalos creados. $z_{n+h+1}$ es la serie transformada en *tokens* de la cúal las primeras $n$ observaciones se usarán como entrenamiento para pronosticar las siguientes $h$, y se agrega al final un token $\texttt{EOS}$ que se utiliza comunmente en los modelos de lenguaje para denotar el final de la secuencia. $\mathcal{p}_\theta$ es la probabilidad estimada por el modelo bajo la parametrización $\theta$.
+
+Es importante notar que no es una función que detecta distancias, por lo que se espera que el modelo asocie a los intervalos cercanos gracias a la información en el conjunto de entrenamiento. Es decir que Chronos aplica regresión por clasificación.
+
+Otra diferencia entre TimeGPT y Chronos es el tipo de red neuronal que utilizan para detectar patrones en los datos, mientras que el primero hace uso de las CNN, el segundo aplica *Feed-Forward Networks*. Luego de la conexión lineal, Chronos necesita volver a aplicar softmax para obtener las probabilidades del pronóstico, procedimiento que no es necesario por parte de TimeGPT.   
 
 ## 3.5 Métricas de evaluación
 
 
 Para comparar el rendimiento de los modelos, se utilizarán métricas cuantitativas. Para los pronósticos puntuales se usará el porcentaje del error absoluto medio (MAPE), mientras que para los pronósticos probabilísticos se aplicará el *Interval Score*, propuesto por Gneiting y Raftery (2007), que penaliza tanto la amplitud de los intervalos como la falta de cobertura. Las comparaciones permitirán evaluar precisión, robustez y eficiencia de cada enfoque.
 
-Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $L$ pasos hacia adelante son:
+Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $h$ pasos hacia adelante son:
 
 - Error Cuadrático Medio (*Mean Square Error (MSE)*):
 
 $$
-MSE = \frac{1}{L}\sum^L_{l=1}e_l^2
+MSE = \frac{1}{h}\sum^h_{l=1}e_l^2
 $$
 
 - Error absoluto medio (*Mean Absolute Error (MAE)*):
 
 $$
-MAE = \frac{1}{L}\sum^L_{l=1}|e_l|
+MAE = \frac{1}{h}\sum^h_{l=1}|e_l|
 $$
 
 - Porcentaje del error absoluto medio (*Mean Absolute Percentage Error (MAPE)*)
 
 $$
-MAPE = (\frac{1}{L}\sum^L_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
+MAPE = (\frac{1}{h}\sum^h_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
 $$
 
 Aquel modelo que tenga el menor valor en estas medidas será considerado el mejor.
@@ -381,7 +407,7 @@ Aquel modelo que tenga el menor valor en estas medidas será considerado el mejo
 El problema de estos errores es que solo tienen en cuenta la estimación puntual, y por lo general es buena idea trabajar con pronosticos probabilisticos para cuantificar la incertidumbre de los valores futuros de la variable. Gneiting & Raftery (2007, JASA) propusieron en [Strictly Proper Scoring Rules, Prediction, and Estimation](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf) una nueva medida del error que tiene en cuenta los intervalos probabilísticos de la estimación, llamandola *Interval Score*:
 
 $$
-S = \frac{1}{L}\sum_{l=1}^L (W_l + O_l + U_l) 
+S = \frac{1}{h}\sum_{l=1}^h (W_l + O_l + U_l) 
 $$
 
 Donde:
@@ -398,39 +424,47 @@ Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ési
 
 ## 3.6 Técnicas para la estimación de parámetros
 
-https://www.researchgate.net/publication/330742498_Evaluation_of_statistical_and_machine_learning_models_for_time_series_prediction_Identifying_the_state-of-the-art_and_the_best_conditions_for_the_use_of_each_model
+La correcta elección de los parámetros del modelo es la tarea más importante para llegar a un buen ajuste de los datos. Sin embargo, no es prudente utilizar todos los datos con los que se cuenta para este propósito, ya que se produciría un sobreajuste. Se habla de sobreajuste cuando el modelo aprende mucho de los datos de entrenamiento y se ajusta demasiado al patrón de estos, logrando que al querer estimar datos nuevos el modelo se desempeñe muy mal. Para evitar esto se utilizan distintas técnicas para la estimación de parámetros.
 
-### 3.6.1 Holdout
+La validación holdout consiste en reservar una parte del conjunto de entrenamiento como validación, e ir probando las métricas de evaluación de las distintas configuraciones de parámetros del modelo, ajustado sobre el resto de los datos de entrenamiento, sobre este nuevo conjunto. Luego, para ajustar el modelo con la mejor combinación de parámetros, se utilizarán tanto los datos de entrenamiento como de validación. Por la ordinalidad de los datos, el conjunto de validación tendrá que ser más reciente que el conjunto de entrenamiento. 
 
-### 3.6.2 Box-Jenkins
+$$
+\text{Conjunto de entrenamiento total : } \{\underbrace{z_1, ...,  z_c}_{\text{Entrenamiento}}, \underbrace{z_{c+1}, ..., z_n}_{\text{Validación}} \}
+$$
+
+Si alguna serie presentara estacionalidad, se priorizará que el conjunto de validación tenga el largo del ciclo, para poder evaluar el ajuste del modelo en todo el ciclo.
+
+Para ARIMA se usará el método de Box-Jenkins. En este método se compararán aquellos modelos que cumplan con los supuestos, y se elegirá como mejor combinación de parámetros aquella que minimize el AIC, medida de ajuste que penaliza por la cantidad de parámetros.
 
 \newpage
 
 # 4. Aplicación
 
-La aplicación empírica del trabajo se desarrollará en varias etapas, con el objetivo de implementar, ajustar y comparar los modelos previamente detallados sobre un conjunto de series temporales seleccionadas, usando el software de programación de código abierto Python.
+La aplicación empírica del trabajo tiene como objetivo implementar, ajustar y comparar los modelos previamente detallados sobre un conjunto de series temporales seleccionadas, usando el software de programación de código abierto Python.
 
-## 4.1 Etapa 1: Selección y preparación de los datos 
+Se trabajará con series temporales reales obtenidas de bases de datos públicas y confiables. Para cada serie se implementarán los distintos modelos de pronóstico contemplados en el trabajo, agrupados en función de su enfoque metodológico: estadístico tradicional, aprendizaje automático y modelos de aprendizaje profundo. Para cada modelo se explorarán distintas configuraciones de parámetros explicando sus significados y funciones.
 
-Se trabajará con series temporales reales obtenidas de bases de datos públicas y confiables. Las series seleccionadas presentarán diferentes características, incluyendo, por ejemplo, estacionalidad, tendencia o diferentes periodicidades, con el fin de evaluar el comportamiento de los modelos bajo condiciones variadas.
+  - Los modelos estadísticos clásicos, como ARIMA y SARIMA, serán ajustados utilizando la librería `pmdarima`. La selección de parámetros se realizará manualmente y con la librería mencionada, basandose en el criterio de información de Akaike (AIC). 
 
-Una vez seleccionadas, las series serán sometidas a un proceso de limpieza y transformación, que incluirá la conversión de fechas a formatos estándar, el tratamiento de valores faltantes (si los hubiera) y la división de los datos en subconjuntos de entrenamiento y validación. Se explorará también la opción de aplicar una normalización o estandarización de las series para facilitar el entrenamiento de los modelos de aprendizaje profundo.
+  - En el caso de los modelos de aprendizaje automático, se emplearán bosques aleatorios con *boosting* haciendo uso de los algoritmos XGBoost y LightGBM. Estos modelos serán implementados con las librerías `xgboost` y `lightgbm` respectivamente.
 
-## 4.2 Etapa 2: Implementación de los modelos
+  - Para los modelos de aprendizaje profundo, se desarrollarán redes neuronales del tipo LSTM, usando en este caso la librería `neuralforecast`.
 
-En esta etapa se implementarán los distintos modelos de pronóstico contemplados en el trabajo, agrupados en función de su enfoque metodológico: estadístico tradicional, aprendizaje automático y modelos de aprendizaje profundo.
-
-Los modelos estadísticos clásicos, como ARIMA y SARIMA, serán ajustados utilizando la librería `pmdarima`, basando la selección de parámetros en el criterio de información de Akaike (AIC) y usando validación cruzada temporal. 
-
-En el caso de los modelos de aprendizaje automático, se emplearán bosques aleatorios con *boosting* haciendo uso de los algoritmos XGBoost y LightGBM. Estos modelos serán implementados con las librerías `xgboost` y `lightgbm`.
-
-Para los modelos de aprendizaje profundo, se desarrollarán redes neuronales del tipo LSTM, con diferentes configuraciones de capas y funciones de activación, usando en este caso la librería `neuralforecast`.
-
-Por último, se explorarán dos modelos fundacionales preentrenados. El primero es TimeGPT, que será accedido a través de la API provista por Nixtla y haciendo uso de la librería `nixtla`. El segundo es Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services* cuya implementación será llevada a cabo con la librería `autogluon`.
-
-## 4.3 Etapa 3: Evaluación y comparación
+  - Por último, se explorarán dos modelos fundacionales preentrenados. El primero es TimeGPT, que será accedido a través de la API provista por Nixtla y haciendo uso de la librería `nixtla`. El segundo es Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services* cuya implementación será llevada a cabo con la librería `autogluon`.
 
 Cada modelo será evaluado en función de su desempeño predictivo, utilizando métricas como MAPE e *Interval Score*, junto con observaciones sobre el tiempo de cómputo, la facilidad de implementación e interpretabilidad de cada uno. Los resultados se sistematizarán en tablas comparativas y visualizaciones gráficas, acompañadas de un análisis crítico.
+
+## 4.1 Series a utilizar
+
+<!-- describir serie, porque seria bueno estudiarla, longitud de pronostico,  -->
+
+
+
+
+
+
+
+
 
 ```{python}
 
@@ -573,32 +607,36 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Datos: Graciela N. Klekailo Facultad de Ciencias Agrarias, Direccion general de estadistica municipalidad 
 
-- Investigar mas sobre medidas de error (weighted quantile loss)
-
 - Toda la modelización pasarla a .py y no .qmd
 
 - leer fpp3 que tiene unas cosas que pueden servir  
 
-- incluir varios tipos de series? con estacionalidad, con tendencia, con ambas, con variables exogenas?
-
 - Series a utilizar: 
-      Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado
+      Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado (tmb puede ser aalim/tabaco, servicios de seg/lim/inv, )
       Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional, ENFERMEDADES RESPIRATORIAS
       variable exogena > Temperatura + Lluvia?
       
-- Orden: 
-      Redes neuronales
-      LSTM
-      Modelos transformer y fundacionales
-      Chronos
-      Revisar TimeGPT
+- TO DO: 
+      Implementar ARIMA dentro de tuner_fun
+      Aplicar a las distintas series
+      Introduccion a las series a utilizar
+      Explicar Aplicacion, parametros usados
       Revisar Arima
+      revisar transformers
+      revisar medidas de evaluacion
+      verificar luego de la aplicacion cuales son las librerias que termino usando
+      Verificar, actualizar y completar las descripciones de las funciones
+
 
 - Hacer dendograma de importancia de variables para los modelos de machine learning
 
 Nombrar ls 3 opcions de calculo de intervalo de xgboost
 Tomar el tiempo como el ultimo modelo PERO EXPLICARLO
-Explicacion en la metodologia
+
+nomenclatura: 
+  - conjunto de observaciones $z_1, ..., z_t, ..., z_n$
+  - pronostico $z_{n+1}, ..., z_{n+l}, ...   , z_{n+h}$
+
 
 # Mejoras a la investigacion (en las que no me voy a centrar)
 
