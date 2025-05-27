@@ -73,7 +73,7 @@ def interval_score(obs, lower, upper, alpha):
 # - label : Etiqueta de los pronosticos en el grafico (opcional)
 # salida: matplotlib plot
 
-def plot_forecast(data, forecast, color = 'red', label = 'Prediccion', xlabel = 'Año', ylabel = 'Consumo'):
+def plot_forecast(data, forecast, color = 'red', label = 'Prediccion', xlabel = 'Año', ylabel = 'Y'):
     plt.plot(data['ds'], data['y'])
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)

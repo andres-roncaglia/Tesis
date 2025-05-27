@@ -23,9 +23,8 @@ geometry:
 # LIBRERIAS
 
 # Para imprimir imagenes
-import matplotlib.image as mpimg
+# import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # Para mostrar los resultados
 from Funciones import plot_forecast, load_env
@@ -458,12 +457,108 @@ Cada modelo será evaluado en función de su desempeño predictivo, utilizando m
 
 <!-- describir serie, porque seria bueno estudiarla, longitud de pronostico,  -->
 
+```{python}
+import pandas as pd
 
+# TEMP
 
+atenciones_guardia = pd.read_excel(io='../Datos/Atenciones de guardia en el HNVV por patologías respiratorias (vigiladas por epidemiología).xlsx' )
 
+# Aseguro que la columna fecha tenga el formato adecuado
+atenciones_guardia['fec'] = pd.to_datetime(atenciones_guardia['fec'], format='%Y-%m-%d')
 
+# Filtro las columnas importantes y las renombro
+atenciones_guardia = atenciones_guardia[['fec', 'frec']]
+atenciones_guardia.columns = ['ds','y']
 
+# --------------------------------------------------------------------
+# Cargamos los datos
+trabajadores = pd.read_excel(io='../Datos/trabajoregistrado_2502_estadisticas.xlsx', sheet_name= 'A.2.1', thousands='.', decimal=',', header=1, usecols='A,M', skipfooter=5, skiprows=84)
 
+# Renombramos las columnas
+trabajadores.columns = ['ds', 'y']
+
+# Asignamos formato fecha
+meses = {
+    'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 
+    'may': '05', 'jun': '06', 'jul': '07', 'ago': '08', 
+    'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+}
+
+trabajadores['ds'] = trabajadores['ds'].str.replace('*','')
+trabajadores['ds'] = trabajadores['ds'].apply(
+    lambda x: '01-' + x.replace(x.split('-')[0], meses.get(x.split('-')[0].lower(), '')).replace(x.split('-')[1], '20' + x.split('-')[1])
+)
+
+trabajadores['ds'] = pd.to_datetime(trabajadores['ds'], format='%d-%m-%Y')
+
+# --------------------------------------------------------------------
+
+import glob
+
+# Cargamos todos los archivos txt
+ruta = glob.glob('Datos/Datos meteorologicos/*.txt')
+tiempo_region = pd.concat([pd.read_fwf(f, skiprows=[1], dtype={'FECHA' : str, 'HORA': str} , encoding='cp1252') for f in ruta], ignore_index=True)
+
+# Filtramos los datos de rosario
+tiempo_rosario = tiempo_region[tiempo_region['NOMBRE'] == 'ROSARIO AERO']
+
+# Creamos la columna fecha y hora
+tiempo_rosario['HORA'] = tiempo_rosario['HORA'].apply(lambda x: '0' + x if len(x) != 2 else x)
+tiempo_rosario.loc[:,'ds'] = tiempo_rosario['FECHA'].apply(lambda x: x[0:2] + '-' + x[2:4] + '-' + x[4:len(x)])
+tiempo_rosario['ds'] = pd.to_datetime(tiempo_rosario['ds'] + ' ' + tiempo_rosario['HORA'], format='%d-%m-%Y %H')
+
+# Nos quedamos con las columnas utiles y renombramos la respuesta
+tiempo_rosario = tiempo_rosario[['ds', 'TEMP', 'HUM', 'PNM']]
+tiempo_rosario.columns = ['ds', 'y', 'HUM', 'PNM'] # % de Humedad y Presion a nivel del mar en hectopascales 
+
+```
+
+La primera serie que se pronosticará son las atenciones de guardia mensuales por patologías respiratorias (Códigos CIE10: J09-J18, J21, J22 y J44) en el hospital de niños Víctor J. Vilela de la ciudad de Rosario. Estos datos fueron proporcionados por la Dirección General de Estadística de la Municipalidad de Rosario.
+
+```{python}
+plt.plot(atenciones_guardia['ds'], atenciones_guardia['y'])
+plt.xlabel('Fecha')
+plt.ylabel('Atenciones')
+```
+
+Esta serie no presenta una tendencia clara pero si estacionalidad, ya que se observan picos en los meses de invierno. La abrupta caída en el número de atenciones del año 2020 se atribuye al estado de pandemia causado por el Covid-19. 
+
+Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registrado en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, habiendo picos importantes en los meses de diciembre y enero. En esta serie también se evidencian la consecuencias de la pandemia.
+
+```{python}
+plt.plot(trabajadores['ds'], trabajadores['y'])
+plt.xlabel('Fecha')
+plt.ylabel('Trabajadores (miles)')
+```
+
+Por último, se analizarán las temperaturas por hora a lo largo de los días del mes de marzo 2025, estudiando sus comportamientos en relación a la humedad relativa y a la presión atmosférica estándar.  
+
+```{python}
+plt.subplot(3,1,1)
+
+plt.plot(tiempo_rosario['ds'], tiempo_rosario['y'])
+
+plt.xlabel('')
+plt.ylabel('Temperatura (ºC)')
+plt.tick_params(labelbottom=False)
+
+plt.subplot(3,1,2)
+
+plt.plot(tiempo_rosario['ds'], tiempo_rosario['HUM'])
+plt.xlabel('')
+plt.ylabel('Humedad (%)')
+plt.tick_params(labelbottom=False)
+
+plt.subplot(3,1,3)
+
+plt.plot(tiempo_rosario['ds'], tiempo_rosario['PNM'])
+plt.xlabel('Fecha')
+plt.ylabel('Presión atmosférica (hPa)')
+
+```
+
+## 4.2 Modelado
 
 
 ```{python}
@@ -612,20 +707,22 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 - leer fpp3 que tiene unas cosas que pueden servir  
 
 - Series a utilizar: 
-      Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado (tmb puede ser aalim/tabaco, servicios de seg/lim/inv, )
+      Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado (tmb puede ser aalim/tabaco, servicios de seg/lim/inv, ) (https://www.argentina.gob.ar/trabajo/estadisticas/situacion-y-evolucion-del-trabajo-registrado) ACTUALIZAR HAY DATOS NUEVOS
       Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional, ENFERMEDADES RESPIRATORIAS
-      variable exogena > Temperatura + Lluvia?
+      variable exogena > Temperatura + humedad + presion atmosferica (https://www.smn.gob.ar/descarga-de-datos)
       
 - TO DO: 
-      Implementar ARIMA dentro de tuner_fun
-      Aplicar a las distintas series
-      Introduccion a las series a utilizar
+      Introduccion a las series a utilizar (acomodar graficos y sacar lo que se debe pronosticar)
+      Aplicar las series con chronos
       Explicar Aplicacion, parametros usados
+      Que hacer con los outlayesrs de humedad
       Revisar Arima
       revisar transformers
       revisar medidas de evaluacion
+      revisar uso de variables exogenas (deberia usar solo la parte entrenamiento?, entrenamiento y despues brindar para el testeo? o usar todo como conocido?)
       verificar luego de la aplicacion cuales son las librerias que termino usando
       Verificar, actualizar y completar las descripciones de las funciones
+      Actualizar los requirements
 
 
 - Hacer dendograma de importancia de variables para los modelos de machine learning
