@@ -3,3 +3,5 @@ creds.py
 .venv_autogluon
 AutogluonModels
 lightning_logs
+modelos_aplicacion.pkl
+Modelos_chronos.pkl

@@ -278,7 +278,7 @@ Donde $S_t$ es el nuevo estado de la red neuronal.
 
 Las 3 puertas son logísticas para que sea sencillo aplicar la retropropagación. Este sistema de puertas evita los problemas de desvanecimiento y explotación del gradiente, y evita que se acumulen muchos estados por largos períodos de tiempo eligiendo que información es relevante guardar.
 
-### 3.4.2 Modelos transformadores
+### 3.4.3 Modelos transformadores
 
 Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. La autoatención captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
@@ -355,7 +355,7 @@ Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al 
 5. Conexión lineal: Es una capa completamente conectada que traduce las representaciones de atributos aprendidas en predicciones relevantes.
 
 
-### 3.4.3 Diferencias entre TimeGPT y Chronos
+### 3.4.4 Diferencias entre TimeGPT y Chronos
 
 TimeGPT es un modelo transformer preentrenado (de aquí las siglas GPT, *generative pre-trained transformer*) para el pronóstico de series de tiempo que puede producir predicciones en diversas áreas y aplicaciones con gran precisión y sin entrenamiento adicional. El mismo fue desarrollado por Nixtla y tuvo su primera beta privada en Agosto de 2023, volviendose accesible a todo público desde el 18 de julio de 2024.
 
@@ -459,6 +459,7 @@ Cada modelo será evaluado en función de su desempeño predictivo, utilizando m
 
 ```{python}
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # TEMP
 
@@ -497,7 +498,7 @@ trabajadores['ds'] = pd.to_datetime(trabajadores['ds'], format='%d-%m-%Y')
 import glob
 
 # Cargamos todos los archivos txt
-ruta = glob.glob('Datos/Datos meteorologicos/*.txt')
+ruta = glob.glob('../Datos/Datos meteorologicos/*.txt')
 tiempo_region = pd.concat([pd.read_fwf(f, skiprows=[1], dtype={'FECHA' : str, 'HORA': str} , encoding='cp1252') for f in ruta], ignore_index=True)
 
 # Filtramos los datos de rosario
@@ -517,7 +518,7 @@ tiempo_rosario.columns = ['ds', 'y', 'HUM', 'PNM'] # % de Humedad y Presion a ni
 La primera serie que se pronosticará son las atenciones de guardia mensuales por patologías respiratorias (Códigos CIE10: J09-J18, J21, J22 y J44) en el hospital de niños Víctor J. Vilela de la ciudad de Rosario. Estos datos fueron proporcionados por la Dirección General de Estadística de la Municipalidad de Rosario.
 
 ```{python}
-plt.plot(atenciones_guardia['ds'], atenciones_guardia['y'])
+plt.plot(atenciones_guardia['ds'], atenciones_guardia['y'], color = "#292F36")
 plt.xlabel('Fecha')
 plt.ylabel('Atenciones')
 ```
@@ -527,7 +528,7 @@ Esta serie no presenta una tendencia clara pero si estacionalidad, ya que se obs
 Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registrado en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, habiendo picos importantes en los meses de diciembre y enero. En esta serie también se evidencian la consecuencias de la pandemia.
 
 ```{python}
-plt.plot(trabajadores['ds'], trabajadores['y'])
+plt.plot(trabajadores['ds'], trabajadores['y'], color = "#4D533C")
 plt.xlabel('Fecha')
 plt.ylabel('Trabajadores (miles)')
 ```
@@ -537,7 +538,7 @@ Por último, se analizarán las temperaturas por hora a lo largo de los días de
 ```{python}
 plt.subplot(3,1,1)
 
-plt.plot(tiempo_rosario['ds'], tiempo_rosario['y'])
+plt.plot(tiempo_rosario['ds'], tiempo_rosario['y'], color = "#520004")
 
 plt.xlabel('')
 plt.ylabel('Temperatura (ºC)')
@@ -545,14 +546,14 @@ plt.tick_params(labelbottom=False)
 
 plt.subplot(3,1,2)
 
-plt.plot(tiempo_rosario['ds'], tiempo_rosario['HUM'])
+plt.plot(tiempo_rosario['ds'], tiempo_rosario['HUM'], color = "#520004")
 plt.xlabel('')
 plt.ylabel('Humedad (%)')
 plt.tick_params(labelbottom=False)
 
 plt.subplot(3,1,3)
 
-plt.plot(tiempo_rosario['ds'], tiempo_rosario['PNM'])
+plt.plot(tiempo_rosario['ds'], tiempo_rosario['PNM'], color = "#520004")
 plt.xlabel('Fecha')
 plt.ylabel('Presión atmosférica (hPa)')
 
@@ -565,9 +566,13 @@ plt.ylabel('Presión atmosférica (hPa)')
 
 # Primero cargamos los ambientes donde tenemos todos los resultados
 
-globals().update(load_env('Ambiente/resultados.pkl'))
-globals().update(load_env('Ambiente/resultados_chronos.pkl'))
+globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion.pkl'))
+globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion_chronos.pkl'))
 
+# Guardamos los resultados de Chronos en las metricas
+metricas_1.loc[len(metricas_1)] = ['Chronos', resultados_1_chronos['mape'], resultados_1_chronos['score'], resultados_1_chronos['tiempo']]
+metricas_2.loc[len(metricas_2)] = ['Chronos', resultados_2_chronos['mape'], resultados_2_chronos['score'], resultados_2_chronos['tiempo']]
+metricas_3.loc[len(metricas_3)] = ['Chronos', resultados_3_chronos['mape'], resultados_3_chronos['score'], resultados_3_chronos['tiempo']]
 ```
 
 ### Métodos Tradicionales
@@ -575,7 +580,15 @@ globals().update(load_env('Ambiente/resultados_chronos.pkl'))
 #### ARIMA
 
 ```{python}
-plot_forecast(data = datos, forecast = resultados_arima['pred'], color = 'red', label = 'AutoARIMA')
+plt.figure(figsize=(9, 5))
+plt.subplot(3,1,1)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 24)
+
+plt.subplot(3,1,2)
+plot_forecast(data = trabajadores, forecast = resultados_2_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 24)
+
+plt.subplot(3,1,3)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 36)
 ```
 
 ### Métodos de Machine Learning
@@ -585,7 +598,16 @@ plot_forecast(data = datos, forecast = resultados_arima['pred'], color = 'red', 
 los intervalos de estos pronosticos no son probabilisticos, estoy usando conformal predictions
 
 ```{python}
-plot_forecast(data = datos, forecast = resultados_xgb['pred'], color = 'green', label = 'XGBoost')
+plt.figure(figsize=(9, 5))
+plt.subplot(3,1,1)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 24)
+
+plt.subplot(3,1,2)
+plot_forecast(data = trabajadores, forecast = resultados_2_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 24)
+
+plt.subplot(3,1,3)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 36)
+
 ```
 
 #### LightGBM
@@ -593,7 +615,15 @@ plot_forecast(data = datos, forecast = resultados_xgb['pred'], color = 'green', 
 importante, los quantiles de estos pronosticos son independientes
 
 ```{python}
-plot_forecast(data = datos, forecast = resultados_lgbm['pred'], color = 'green', label = 'LigthGBM')
+plt.figure(figsize=(9, 5))
+plt.subplot(3,1,1)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_lgbm['pred'], pred_color = 'green', label = 'LigthGBM', long = 24)
+
+plt.subplot(3,1,2)
+plot_forecast(data = trabajadores, forecast = resultados_2_lgbm['pred'], pred_color = 'green', label = 'LigthGBM', long = 24)
+
+plt.subplot(3,1,3)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_color = 'green', label = 'LigthGBM', long = 36)
 ```
 
 
@@ -602,32 +632,53 @@ plot_forecast(data = datos, forecast = resultados_lgbm['pred'], color = 'green',
 #### LSTM
 
 ```{python}
-plot_forecast(data = datos, forecast = resultados_lstm['pred'], color = 'violet', label = 'LSTM')
+plt.figure(figsize=(9, 5))
+plt.subplot(3,1,1)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_lstm['pred'], pred_color = 'violet', label = 'LSTM', long = 24)
+
+plt.subplot(3,1,2)
+plot_forecast(data = trabajadores, forecast = resultados_2_lstm['pred'], pred_color = 'violet', label = 'LSTM', long = 24)
+
+plt.subplot(3,1,3)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_color = 'violet', label = 'LSTM', long = 36)
 
 ```
 
 #### Chronos
 
 ```{python}
-# Cargamos las metricas de chronos
-tiempo_chronos = resultados_chronos['fit_time_marginal'][0]
-metricas.loc[len(metricas)] = ['Chronos', mape_chronos, score_chronos, tiempo_chronos]
+plt.figure(figsize=(9, 5))
+plt.subplot(3,1,1)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_chronos['pred'], pred_color = 'violet', label = 'Chronos', long = 24)
 
-plot_forecast(data = datos, forecast = pred_chronos, color = 'violet', label = 'Chronos')
+plt.subplot(3,1,2)
+plot_forecast(data = trabajadores, forecast = resultados_2_chronos['pred'], pred_color = 'violet', label = 'Chronos', long = 24)
+
+plt.subplot(3,1,3)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pred_color = 'violet', label = 'Chronos', long = 36)
 ```
 
 
 #### TimeGPT
 
-```{python}
-plot_forecast(data = datos, forecast = resultados_gpt['pred'], color = 'violet', label = 'TimeGPT')
-```
-
 ### Comparaciones
 
-```{python}
-metricas
+**Serie 1**
 
+```{python}
+metricas_1
+```
+
+**Serie 2**
+
+```{python}
+metricas_2
+```
+
+**Serie 3**
+
+```{python}
+metricas_3
 ```
 
 \newpage
@@ -700,10 +751,6 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 - Hacer equivalencia del documento en GitBook
 
-- Datos: Graciela N. Klekailo Facultad de Ciencias Agrarias, Direccion general de estadistica municipalidad 
-
-- Toda la modelización pasarla a .py y no .qmd
-
 - leer fpp3 que tiene unas cosas que pueden servir  
 
 - Series a utilizar: 
@@ -713,19 +760,19 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
       
 - TO DO: 
       Introduccion a las series a utilizar (acomodar graficos y sacar lo que se debe pronosticar)
-      Aplicar las series con chronos
       Explicar Aplicacion, parametros usados
       Que hacer con los outlayesrs de humedad
       Revisar Arima
       revisar transformers
       revisar medidas de evaluacion
-      revisar uso de variables exogenas (deberia usar solo la parte entrenamiento?, entrenamiento y despues brindar para el testeo? o usar todo como conocido?)
+      revisar uso de variables exogenas (deberia usar solo la parte entrenamiento?, entrenamiento y despues brindar para el testeo? o usar todo como conocido?) CAPAZ MEJOR COMO PASADAS
+      revisar niveles de confianza en todos los metodos y en el interval score
       verificar luego de la aplicacion cuales son las librerias que termino usando
       Verificar, actualizar y completar las descripciones de las funciones
       Actualizar los requirements
 
 
-- Hacer dendograma de importancia de variables para los modelos de machine learning
+- Hacer dendograma de importancia de variables para los modelos de machine learning, timegpt (variables exogenas)
 
 Nombrar ls 3 opcions de calculo de intervalo de xgboost
 Tomar el tiempo como el ultimo modelo PERO EXPLICARLO

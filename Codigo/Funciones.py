@@ -4,10 +4,6 @@
 import pandas as pd
 import numpy as np
 
-# Para realizar consultas a la base de datos
-import urllib.parse
-import requests
-
 # Para guardar y cargar los modelos
 import pickle
 
@@ -17,20 +13,6 @@ import seaborn as sns
 
 
 # ---------------------------------------- FUNCIONES ------------------------------------
-
-# Funcion get_api_call()
-# Para hacer llamadas a la API de series argentinas
-# argumentos:
-# - ids : nombre de la serie
-# - **kwargs : Argumentos adicionales
-# salida: URL de la serie de tiempo desde la API (str)
-
-def get_api_call(ids, **kwargs):
-    API_BASE_URL = "https://apis.datos.gob.ar/series/api/"
-    kwargs["ids"] = ",".join(ids)
-    return "{}{}?{}".format(API_BASE_URL, "series", urllib.parse.urlencode(kwargs))
-
-# ------------------------------------------------------------------------------------
 
 # Funcion interval_score()
 # Calcula el Interval Score de un pronostico 
@@ -73,12 +55,18 @@ def interval_score(obs, lower, upper, alpha):
 # - label : Etiqueta de los pronosticos en el grafico (opcional)
 # salida: matplotlib plot
 
-def plot_forecast(data, forecast, color = 'red', label = 'Prediccion', xlabel = 'Año', ylabel = 'Y'):
-    plt.plot(data['ds'], data['y'])
+def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', label = 'Prediccion', xlabel = 'Año', ylabel = 'Y', long=None):
+    if long != None:
+        data_plt = data.copy()
+        data_plt = data_plt.tail(long)
+    else:
+        data_plt = data
+
+    plt.plot(data_plt['ds'], data_plt['y'], color=line_color)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    sns.lineplot(x = forecast['ds'], y= forecast['pred'], color = color, label = label)
-    plt.fill_between(forecast['ds'], forecast['lower'], forecast['upper'], color = color, alpha = 0.3)
+    sns.lineplot(x = forecast['ds'], y= forecast['pred'], color = pred_color, label = label)
+    plt.fill_between(forecast['ds'], forecast['lower'], forecast['upper'], color = pred_color, alpha = 0.3)
 
 
 # ------------------------------------------------------------------------------------

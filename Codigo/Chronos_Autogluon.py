@@ -2,17 +2,6 @@
 
 # Para el manejo de estructuras de datos
 import pandas as pd
-import numpy as np
-
-# Para dar formato fecha
-from datetime import datetime
-
-# Para graficos
-import matplotlib.pyplot as plt
-
-# Para realizar consultas a la base de datos
-import urllib.parse
-import requests
 
 # Para calcular el error medio cuadratico
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
@@ -20,67 +9,64 @@ from sktime.performance_metrics.forecasting import mean_absolute_percentage_erro
 # Funciones utiles
 import sys
 sys.path.append('Codigo')
-from Funciones import interval_score, save_env, load_env, get_api_call, plot_forecast
+from Funciones import interval_score, save_env, load_env
 
-# Para medir el tiempo que tarda en ajustar los modelos
-import time
 
-# ---------------------------------- CARGA DE DATOS ----------------------------------
-
-# Cargamos el ambiente
-globals().update(load_env('Codigo/Ambiente/resultados_chronos.pkl'))
-
-# Opciones de pronostico
-
-long_pred = 12
-alpha = 0.2
-
-# Llamada a la API y carga de datos
-
-api_call = get_api_call(["364.3_LITORAL_GAGAS__11"], start_date="2016-01")
-json = requests.get(api_call).json()
-datos = pd.DataFrame(json['data'], columns = ['fecha', 'consumo'])
-datos['fecha'] = pd.to_datetime(datos['fecha'], format='%Y-%m-%d')
-
-# Renombramos las columnas de una forma que autogluon las pueda manejar
-
-datos.columns = ['timestamp', 'target']
-
-datos['item_id'] = 0
-
-# Dividimos los datos que queremos pronosticar y con los que vamos a entrenar
-
-corte = len(datos)-long_pred
-
-datos_train = datos[:corte]
-datos_test = datos[corte:]
-
-# Esto nos sirve mas adelante para graficar
-datos_b = datos.copy()
-datos_test_b = datos_test.copy()
-
-# ---------------------------------- AJUSTE DEL MODELO ----------------------------------
-
+# Para Chronos
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+
 
 # Definimos una semilla
 seed = 11072001
 
-# Transformamos el dataset a TimeSeriesDataFrame
-datos_train = TimeSeriesDataFrame(datos_train)
 
-# Calculamos los cuantiles
+# Cargamos el ambiente
+globals().update(load_env('Codigo/Ambiente/Amb_Aplicacion_chronos.pkl'))
+globals().update(load_env('Codigo/Ambiente/Modelos_chronos.pkl'))
+
+# Crear una metrica propia
+# https://auto.gluon.ai/stable/tutorials/tabular/advanced/tabular-custom-metric.html
+
+
+
+# ------------------------------- 1.1 CARGA DE DATOS -------------------------------
+
+atenciones_guardia = pd.read_excel(io='Datos/Atenciones de guardia en el HNVV por patologías respiratorias (vigiladas por epidemiología).xlsx' )
+
+# Aseguro que la columna fecha tenga el formato adecuado
+atenciones_guardia['fec'] = pd.to_datetime(atenciones_guardia['fec'], format='%Y-%m-%d')
+
+# Filtro las columnas importantes y las renombro
+atenciones_guardia = atenciones_guardia[['fec', 'frec']]
+atenciones_guardia.columns = ['timestamp', 'target']
+
+# Agrego una columna identificadora necesaria para Chronos
+atenciones_guardia['item_id'] = 0
+
+# Definicion del nivel de significacion y el largo del pronostico
+alpha = 0.2
+long_pred = 12
+
 q_lower = alpha/2
 q_upper = 1-alpha/2
 
+# Divido en conjunto entrenamiento y prueba
+atenciones_guardia_train = atenciones_guardia.head(atenciones_guardia.shape[0]-long_pred)
+atenciones_guardia_test = atenciones_guardia.tail(long_pred)
+
+# Transformo el dataset a formato TimeSeriesDataFrame
+atenciones_guardia_train = TimeSeriesDataFrame(atenciones_guardia_train)
+
+# ------------------------------- 1.2 AJUSTE DEL MODELO -------------------------------
+
 # Definimos y ajustamos el modelo
-predictor = TimeSeriesPredictor(
+modelo_1 = TimeSeriesPredictor(
     
     prediction_length=long_pred,
     quantile_levels =  [q_lower, q_upper],
     eval_metric = 'MAPE',
     ).fit(
-    datos_train, 
+    atenciones_guardia_train, 
     hyperparameters={
         "Chronos": [
             {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
@@ -94,43 +80,255 @@ predictor = TimeSeriesPredictor(
     )
 
 # Realizamos las predicciones
-predictions = predictor.predict(datos_train)
+predictions = modelo_1.predict(atenciones_guardia_train)
 predictions.columns = ['pred', 'lower', 'upper']
 
 # Calculamos MAPE e Interval Score
-mape_chronos = mean_absolute_percentage_error(datos_test['target'], predictions['pred'])
-score_chronos = interval_score(obs=datos_test['target'], lower=predictions['lower'], upper= predictions['upper'], alpha=0.2)
+mape = mean_absolute_percentage_error(atenciones_guardia_test['target'], predictions['pred'])
+score = interval_score(obs=atenciones_guardia_test['target'], lower=predictions['lower'], upper= predictions['upper'], alpha=0.2)
 
 
 # Modificamos los datasets para tener el mismo formato que con el resto de modelos
-datos_b.drop('item_id', axis = 1, inplace = True)
-datos_test_b.drop('item_id', axis = 1, inplace = True)
-datos_b.columns = ['ds', 'y']
-datos_test_b.columns = ['ds', 'y']
+atenciones_guardia.drop('item_id', axis = 1, inplace = True)
+atenciones_guardia_test.drop('item_id', axis = 1, inplace = True)
+atenciones_guardia.columns = ['ds', 'y']
+atenciones_guardia_test.columns = ['ds', 'y']
 predictions.reset_index(drop=True, inplace=True)
-datos_test_b.reset_index(drop=True, inplace=True)
+atenciones_guardia_test.reset_index(drop=True, inplace=True)
 
 pred_chronos = pd.DataFrame({
-    'ds' : datos_test_b['ds'],
+    'ds' : atenciones_guardia_test['ds'],
     'pred' : predictions['pred'],
     'lower' : predictions['lower'],
     'upper' : predictions['upper']
 })
 
-# Graficamos el pronostico
-plot_forecast(data = datos_b, forecast = pred_chronos, color = 'violet', label = 'Chronos')
-plt.show()
+# Guardamos las metricas
+salida = modelo_1.fit_summary()
+grilla = salida['leaderboard']
+tiempo = grilla['fit_time_marginal'][0]
+
+# Guardamos los resultados
+resultados_1_chronos = {'pred': pred_chronos, 'mape': mape, 'score': score, 'tiempo': tiempo, 'grilla': grilla}
+
+
+# -------------------------------------------------------------------------
+# ------------------------------- SERIE 2 ---------------------------------
+# -------------------------------------------------------------------------
+
+# ------------------------------- 2.1 CARGA DE DATOS -------------------------------
+
+
+# Cargamos los datos
+trabajadores = pd.read_excel(io='Datos/trabajoregistrado_2502_estadisticas.xlsx', sheet_name= 'A.2.1', thousands='.', decimal=',', header=1, usecols='A,M', skipfooter=5, skiprows=84)
+
+# Renombramos las columnas
+trabajadores.columns = ['timestamp', 'target']
+
+# Agrego una columna identificadora necesaria para Chronos
+trabajadores['item_id'] = 0
+
+# Asignamos formato fecha
+meses = {
+    'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 
+    'may': '05', 'jun': '06', 'jul': '07', 'ago': '08', 
+    'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+}
+
+trabajadores['timestamp'] = trabajadores['timestamp'].str.replace('*','')
+trabajadores['timestamp'] = trabajadores['timestamp'].apply(
+    lambda x: '01-' + x.replace(x.split('-')[0], meses.get(x.split('-')[0].lower(), '')).replace(x.split('-')[1], '20' + x.split('-')[1])
+)
+
+trabajadores['timestamp'] = pd.to_datetime(trabajadores['timestamp'], format='%d-%m-%Y')
+
+
+# Definicion del nivel de significacion y el largo del pronostico
+alpha = 0.2
+long_pred = 12
+
+q_lower = alpha/2
+q_upper = 1-alpha/2
+
+# Divido en conjunto entrenamiento y prueba
+trabajadores_train = trabajadores.head(trabajadores.shape[0]-long_pred)
+trabajadores_test = trabajadores.tail(long_pred)
+
+# Transformo el dataset a formato TimeSeriesDataFrame
+trabajadores_train = TimeSeriesDataFrame(trabajadores_train)
+
+
+
+# ------------------------------- 2.2 AJUSTE DEL MODELO -------------------------------
+
+# Definimos y ajustamos el modelo
+modelo_2 = TimeSeriesPredictor(
+    
+    prediction_length=long_pred,
+    quantile_levels =  [q_lower, q_upper],
+    eval_metric = 'MAPE',
+    ).fit(
+    trabajadores_train, 
+    hyperparameters={
+        "Chronos": [
+            {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
+            {"model_path": "bolt_tiny", "fine_tune": True, "ag_args": {"name_suffix": "tiny-FineTuned"}},
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}},
+            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "small-FineTuned"}},
+        ]
+    },
+    random_seed = seed,
+    enable_ensemble = False
+    )
+
+# Realizamos las predicciones
+predictions = modelo_2.predict(trabajadores_train)
+predictions.columns = ['pred', 'lower', 'upper']
+
+# Calculamos MAPE e Interval Score
+mape = mean_absolute_percentage_error(trabajadores_test['target'], predictions['pred'])
+score = interval_score(obs=trabajadores_test['target'], lower=predictions['lower'], upper= predictions['upper'], alpha=0.2)
+
+
+# Modificamos los datasets para tener el mismo formato que con el resto de modelos
+trabajadores.drop('item_id', axis = 1, inplace = True)
+trabajadores_test.drop('item_id', axis = 1, inplace = True)
+trabajadores.columns = ['ds', 'y']
+trabajadores_test.columns = ['ds', 'y']
+predictions.reset_index(drop=True, inplace=True)
+trabajadores_test.reset_index(drop=True, inplace=True)
+
+pred_chronos = pd.DataFrame({
+    'ds' : trabajadores_test['ds'],
+    'pred' : predictions['pred'],
+    'lower' : predictions['lower'],
+    'upper' : predictions['upper']
+})
 
 # Guardamos las metricas
-salida = predictor.fit_summary()
-resultados_chronos = salida['leaderboard']
+salida = modelo_2.fit_summary()
+grilla = salida['leaderboard']
+tiempo = grilla['fit_time_marginal'][0]
+
+# Guardamos los resultados
+resultados_2_chronos = {'pred': pred_chronos, 'mape': mape, 'score': score, 'tiempo': tiempo, 'grilla': grilla}
+
+
+
+
+
+# -------------------------------------------------------------------------
+# ------------------------------- SERIE 3 ---------------------------------
+# -------------------------------------------------------------------------
+
+
+# ------------------------------- 3.1 CARGA DE DATOS -------------------------------
+import glob
+
+# Cargamos todos los archivos txt
+ruta = glob.glob('Datos/Datos meteorologicos/*.txt')
+tiempo_region = pd.concat([pd.read_fwf(f, skiprows=[1], dtype={'FECHA' : str, 'HORA': str} , encoding='cp1252') for f in ruta], ignore_index=True)
+
+# Filtramos los datos de rosario
+tiempo_rosario = tiempo_region[tiempo_region['NOMBRE'] == 'ROSARIO AERO']
+
+# Creamos la columna fecha y hora
+tiempo_rosario['HORA'] = tiempo_rosario['HORA'].apply(lambda x: '0' + x if len(x) != 2 else x)
+tiempo_rosario.loc[:,'ds'] = tiempo_rosario['FECHA'].apply(lambda x: x[0:2] + '-' + x[2:4] + '-' + x[4:len(x)])
+tiempo_rosario['ds'] = pd.to_datetime(tiempo_rosario['ds'] + ' ' + tiempo_rosario['HORA'], format='%d-%m-%Y %H')
+
+# Nos quedamos con las columnas utiles y renombramos la respuesta
+tiempo_rosario = tiempo_rosario[['ds', 'TEMP', 'HUM', 'PNM']]
+tiempo_rosario.columns = ['timestamp', 'target', 'HUM', 'PNM'] # % de Humedad y Presion a nivel del mar en hectopascales 
+
+# Agrego una columna identificadora necesaria para Chronos
+tiempo_rosario['item_id'] = 0
+
+# Definicion del nivel de significacion y el largo del pronostico
+alpha = 0.2
+long_pred = 24
+
+q_lower = alpha/2
+q_upper = 1-alpha/2
+
+# Divido en conjunto entrenamiento y prueba
+tiempo_rosario_train = tiempo_rosario.head(tiempo_rosario.shape[0]-long_pred)
+tiempo_rosario_test = tiempo_rosario.tail(long_pred)
+
+# Transformo el dataset a formato TimeSeriesDataFrame
+tiempo_rosario_train = TimeSeriesDataFrame(tiempo_rosario_train)
+
+
+# ------------------------------- 3.2 AJUSTE DEL MODELO -------------------------------
+
+# Definimos y ajustamos el modelo
+modelo_3 = TimeSeriesPredictor(
+    
+    prediction_length=long_pred,
+    quantile_levels =  [q_lower, q_upper],
+    eval_metric = 'MAPE',
+
+    ).fit(
+    tiempo_rosario_train, 
+    hyperparameters={
+        "Chronos": [
+            {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
+            {"model_path": "bolt_tiny", "fine_tune": True, "covariate_regressor": "XGB", "target_scaler": "standard", "ag_args": {"name_suffix": "tiny-FineTuned"}},
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}},
+            {"model_path": "bolt_small", "fine_tune": True, "covariate_regressor": "XGB", "target_scaler": "standard", "ag_args": {"name_suffix": "small-FineTuned"}},
+        ]
+    },
+    random_seed = seed,
+    enable_ensemble = False
+    )
+
+# Realizamos las predicciones
+predictions = modelo_3.predict(tiempo_rosario_train)
+predictions.columns = ['pred', 'lower', 'upper']
+
+# Calculamos MAPE e Interval Score
+mape = mean_absolute_percentage_error(tiempo_rosario_test['target'], predictions['pred'])
+score = interval_score(obs=tiempo_rosario_test['target'], lower=predictions['lower'], upper= predictions['upper'], alpha=0.2)
+
+
+# Modificamos los datasets para tener el mismo formato que con el resto de modelos
+tiempo_rosario.drop('item_id', axis = 1, inplace = True)
+tiempo_rosario_test.drop('item_id', axis = 1, inplace = True)
+tiempo_rosario.columns = ['ds', 'y']
+tiempo_rosario_test.columns = ['ds', 'y']
+predictions.reset_index(drop=True, inplace=True)
+tiempo_rosario_test.reset_index(drop=True, inplace=True)
+
+pred_chronos = pd.DataFrame({
+    'ds' : tiempo_rosario_test['ds'],
+    'pred' : predictions['pred'],
+    'lower' : predictions['lower'],
+    'upper' : predictions['upper']
+})
+
+# Guardamos las metricas
+salida = modelo_3.fit_summary()
+grilla = salida['leaderboard']
+tiempo = grilla['fit_time_marginal'][0]
+
+# Guardamos los resultados
+resultados_3_chronos = {'pred': pred_chronos, 'mape': mape, 'score': score, 'tiempo': tiempo, 'grilla': grilla}
+
+
+# --------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 # Guardamos los resultados
 save_env(env_dict={
-    'resultados_chronos' : resultados_chronos, 'datos_b': datos_b,
-    'pred_chronos' : pred_chronos, 'mape_chronos' : mape_chronos, 
-    'score_chronos' : score_chronos
-    }, filename="Codigo/Ambiente/resultados_chronos.pkl")
+    'resultados_1_chronos' : resultados_1_chronos,
+    'resultados_2_chronos' : resultados_2_chronos,
+    'resultados_3_chronos' : resultados_3_chronos
+    }, filename="Codigo/Ambiente/Amb_Aplicacion_chronos.pkl")
 
-# Crear una metrica propia
-# https://auto.gluon.ai/stable/tutorials/tabular/advanced/tabular-custom-metric.html
+# Guardamos los modelos en un archivo a parte para no cargarlos innecesariamente
+save_env(env_dict={
+    'modelo_chronos_1' : modelo_1,
+    'modelo_chronos_2' : modelo_2,
+    'modelo_chronos_3' : modelo_3
+    }, filename="Codigo/Ambiente/Modelos_chronos.pkl")

@@ -1,33 +1,18 @@
 # ------------------------------- CARGA DE LIBRERIAS -------------------------------
 
 # Para el manejo de estructuras de datos
-import matplotlib
 import pandas as pd
-import numpy as np
-
-# Para dar formato fecha
-from datetime import datetime
-
-# Para realizar consultas a la base de datos
-import urllib.parse
-import requests
-
-# Para graficos
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Para medir el tiempo que tarda en ajustar los modelos
-import time
 
 # Cargamos funciones
-from Codigo.Funciones import get_api_call, interval_score, plot_forecast, save_env, load_env
+from Codigo.Funciones import save_env, load_env
 from Codigo.tuner_fun import Tuner
 
 # Definimos una semilla
 seed = 11072001
 
 # Cargamos el ambiente
-# globals().update(load_env('Ambiente/resultados.pkl'))
+globals().update(load_env('Codigo/Ambiente/Amb_Aplicacion.pkl'))
+globals().update(load_env('Codigo/Ambiente/modelos_aplicacion.pkl'))
 
 # -------------------------------------------------------------------------
 # ------------------------------- SERIE 1 ---------------------------------
@@ -198,8 +183,6 @@ resultados_2_arima = Tuner(forecaster_fun= 'ARIMA', datos=trabajadores, parametr
 
 # Guardamos las metricas
 metricas_2.loc[len(metricas_2)] = ['ARIMA', resultados_2_arima['mape'], resultados_2_arima['score'], resultados_2_arima['tiempo']]
-
-plot_forecast(trabajadores, resultados_2_arima['pred'])
 
 # ------------------------------- 2.3 XGBOOST -------------------------------
 
@@ -416,4 +399,44 @@ metricas_3.loc[len(metricas_3)] = ['TimeGPT', resultados_3_gpt['mape'], resultad
 # --------------------------------------------------------------------------------------
 
 # Guardamos el ambiente
-# save_env(env_dict=globals(), filename="Codigo/Ambiente/Amb_Aplicacion.pkl")
+
+save_env(env_dict= {
+    "resultados_1_arima" : {k: v for k, v in resultados_1_arima.items() if k != 'modelo'},
+    "resultados_1_xgb" : {k: v for k, v in resultados_1_xgb.items() if k != 'modelo'},
+    "resultados_1_lgbm" : {k: v for k, v in resultados_1_lgbm.items() if k != 'modelo'},
+    "resultados_1_lstm" : {k: v for k, v in resultados_1_lstm.items() if k != 'modelo'},
+    #"resultados_1_gpt" : {k: v for k, v in resultados_1_gpt.items() if k != 'modelo'},
+    "metricas_1" : metricas_1,
+    "resultados_2_arima" : {k: v for k, v in resultados_2_arima.items() if k != 'modelo'},
+    "resultados_2_xgb" : {k: v for k, v in resultados_2_xgb.items() if k != 'modelo'},
+    "resultados_2_lgbm" : {k: v for k, v in resultados_2_lgbm.items() if k != 'modelo'},
+    "resultados_2_lstm" : {k: v for k, v in resultados_2_lstm.items() if k != 'modelo'},
+    #"resultados_2_gpt" : {k: v for k, v in resultados_2_gpt.items() if k != 'modelo'},
+    "metricas_2" : metricas_2,
+    "resultados_3_arima" : {k: v for k, v in resultados_3_arima.items() if k != 'modelo'},
+    "resultados_3_xgb" : {k: v for k, v in resultados_3_xgb.items() if k != 'modelo'},
+    "resultados_3_lgbm" : {k: v for k, v in resultados_3_lgbm.items() if k != 'modelo'},
+    "resultados_3_lstm" : {k: v for k, v in resultados_3_lstm.items() if k != 'modelo'},
+    #"resultados_3_gpt" : {k: v for k, v in resultados_3_gpt.items() if k != 'modelo'},
+    "metricas_3" : metricas_3
+}, filename="Codigo/Ambiente/Amb_Aplicacion.pkl")
+
+# Guardamos los modelos
+
+save_env(env_dict= {
+   "resultados_1_arima" : resultados_1_arima['modelo'],
+    "resultados_1_xgb" : resultados_1_xgb['modelo'],
+    "resultados_1_lgbm" : resultados_1_lgbm['modelo'],
+    "resultados_1_lstm" : resultados_1_lstm['modelo'],
+    #"resultados_1_gpt" : resultados_1_gpt['modelo'],
+    "resultados_2_arima" : resultados_2_arima['modelo'],
+    "resultados_2_xgb" : resultados_2_xgb['modelo'],
+    "resultados_2_lgbm" : resultados_2_lgbm['modelo'],
+    "resultados_2_lstm" : resultados_2_lstm['modelo'],
+    #"resultados_2_gpt" : resultados_2_gpt['modelo'],
+    "resultados_3_arima" : resultados_3_arima['modelo'],
+    "resultados_3_xgb" : resultados_3_xgb['modelo'],
+    "resultados_3_lgbm" : resultados_3_lgbm['modelo'],
+    "resultados_3_lstm" : resultados_3_lstm['modelo'],
+    #"resultados_3_gpt" : resultados_3_gpt['modelo']
+}, filename="Codigo/Ambiente/modelos_aplicacion.pkl")
