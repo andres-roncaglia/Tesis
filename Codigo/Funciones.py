@@ -11,6 +11,8 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Para autocorrelaciones
+from statsmodels.tsa.stattools import acf, pacf
 
 # ---------------------------------------- FUNCIONES ------------------------------------
 
@@ -119,4 +121,49 @@ def load_env(filename="environment.pkl"):
 
 
 # ------------------------------------------------------------------------------------
+# Funcion autocorr_plot()
+# Calcula y grafica las autorrelaciones y autocorrelaciones parciales
 
+
+def autocorr_plot(data, lags, atype = 'acf'):
+    vector = data.copy().dropna()
+
+    if atype == 'acf':
+        autocorr = acf(vector, nlags=lags)
+        lags = np.arange(lags+1)
+    else:
+        autocorr = pacf(vector, nlags=lags, method = 'ywm')
+        lags = np.arange(lags+1)
+
+        autocorr = autocorr[1:]
+        lags = lags[1:]
+
+    # Calculo las autocorrelaciones
+    autocorrelaciones = pd.DataFrame({
+        'lag' : lags,
+        atype : autocorr
+    })
+
+    # Defino las bandas limite
+    upper_bound = 1.96/np.sqrt(len(vector))
+    lower_bound = -1.96/np.sqrt(len(vector))
+
+    # Cambio el color del punto si supera el limite
+    col = np.where(
+        autocorrelaciones[atype] < lower_bound,'b',
+        np.where(autocorrelaciones[atype] > upper_bound, 'b', 'green'))
+
+    # Creo los bastones
+    plt.vlines(x=autocorrelaciones['lag'], ymin=0, ymax= autocorrelaciones[atype], color='black', alpha=0.4)
+
+    # Creo los puntos y les asigno color segun pasen o no la banda
+    plt.scatter(x = autocorrelaciones['lag'], y = autocorrelaciones[atype], color=col, alpha=1, marker = '.')
+
+    # Grafico los limites de la banda
+    plt.axhline(y = 0, color = 'black')
+    plt.axhline(y = upper_bound, color = 'green', ls = '--')
+    plt.axhline(y = lower_bound, color = 'green', ls = '--')
+    plt.axhspan(upper_bound, lower_bound, color='green', alpha=0.15)
+    plt.axhspan(1, 2, color='grey', alpha=0.5)
+    plt.axhspan(-1, -2, color='grey', alpha=0.5)
+    plt.ylim(-1.15,1.15)

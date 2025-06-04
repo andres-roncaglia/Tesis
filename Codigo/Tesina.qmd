@@ -17,17 +17,22 @@ geometry:
   - left= 25.4mm
   - right = 25.4mm
   - bottom = 25.4mm
+header-includes: 
+  - \usepackage{multirow}
+  - \usepackage{float}
 ---
 
 ```{python}
 # LIBRERIAS
 
-# Para imprimir imagenes
-# import matplotlib.image as mpimg
+# Para graficar
 import matplotlib.pyplot as plt
 
 # Para mostrar los resultados
-from Funciones import plot_forecast, load_env
+from Funciones import plot_forecast, load_env, autocorr_plot
+
+# Para la transformacion de box y cox
+from scipy import stats
 ```
 
 
@@ -455,11 +460,10 @@ Cada modelo será evaluado en función de su desempeño predictivo, utilizando m
 
 ## 4.1 Series a utilizar
 
-<!-- describir serie, porque seria bueno estudiarla, longitud de pronostico,  -->
-
 ```{python}
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # TEMP
 
@@ -493,6 +497,9 @@ trabajadores['ds'] = trabajadores['ds'].apply(
 
 trabajadores['ds'] = pd.to_datetime(trabajadores['ds'], format='%d-%m-%Y')
 
+# Eliminamos los datos del 2025 para tener solo años completos
+trabajadores = trabajadores[trabajadores['ds'].dt.year != 2025]
+
 # --------------------------------------------------------------------
 
 import glob
@@ -515,20 +522,32 @@ tiempo_rosario.columns = ['ds', 'y', 'HUM', 'PNM'] # % de Humedad y Presion a ni
 
 ```
 
+```{python}
+# Creamos datasets con la info que conocemos de las series
+atenciones_trunc = atenciones_guardia.head(len(atenciones_guardia)-12).copy()
+trabajadores_trunc = trabajadores.head(len(trabajadores)-12).copy()
+temperatura_trunc = tiempo_rosario.head(len(tiempo_rosario)-24).copy()
+```
+
 La primera serie que se pronosticará son las atenciones de guardia mensuales por patologías respiratorias (Códigos CIE10: J09-J18, J21, J22 y J44) en el hospital de niños Víctor J. Vilela de la ciudad de Rosario. Estos datos fueron proporcionados por la Dirección General de Estadística de la Municipalidad de Rosario.
 
 ```{python}
-plt.plot(atenciones_guardia['ds'], atenciones_guardia['y'], color = "#292F36")
+# Grafico serie Atenciones
+
+plt.plot(atenciones_trunc['ds'], atenciones_trunc['y'], color = "#292F36")
 plt.xlabel('Fecha')
 plt.ylabel('Atenciones')
+
 ```
 
-Esta serie no presenta una tendencia clara pero si estacionalidad, ya que se observan picos en los meses de invierno. La abrupta caída en el número de atenciones del año 2020 se atribuye al estado de pandemia causado por el Covid-19. 
+Esta serie no presenta una tendencia clara pero si estacionalidad, ya que se observan picos en los meses de invierno. Este patrón es más dicernible con el gráfico @fig-atenciones_estacionalidad del anexo. La abrupta caída en el número de atenciones del año 2020 se atribuye al estado de pandemia causado por el Covid-19. El objetivo será pronosticar las atenciones en guardia del año 2024.
 
-Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registrado en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, habiendo picos importantes en los meses de diciembre y enero. En esta serie también se evidencian la consecuencias de la pandemia.
+Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registradas en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, presentadose descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian la consecuencias de la pandemia. Se buscará pronosticar los trabajadores registrados en el área de enseñanza del año 2024.
 
 ```{python}
-plt.plot(trabajadores['ds'], trabajadores['y'], color = "#4D533C")
+# Grafico serie trabajadores
+
+plt.plot(trabajadores_trunc['ds'], trabajadores_trunc['y'], color = "#4D533C")
 plt.xlabel('Fecha')
 plt.ylabel('Trabajadores (miles)')
 ```
@@ -536,9 +555,11 @@ plt.ylabel('Trabajadores (miles)')
 Por último, se analizarán las temperaturas por hora a lo largo de los días del mes de marzo 2025, estudiando sus comportamientos en relación a la humedad relativa y a la presión atmosférica estándar.  
 
 ```{python}
+# Grafico serie temperatura
+
 plt.subplot(3,1,1)
 
-plt.plot(tiempo_rosario['ds'], tiempo_rosario['y'], color = "#520004")
+plt.plot(temperatura_trunc['ds'], temperatura_trunc['y'], color = "#520004")
 
 plt.xlabel('')
 plt.ylabel('Temperatura (ºC)')
@@ -546,18 +567,20 @@ plt.tick_params(labelbottom=False)
 
 plt.subplot(3,1,2)
 
-plt.plot(tiempo_rosario['ds'], tiempo_rosario['HUM'], color = "#520004")
+plt.plot(temperatura_trunc['ds'], temperatura_trunc['HUM'], color = "#520004")
 plt.xlabel('')
 plt.ylabel('Humedad (%)')
 plt.tick_params(labelbottom=False)
 
 plt.subplot(3,1,3)
 
-plt.plot(tiempo_rosario['ds'], tiempo_rosario['PNM'], color = "#520004")
+plt.plot(temperatura_trunc['ds'], temperatura_trunc['PNM'], color = "#520004")
 plt.xlabel('Fecha')
 plt.ylabel('Presión atmosférica (hPa)')
 
 ```
+
+Gracias al gráfico @fig-temp_estacional del anexo, se puede observar el patrón estacional diario que tiene la temperatura, se mantiene constante entre la noche y la mañana, pero a la tarde sube pronunciadamente. Se estimarán las temperaturas horarias del 21 y 22 de mayo de 2025.
 
 ## 4.2 Modelado
 
@@ -575,11 +598,144 @@ metricas_2.loc[len(metricas_2)] = ['Chronos', resultados_2_chronos['mape'], resu
 metricas_3.loc[len(metricas_3)] = ['Chronos', resultados_3_chronos['mape'], resultados_3_chronos['score'], resultados_3_chronos['tiempo']]
 ```
 
-### Métodos Tradicionales
+### 4.2.1 ARIMA
 
-#### ARIMA
+Por la complejidad agregada de pronosticar usando ARIMA en series con periodicidad diaria y variables exógenas, la serie de temperatura se modelizará únicamente con el método automático que se menciona más adelante.
+
+Antes de proponer modelos, se debe hacer un breve análisis exploratorio de las series. En primer lugar se debe observar que la variancia en cada período es la misma. De lo contrario se debería transformar la variable que se desea pronosticar.
 
 ```{python}
+# Boxplots periodicos - Variancia de las series
+
+plt.subplot(3,1,1)
+sns.boxplot(x = atenciones_trunc["ds"].dt.year, y = atenciones_trunc["y"], color = "#6BC78A")
+plt.ylabel("Atenciones")
+
+plt.subplot(3,1,2)
+sns.boxplot(x = trabajadores_trunc["ds"].dt.year, y = trabajadores_trunc["y"], color = "#5299CB")
+plt.ylabel("Trabajadores (miles)")
+
+# plt.subplot(3,1,3)
+# sns.boxplot(x = temperatura_trunc["ds"].dt.day, y = temperatura_trunc["y"], color = "#E23C47")
+# plt.ylabel("Temperatura (Cº)")
+```
+
+```{python}
+# Transformacion de box y cox
+atenciones_ajust, atenciones_lambda = stats.boxcox(atenciones_trunc["y"])
+temperatura_ajust, temperatura_lambda = stats.boxcox(temperatura_trunc["y"])
+
+temp = atenciones_ajust
+atenciones_ajust = atenciones_trunc.copy()
+atenciones_ajust['y'] = temp
+```
+
+<!-- Es probable que las series de atenciones y de temperatura requieran de una transformación. Calculando $\lambda$ para la transformación de Box y Cox se concluye que las atenciones en guardia por patologías respiratorias necesitan ser transformadas aplicando la función exponencial ($\lambda$ = `python round(atenciones_lambda, 2)`). Por otro lado, no es necesario transformar la serie de temperaturas, ya que $\lambda$ resulta muy cercano a 1. -->
+
+Dadas las diferencias en la variabilidad anual de las atenciones por año, se calculó $\lambda$ para la transformación de Box y Cox concluyendo que las atenciones en guardia por patologías respiratorias necesitan ser transformadas aplicando la función exponencial ($\lambda$ = `python round(atenciones_lambda, 2)`).
+
+El primer paso de la modelización es estudiar las estacionalidades. Se mencionó anteriormente que las 2 series tienen estacionalidad, es por esto que se diferencian y se grafican, buscando que no sea visible ningún patrón estacional.
+
+```{python}
+# Series diferenciadas estacionalmente
+atenciones_ajust["y_sin_est"] = atenciones_ajust['y'].diff(12)
+trabajadores_trunc["y_sin_est"] = trabajadores_trunc['y'].diff(12)
+# temperatura_trunc["y_sin_est"] = temperatura_trunc['y'].diff(24).diff(24)
+
+
+plt.subplot(3,1,1)
+sns.lineplot(x = atenciones_trunc["ds"], y = atenciones_ajust["y_sin_est"], color = "#6BC78A")
+plt.ylabel("Atenciones")
+
+plt.subplot(3,1,2)
+sns.lineplot(x = trabajadores_trunc["ds"], y = trabajadores_trunc["y_sin_est"], color = "#5299CB")
+plt.ylabel("Trabajadores (miles)")
+
+# plt.subplot(3,1,3)
+# sns.lineplot(x = temperatura_trunc["ds"], y = temperatura_trunc["y_sin_est"], color = "#E23C47")
+# plt.ylabel("Temperatura (Cº)")
+```
+
+Una vez diferenciadas estacionalmente, es importante que no exista una tendencia clara, por lo que se estandarizan estacionariamente.
+
+```{python}
+# Series diferenciadas estacionariamente
+atenciones_ajust["y_diff"] = atenciones_ajust['y_sin_est'].diff(1)
+trabajadores_trunc["y_diff"] = trabajadores_trunc['y_sin_est'].diff(1)
+# temperatura_trunc["y_diff"] = temperatura_trunc['y_sin_est'].diff(1)
+
+
+plt.subplot(3,1,1)
+sns.lineplot(x = atenciones_ajust["ds"], y = atenciones_ajust["y_diff"], color = "#6BC78A")
+plt.ylabel("Atenciones")
+
+plt.subplot(3,1,2)
+sns.lineplot(x = trabajadores_trunc["ds"], y = trabajadores_trunc["y_diff"], color = "#5299CB")
+plt.ylabel("Trabajadores (miles)")
+
+# plt.subplot(3,1,3)
+# sns.lineplot(x = temperatura_trunc["ds"], y = temperatura_trunc["y_diff"], color = "#E23C47")
+# plt.ylabel("Temperatura (Cº)")
+```
+
+Para descubrir las componentes AR y MA que afectan a las series se grafican las autocorrelaciones y autocorrelaciones parciales de cada una.
+
+```{python}
+plt.subplot(2,1,1)
+autocorr_plot(atenciones_ajust["y_diff"], lags=25)
+plt.subplot(2,1,2)
+autocorr_plot(atenciones_ajust["y_diff"], lags=25, atype='pacf')
+```
+
+En la serie de atenciones se puede ver que tanto en las autocorrelaciones como en las autocorrelaciones parciales, hay valores significativos en el quinto y doceavo rezago, lo que podrían significar que existen compotentes MA y AR en la parte estacional o estacionaria de la serie.
+
+Se proponen entonces los modelos $SARIMA(0,1,1)(0,1,0)_{12}$ y $SARIMA(0,1,0)(0,1,1)_{12}$.
+
+```{python}
+plt.subplot(2,1,1)
+autocorr_plot(trabajadores_trunc["y_diff"], lags=25)
+plt.subplot(2,1,2)
+autocorr_plot(trabajadores_trunc["y_diff"], lags=25, atype='pacf')
+```
+
+En las autocorrelaciones de la serie de trabajadores resultan significativos el primer y doceavo rezago, mientras que en las autocorrelaciones parciales se destacan los rezagos 1, 12, 13 y 24. Se puede suponer que el rezago 13 no es en realidad significativo y que la serie presenta una componente MA en la parte estacionaria y una AR en la estacional, formando el modelo $SARIMA(0,1,1)(1,1,0)_{12}$.
+
+```{python}
+# plt.subplot(2,1,1)
+# autocorr_plot(temperatura_trunc["y_diff"], lags=48)
+# plt.subplot(2,1,2)
+# autocorr_plot(temperatura_trunc["y_diff"], lags=48, atype='pacf')
+```
+
+<!-- Por último, se puede concluir que la serie de temperatura presenta componentes AR en la parte estacionaria y estacional, $SARIMA(1,1,1)(1,2,0)_{12}$. -->
+
+Además, por medio de la función `auto_arima` de la librería `pmdarima` se propusieron modelos automáticos. Se elegirá como mejor modelo aquel que minimice el Criterio de Información de Akaike (AIC) y cumpla con las propiedades del modelo ARIMA.
+
+\begin{table}[H]
+\caption{Cumplimiento de las condiciones de estacionariedad e invertibilidad de los modelos ajustados.}
+\begin{tabular}{|clclcl|}
+\hline
+\multicolumn{1}{|c|}{\multirow{2}{*}{Modelo}}     & \multicolumn{1}{c|}{\multirow{2}{*}{AIC}} & \multicolumn{2}{c|}{Parte regular}                                         & \multicolumn{2}{c|}{Parte estacional}                 \\ \cline{3-6} 
+\multicolumn{1}{|c|}{}                            & \multicolumn{1}{c|}{}                     & \multicolumn{1}{c|}{Estacionariedad} & \multicolumn{1}{c|}{Invertibilidad} & \multicolumn{1}{c|}{Estacionariedad} & Invertibilidad \\ \hline
+\multicolumn{6}{|c|}{ATENCIONES EN GUARDIA}                                                                                                                                                                                        \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,1,0)_{12}$} & \multicolumn{1}{l|}{857.6}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,1)(0,1,0)_{12}$} & \multicolumn{1}{l|}{852.1}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,0,0)_{12}$} & \multicolumn{1}{l|}{1013.5}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{6}{|c|}{TRABAJADORES}                                                                                                                                                                                                 \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,1)(1,1,0)_{12}$} & \multicolumn{1}{l|}{366.6}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(2,0,0)(2,1,0)_{12}$} & \multicolumn{1}{l|}{364.8}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{6}{|c|}{TEMPERATURA}                                                                                                                                                                                                  \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(1,1,1)(2,0,1)_{24}$} & \multicolumn{1}{l|}{1067.1}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{No}              & Si             \\ \hline
+\end{tabular}
+\end{table}
+
+Para la serie de atenciones se seguirá trabajando con el segundo modelo propuesto y con el seleccionado de manera automática, ya que el parámetro AR del primer modelo prupuesto no es significativo. Por otro lado, los dos modelos probados para la serie de trabajadores seguirán siendo utilizados. El modelo automático para la serie de temperaturas no goza de estacionariedad, por lo que se proponen los modelos $SARIMA(1,1,1)(1,0,1)_{24}$, $SARIMA(1,1,0)(2,0,1)_{24}$ y $SARIMA(1,1,0)(1,1,0)_{24}$, de los cúales únicamente el último cumple con todas las propiedades buscadas, con un AIC de 1119.3.
+
+Lo siguiente es comprobar que los residuos se comportan como ruido blanco.
+
+```{python}
+# Pronosticos automaticos
+
 plt.figure(figsize=(9, 5))
 plt.subplot(3,1,1)
 plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 24)
@@ -591,9 +747,9 @@ plt.subplot(3,1,3)
 plot_forecast(data = tiempo_rosario, forecast = resultados_3_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 36)
 ```
 
-### Métodos de Machine Learning
 
-#### XGBoost
+
+### 4.2.2 XGBoost
 
 los intervalos de estos pronosticos no son probabilisticos, estoy usando conformal predictions
 
@@ -610,7 +766,7 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_c
 
 ```
 
-#### LightGBM
+### 4.2.3 LightGBM
 
 importante, los quantiles de estos pronosticos son independientes
 
@@ -627,9 +783,7 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_
 ```
 
 
-### Deep Learning
-
-#### LSTM
+### 4.2.4 LSTM
 
 ```{python}
 plt.figure(figsize=(9, 5))
@@ -644,7 +798,7 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_
 
 ```
 
-#### Chronos
+### 4.2.5 Chronos
 
 ```{python}
 plt.figure(figsize=(9, 5))
@@ -659,9 +813,9 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pr
 ```
 
 
-#### TimeGPT
+### 4.2.6 TimeGPT
 
-### Comparaciones
+## 4.3 Comparaciones
 
 **Serie 1**
 
@@ -741,17 +895,62 @@ OTexts. [https://otexts.com/fpp3/](https://otexts.com/fpp3/)
 # 7. Anexo
 
 Incluye cualquier material adicional, como código fuente, datos adicionales, detalles sobre la implementación en R o Python, entre otros.
+## 7.1 Gráficos estacionales
+
+```{python}
+#| label: fig-atenciones_estacionalidad
+#| fig-cap: Atenciones por guardia mensuales por patologías respiratorias por año
+
+atenciones_trunc['mes'] = atenciones_trunc['ds'].dt.month
+atenciones_trunc['Año'] = atenciones_trunc['ds'].dt.year
+
+paleta = ["#3885bc", "#547cc4", "#7770c2", "#9b5fb7", "#b94aa0", "#cf317f", "#5CC17E", "#89D2A1", "#d81b58", "#d5202c"]
+
+sns.lineplot(
+  data = atenciones_trunc,
+  x = "mes",
+  y = "y",
+  hue = "Año",
+  palette=paleta,
+  legend = True
+)
 
 
+
+
+plt.xlabel("Mes")
+plt.ylabel("Atenciones")
+plt.xticks(
+    ticks=range(1, 13),
+    labels=[
+        "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+    ],
+)
+
+```
+
+```{python}
+#| label: fig-temp_estacional
+#| fig-cap: Atenciones por guardia mensuales por patologías respiratorias por año
+
+temperatura_trunc['Hora'] = temperatura_trunc['ds'].dt.hour
+temperatura_trunc['Día'] = temperatura_trunc['ds'].dt.day
+
+paleta = ["#3885bc", "#547cc4", "#A58D78", "#7A6552", "#7770c2", "#9b5fb7", "#b94aa0", "#cf317f", "#5CC17E", "#89D2A1", "#d81b58", "#d5202c"]
+
+sns.lineplot(
+  data = temperatura_trunc,
+  x = "Hora",
+  y = "y",
+  hue = "Día"
+)
+
+plt.xlabel("Hora")
+plt.ylabel("Temperatura (Cº)")
+```
 
 
 # NOTAS
-
-- Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
-
-- Hacer equivalencia del documento en GitBook
-
-- leer fpp3 que tiene unas cosas que pueden servir  
 
 - Series a utilizar: 
       Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado (tmb puede ser aalim/tabaco, servicios de seg/lim/inv, ) (https://www.argentina.gob.ar/trabajo/estadisticas/situacion-y-evolucion-del-trabajo-registrado) ACTUALIZAR HAY DATOS NUEVOS
@@ -773,6 +972,14 @@ Incluye cualquier material adicional, como código fuente, datos adicionales, de
 
 
 - Hacer dendograma de importancia de variables para los modelos de machine learning, timegpt (variables exogenas)
+
+
+- Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
+
+- Hacer equivalencia del documento en GitBook
+
+- leer fpp3 que tiene unas cosas que pueden servir , tambien https://otexts.com/fpppy/nbs/15-foundation-models.html#chronos
+
 
 Nombrar ls 3 opcions de calculo de intervalo de xgboost
 Tomar el tiempo como el ultimo modelo PERO EXPLICARLO
@@ -797,3 +1004,9 @@ nomenclatura:
 - Explorar mas sobre conformal predictions y demas opciones para crear intervalos de confianza
 
 - usar ngboost para obtener pronosticos probabilisticos
+
+- Validacion cruzada temporal para el entrenamiento de los modelos
+
+# Preguntas nanda
+
+Para la serie de temperatura: Como diferencio para sacar la estacionalidad? La humedad y la presion las tomo como variables exogenas pasadas o futuras?

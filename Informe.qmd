@@ -265,12 +265,6 @@ def autocorr_plot(vector, lags, atype = 'acf'):
     plt.axhspan(-1, -2, color='grey', alpha=0.5)
     plt.ylim(-1.15,1.15)
 
-    if atype == 'acf':
-        titulo = 'autocorrelación'
-    else:
-        titulo = 'autocorrelación parcial'
-    
-    plt.title(f'Función de {titulo} muestral')
 ```
 
 

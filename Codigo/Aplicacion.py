@@ -3,6 +3,9 @@
 # Para el manejo de estructuras de datos
 import pandas as pd
 
+# Para ajustar los modelos arima manualmente
+from pmdarima.arima import ARIMA
+
 # Cargamos funciones
 from Codigo.Funciones import save_env, load_env
 from Codigo.tuner_fun import Tuner
@@ -55,6 +58,25 @@ resultados_1_arima = Tuner(forecaster_fun= 'ARIMA', datos=atenciones_guardia, pa
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['ARIMA', resultados_1_arima['mape'], resultados_1_arima['score'], resultados_1_arima['tiempo']]
+
+# Modelos manuales
+atenciones_trunc = atenciones_guardia.head(len(atenciones_guardia)-long_pred).copy()
+
+# Modelo 1
+arima_atenciones_1 = ARIMA( 
+    order=(0, 1, 1), 
+    seasonal_order=(0,1,0,12))
+
+arima_atenciones_1 = arima_atenciones_1.fit(atenciones_trunc['y'])
+
+
+# Modelo 2
+arima_atenciones_2 = ARIMA( 
+    order=(0, 1, 0), 
+    seasonal_order=(0,1,1,12))
+
+arima_atenciones_2 = arima_atenciones_2.fit(atenciones_trunc['y'])
+
 
 # ------------------------------- 1.3 XGBOOST -------------------------------
 
@@ -183,6 +205,18 @@ resultados_2_arima = Tuner(forecaster_fun= 'ARIMA', datos=trabajadores, parametr
 
 # Guardamos las metricas
 metricas_2.loc[len(metricas_2)] = ['ARIMA', resultados_2_arima['mape'], resultados_2_arima['score'], resultados_2_arima['tiempo']]
+
+# Modelos manuales
+trabajadores_trunc = trabajadores.head(len(trabajadores)-long_pred).copy()
+
+# Modelo 1
+arima_trabajadores_1 = ARIMA( 
+    order=(0,1,1), 
+    seasonal_order=(1,1,0,12))
+
+arima_trabajadores_1 = arima_trabajadores_1.fit(trabajadores_trunc['y'])
+
+
 
 # ------------------------------- 2.3 XGBOOST -------------------------------
 
@@ -315,6 +349,30 @@ resultados_3_arima = Tuner(forecaster_fun= 'ARIMA', datos=tiempo_rosario[['ds','
 metricas_3.loc[len(metricas_3)] = ['ARIMA', resultados_3_arima['mape'], resultados_3_arima['score'], resultados_3_arima['tiempo']]
 
 
+# Modelos manuales
+temperatura_trunc = tiempo_rosario.head(len(tiempo_rosario)-long_pred).copy()
+
+# Modelo 1
+arima_temperatura_1 = ARIMA( 
+    order=(1,1,1), 
+    seasonal_order=(1,0,1,24))
+
+arima_temperatura_1 = arima_temperatura_1.fit(temperatura_trunc['y'])
+
+# Modelo 2
+arima_temperatura_2 = ARIMA( 
+    order=(1,1,0), 
+    seasonal_order=(2,0,1,24))
+
+arima_temperatura_2 = arima_temperatura_2.fit(temperatura_trunc['y'])
+
+# Modelo 3
+arima_temperatura_3 = ARIMA( 
+    order=(1,1,0), 
+    seasonal_order=(1,1,0,24))
+
+arima_temperatura_3 = arima_temperatura_3.fit(temperatura_trunc['y'])
+
 # ------------------------------- 3.3 XGBOOST -------------------------------
 
 
@@ -398,6 +456,18 @@ metricas_3.loc[len(metricas_3)] = ['TimeGPT', resultados_3_gpt['mape'], resultad
 # --------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------
 
+modelos_arima = {
+    'arima_atenciones_1': arima_atenciones_1,
+    'arima_atenciones_2': arima_atenciones_2,
+    'arima_trabajadores_1': arima_trabajadores_1,
+    'arima_temperatura_1': arima_temperatura_1,
+    'arima_temperatura_2': arima_temperatura_2,
+    'arima_temperatura_3': arima_temperatura_3,
+    'arima_atenciones_auto': resultados_1_arima['modelo'],
+    'arima_trabajadores_auto':resultados_2_arima['modelo'],
+    'arima_temperatura_auto':resultados_3_arima['modelo']
+}
+
 # Guardamos el ambiente
 
 save_env(env_dict= {
@@ -424,19 +494,17 @@ save_env(env_dict= {
 # Guardamos los modelos
 
 save_env(env_dict= {
-   "resultados_1_arima" : resultados_1_arima['modelo'],
-    "resultados_1_xgb" : resultados_1_xgb['modelo'],
-    "resultados_1_lgbm" : resultados_1_lgbm['modelo'],
-    "resultados_1_lstm" : resultados_1_lstm['modelo'],
-    #"resultados_1_gpt" : resultados_1_gpt['modelo'],
-    "resultados_2_arima" : resultados_2_arima['modelo'],
-    "resultados_2_xgb" : resultados_2_xgb['modelo'],
-    "resultados_2_lgbm" : resultados_2_lgbm['modelo'],
-    "resultados_2_lstm" : resultados_2_lstm['modelo'],
-    #"resultados_2_gpt" : resultados_2_gpt['modelo'],
-    "resultados_3_arima" : resultados_3_arima['modelo'],
-    "resultados_3_xgb" : resultados_3_xgb['modelo'],
-    "resultados_3_lgbm" : resultados_3_lgbm['modelo'],
-    "resultados_3_lstm" : resultados_3_lstm['modelo'],
-    #"resultados_3_gpt" : resultados_3_gpt['modelo']
+    "modelo_1_xgb" : resultados_1_xgb['modelo'],
+    "modelo_1_lgbm" : resultados_1_lgbm['modelo'],
+    "modelo_1_lstm" : resultados_1_lstm['modelo'],
+    #"modelo_1_gpt" : resultados_1_gpt['modelo'],
+    "modelo_2_xgb" : resultados_2_xgb['modelo'],
+    "modelo_2_lgbm" : resultados_2_lgbm['modelo'],
+    "modelo_2_lstm" : resultados_2_lstm['modelo'],
+    #"modelo_2_gpt" : resultados_2_gpt['modelo'],
+    "modelo_3_xgb" : resultados_3_xgb['modelo'],
+    "modelo_3_lgbm" : resultados_3_lgbm['modelo'],
+    "modelo_3_lstm" : resultados_3_lstm['modelo'],
+    #"modelo_3_gpt" : resultados_3_gpt['modelo'],
+    "modelos_arima":modelos_arima
 }, filename="Codigo/Ambiente/modelos_aplicacion.pkl")
