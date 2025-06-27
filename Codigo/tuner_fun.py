@@ -6,7 +6,6 @@ import numpy as np
 
 # Para cargar las claves
 from Codigo import creds
-# import creds
 
 # Para ARIMA
 from pmdarima import auto_arima
@@ -16,6 +15,10 @@ from xgboost import XGBRegressor
 
 # Para LightGBM
 import lightgbm as lgb
+
+# Para conformal predictions
+from mapie.regression import MapieTimeSeriesRegressor
+from mapie.subsample import BlockBootstrap
 
 # Para LSTM
 from neuralforecast import NeuralForecast
@@ -37,7 +40,6 @@ import time
 
 # Para calcular el interval score
 from Codigo.Funciones import interval_score
-# from Funciones import interval_score
 
 
 # ---------------------------------------- FUNCIONES ------------------------------------
@@ -103,7 +105,7 @@ def fit_pred_arima(datos, long_pred, alpha, exog, kwargs):
                         **kwargs)
 
     # Obtenemos predicciones
-    pred, pred_int = modelo.predict(n_periods = long_pred, alpha = alpha/2, return_conf_int=True, X = exog_test)
+    pred, pred_int = modelo.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True, X = exog_test)
     
     timer_final = time.time()
     tiempo = timer_final - timer_comienzo
@@ -154,7 +156,7 @@ def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, exog, devolv
         
     # Ajustamos el modelo y pronosticamos 
     forecaster = nixtla_client.forecast(df = df, h = h, time_col= time_col,
-            target_col= target_col, freq= freq, level=[(1-alpha/2)*100], **kwargs)
+            target_col= target_col, freq= freq, level=[(1-alpha)*100], **kwargs)
         
     timer_final = time.time()
 
@@ -197,7 +199,7 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, exog, devolver_tiempo = False
     parametros = kwargs.copy()
     parametros['h'] = long_pred
     parametros['input_size'] = long_pred*3
-    parametros['loss'] = MQLoss(level = [(1-alpha/2)*100])
+    parametros['loss'] = MQLoss(level = [(1-alpha)*100])
     
     # Si tenemos variables exogenas las agregamos
     if exog.shape[0] != 0:
@@ -243,40 +245,25 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, exog, devolver_tiempo = False
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_xgb(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = False, devolver_modelo = False):
+def fit_pred_xgb(datos, long_pred, alpha, kwargs, caracteristicas, exog, devolver_tiempo = False, devolver_modelo = False):
 
     # Creamos una copia del dataset
     datos_xgb = datos.copy()
 
-    # Calculamos las características a usar
-    datos_xgb['month'] = datos_xgb['ds'].dt.month
-    datos_xgb['year'] = datos_xgb['ds'].dt.year
-    datos_xgb["promedio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).mean() # Promedio en una ventana de 3 meses
-    datos_xgb["desvio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).std() # Desvio en una ventana de 3 meses
-    datos_xgb["lag_1"] = datos_xgb["y"].shift(1)
-    datos_xgb["lag_2"] = datos_xgb["y"].shift(2)
-    datos_xgb["lag_12"] = datos_xgb["y"].shift(12)
+    # Agregamos las caracteristicas
+    datos_xgb = pd.concat([datos_xgb.reset_index(drop=True), caracteristicas.reset_index(drop=True)], axis=1)
 
     # Si tenemos variables exogenas las agregamos a las caracteristicas
     if exog.shape[0] != 0:
         datos_xgb = pd.concat([datos_xgb.reset_index(drop=True), exog.reset_index(drop=True)], axis=1)
 
     # Dividimos en entrenamiento, validacion y testeo
-    datos_xgb_fulltrain = datos_xgb.head(len(datos_xgb)-long_pred)
+    datos_xgb_train = datos_xgb.head(len(datos_xgb)-long_pred)
     datos_xgb_test = datos_xgb.tail(long_pred)
 
-    datos_xgb_train = datos_xgb_fulltrain.head(datos_xgb_fulltrain.shape[0] - long_pred)
-    datos_xgb_val = datos_xgb_fulltrain.tail(long_pred)
-
     # Extraemos las características
-    X_fulltrain = datos_xgb_fulltrain.drop(columns = ['ds','y'])
-    X_test = datos_xgb_test.drop(columns = ['ds','y'])
     X_train = datos_xgb_train.drop(columns = ['ds','y'])
-    X_val = datos_xgb_val.drop(columns = ['ds','y'])
-
-    # Calculamos los cuantiles a pronosticar
-    q_lower = alpha/2
-    q_upper = 1-alpha/2
+    X_test = datos_xgb_test.drop(columns = ['ds','y'])
 
     # Por un error de train, debemos garantizar que los int y los floats se mantengan como tal
     kwargs = {
@@ -289,28 +276,21 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = False,
 
     # Definimos los modelos
     model = XGBRegressor(**kwargs)
+    
+    # Definimos los bloques para validacion cruzada y el modelo para conformal predictions
+    bt_blocks = BlockBootstrap(
+        n_resamplings=30, n_blocks=int(min(np.floor(len(datos_xgb_train)/20), 10)), overlapping=False, random_state=kwargs['random_state'])
+
+    mapie_enbpi = MapieTimeSeriesRegressor(
+        model, method="enbpi", cv=bt_blocks, agg_function="mean", n_jobs=-1)
 
     # Ajustamos los modelos y pronosticamos
 
     timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
 
-    # Primero debemos obtener la distribucion de los residuos para el calculo de los intervalos
-    model.fit(X_train, datos_xgb_train['y'])
-    pred_val = model.predict(X_val)
-    residuals = np.abs(datos_xgb_val['y'] - pred_val)
+    mapie_enbpi = mapie_enbpi.fit(X_train, datos_xgb_train['y'])
 
-    # Calculamos el cuantil superior
-    q = np.quantile(residuals, q_upper)
-
-    # Volvemos a ajustar el modelo, ahora con todos lo datos de entrenamiento
-    model.fit(X_fulltrain, datos_xgb_fulltrain['y'])
-    pred = model.predict(X_test)
-
-    # Calculamos los intervalos usando corformal predictions
-    # Cuantil inferior
-    pred_low = pred - q
-    # Cuantil superior
-    pred_upper = pred + q
+    pred, y_ic = mapie_enbpi.predict(X_test, alpha=alpha, ensemble=True)
         
     timer_final = time.time()
 
@@ -318,10 +298,13 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = False,
     tiempo = timer_final - timer_comienzo
 
     # Creamos un dataframe
+    pred_lower = y_ic.squeeze()[:,0]
+    pred_upper = y_ic.squeeze()[:,1]
+
     forecaster = pd.DataFrame({
         'ds' : datos_xgb_test['ds'],
         'pred' : pred,
-        'lower' : pred_low,
+        'lower' : pred_lower,
         'upper' : pred_upper
     })
 
@@ -346,25 +329,19 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = False,
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = False, devolver_modelo = False):
+def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, caracteristicas, exog, devolver_tiempo = False, devolver_modelo = False):
 
     # Creamos una copia del dataset
     datos_xgb = datos.copy()
 
-    # Calculamos las características a usar
-    datos_xgb['month'] = datos_xgb['ds'].dt.month
-    datos_xgb['year'] = datos_xgb['ds'].dt.year
-    datos_xgb["promedio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).mean() # Promedio en una ventana de 3 meses
-    datos_xgb["desvio_3_meses"] = datos_xgb["y"].shift(1).rolling(window=3).std() # Desvio en una ventana de 3 meses
-    datos_xgb["lag_1"] = datos_xgb["y"].shift(1)
-    datos_xgb["lag_2"] = datos_xgb["y"].shift(2)
-    datos_xgb["lag_12"] = datos_xgb["y"].shift(12)
+    # Agregamos las caracteristicas
+    datos_xgb = pd.concat([datos_xgb.reset_index(drop=True), caracteristicas.reset_index(drop=True)], axis=1)
 
     # Si tenemos variables exogenas las agregamos a las caracteristicas
     if exog.shape[0] != 0:
         datos_xgb = pd.concat([datos_xgb.reset_index(drop=True), exog.reset_index(drop=True)], axis=1)
 
-    # Dividimos en entrenamiento y testeo
+    # Dividimos en entrenamiento, validacion y testeo
     datos_xgb_train = datos_xgb.head(len(datos_xgb)-long_pred)
     datos_xgb_test = datos_xgb.tail(long_pred)
 
@@ -372,53 +349,48 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = F
     X_train = datos_xgb_train.drop(columns = ['ds','y'])
     X_test = datos_xgb_test.drop(columns = ['ds','y'])
 
-    # Calculamos los cuantiles a pronosticar
-    q_lower = alpha/2
-    q_upper = 1-alpha/2
-
     # Debemos garantizar que los int y los floats se mantengan como tal
     kwargs = {k: int(v) if isinstance(v, float) and v.is_integer() else v
     for k, v in kwargs.items()}
 
     # Definimos los modelos
     model = lgb.LGBMRegressor(**kwargs)
-    model_low = lgb.LGBMRegressor(objective = 'quantile', alpha = q_lower,**kwargs)
-    model_upper = lgb.LGBMRegressor(objective = 'quantile', alpha = q_upper,**kwargs)
+
+    # Definimos los bloques para validacion cruzada y el modelo para conformal predictions
+    bt_blocks = BlockBootstrap(
+        n_resamplings=30, n_blocks=int(min(np.floor(len(datos_xgb_train)/20), 10)), overlapping=False, random_state=kwargs['random_state'])
+
+    mapie_enbpi = MapieTimeSeriesRegressor(
+        model, method="enbpi", cv=bt_blocks, agg_function="mean", n_jobs=-1)
 
     # Ajustamos los modelos y pronosticamos
 
     timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-    
-    # Media
-    model.fit(X_train, datos_xgb_train['y'])
-    pred = model.predict(X_test)
 
-    # Cuantil inferior
-    model_low.fit(X_train, datos_xgb_train['y'])
-    pred_low = model_low.predict(X_test)
-    
-    # Cuantil superior
-    model_upper.fit(X_train, datos_xgb_train['y'])
-    pred_upper = model_upper.predict(X_test)
+    mapie_enbpi = mapie_enbpi.fit(X_train, datos_xgb_train['y'])
 
+    pred, y_ic = mapie_enbpi.predict(X_test, alpha=alpha, ensemble=True)
         
     timer_final = time.time()
 
     # Medimos el tiempo que llevo
     tiempo = timer_final - timer_comienzo
 
+    pred_lower = y_ic.squeeze()[:,0]
+    pred_upper = y_ic.squeeze()[:,1]
+
     # Creamos un dataframe
     forecaster = pd.DataFrame({
         'ds' : datos_xgb_test['ds'],
         'pred' : pred,
-        'lower' : pred_low,
+        'lower' : pred_lower,
         'upper' : pred_upper
     })
 
     if devolver_tiempo & devolver_modelo:
-        return forecaster, tiempo, [model, model_low, model_upper]
+        return forecaster, tiempo, model
     elif devolver_modelo:
-        return forecaster, [model, model_low, model_upper]
+        return forecaster, model
     elif devolver_tiempo:
         return forecaster, tiempo
     else:
@@ -443,15 +415,15 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, exog, devolver_tiempo = F
 # - tiempo : Tiempo que tardó el ultimo modelo en ajustarse
 # - grilla : Grilla con las metricas de los modelos probados sobre el conjunto de validacion
 
-def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12, exog = pd.DataFrame()):
+def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12, caracteristicas = pd.DataFrame(), exog = pd.DataFrame()):
 
     # Dividimos el conjunto de datos que queremos pronosticar
-    datos_train = datos.head(len(datos)-long_pred)
+    datos_fulltrain = datos.head(len(datos)-long_pred)
     datos_test = datos.tail(long_pred)
 
     # Dado que estamos ajustando parametros, no podemos usar el conjunto de entrenamiento en su totalidad, debemos particionarlo para evitar el sobreajuste
-    train_y = datos_train.head(datos_train.shape[0] - long_pred)
-    test_y = datos_train.tail(long_pred)
+    datos_train = datos_fulltrain.head(datos_fulltrain.shape[0] - long_pred)
+    datos_val = datos_fulltrain.tail(long_pred)
 
     # Si tenemos variables exogenas tmb debemos dividir los conjuntos de entrenamiento, prueba y validación
     if exog.shape[0] != 0:
@@ -482,21 +454,21 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
             
             # Ajustamos el modelo
             if forecaster_fun == 'XGBoost':
-                forecast = fit_pred_xgb(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs, exog= exog_fulltrain)
+                forecast = fit_pred_xgb(datos = datos_fulltrain, long_pred = len(datos_val), alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, exog= exog_fulltrain)
             elif forecaster_fun == 'TimeGPT':
-                forecast = fit_pred_tgpt(df = train_y, h = len(test_y), time_col= 'ds', target_col= 'y', freq= 'M', alpha = alpha, kwargs=kwargs, exog= exog_train)
+                forecast = fit_pred_tgpt(df = datos_train, h = len(datos_val), time_col= 'ds', target_col= 'y', freq= 'M', alpha = alpha, kwargs=kwargs, exog= exog_train)
             elif forecaster_fun == 'LSTM':
-                forecast = fit_pred_lstm(datos= train_y, long_pred= len(test_y), kwargs= kwargs, alpha=alpha, exog= exog_train)
+                forecast = fit_pred_lstm(datos= datos_train, long_pred= len(datos_val), kwargs= kwargs, alpha=alpha, exog= exog_train)
             elif forecaster_fun == 'LightGBM':
-                forecast = fit_pred_lightgbm(datos = datos_train, long_pred = len(test_y), alpha = alpha, kwargs = kwargs, exog= exog_fulltrain)
+                forecast = fit_pred_lightgbm(datos = datos_fulltrain, long_pred = len(datos_val), alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, exog= exog_fulltrain)
 
 
             # Calculamos MAPE
-            mape = mean_absolute_percentage_error(test_y['y'], forecast['pred'])
+            mape = mean_absolute_percentage_error(datos_val['y'], forecast['pred'])
             mapes.append(mape)
 
             # Calculamos interval score
-            score = interval_score(obs=test_y['y'], lower= forecast['lower'], upper= forecast['upper'], alpha = alpha)
+            score = interval_score(obs=datos_val['y'], lower= forecast['lower'], upper= forecast['upper'], alpha = alpha)
             scores.append(score)
 
 
@@ -517,13 +489,13 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
         forecast, tiempo, model, mape, score = fit_pred_arima(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = parametros, exog= exog)
         return {'pred': forecast, 'mape': mape, 'score': score, 'tiempo': tiempo, 'modelo': model}
     elif forecaster_fun == 'XGBoost':
-        forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog)
+        forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     elif forecaster_fun == 'TimeGPT':
-        forecast, tiempo, model = fit_pred_tgpt(df = datos_train, h = long_pred, time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
     elif forecaster_fun == 'LSTM':
-        forecast, tiempo, model = fit_pred_lstm(datos= datos_train, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        forecast, tiempo, model = fit_pred_lstm(datos= datos_fulltrain, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
     elif forecaster_fun == 'LightGBM':
-        forecast, tiempo, model = fit_pred_lightgbm(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog)
+        forecast, tiempo, model = fit_pred_lightgbm(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     
     
     # Agregamos a la grilla los mapes de cada combinacion

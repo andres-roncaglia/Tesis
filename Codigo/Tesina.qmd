@@ -27,12 +27,17 @@ header-includes:
 
 # Para graficar
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Para mostrar los resultados
-from Funciones import plot_forecast, load_env, autocorr_plot
+from Funciones import plot_forecast, load_env, autocorr_plot, resid_check, interval_score
+
+# Para calcular MAPE
+from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
 
 # Para la transformacion de box y cox
 from scipy import stats
+
 ```
 
 
@@ -72,11 +77,11 @@ Palabras clave: series temporales, predicción, ARIMA, aprendizaje automático, 
 # 1. Introducción
 
 
-La predicción de valores futuros en series de tiempo es una herramienta clave en múltiples ámbitos, tales como la economía, el comercio, la salud, la energía y el ambiente. En estos contextos, anticipar el comportamiento de una variable permite mejorar la planificación, asignar recursos de forma más eficiente y reducir la incertidumbre.
+La predicción de valores futuros en series de tiempo es una herramienta clave en múltiples ámbitos, tales como la economía, el comercio, la salud, la energía y el medio ambiente. En estos contextos, anticipar el comportamiento de una variable permite mejorar la planificación, asignar recursos de forma más eficiente y reducir la incertidumbre.
 
 Actualmente, la ciencia de datos se encuentra en una etapa de constante expansión e innovación, impulsada por la gran cantidad de datos generados diariamente, por lo que en un contexto creciente de complejidad y exigencia temporal, resulta conveniente contar con herramientas que faciliten y acorten los tiempos de trabajo. Si bien los métodos más conocidos para trabajar series de tiempo son precisos, los modelos tradicionales como ARIMA son difíciles de automatizar y requieren de amplios conocimientos para encontrar un buen ajuste, mientras que los algoritmos de aprendizaje automatizado que se utilizan actualmente pueden demandar largos tiempos de entrenamiento y un gran coste computacional. Frente a estas limitaciones, han surgido recientemente modelos capaces de seleccionar de forma automática el mejor ajuste para una serie temporal dada, sin requerir entrenamiento previo ni conocimientos especializados en análisis de series de tiempo. Estos son los denominados modelos fundacionales preentrenados, tales como TimeGPT o Chronos.
 
-Sin embargo, aún persisten interrogantes sobre el desempeño de estos nuevos modelos y la falta de acceso al código fuente de algunos de estos limita la posibilidad de auditar sus resultados o replicar su implementación. Es por esto que en esta tesina se propone realizar una comparación sistemática de modelos de pronóstico para series de tiempo, abordando tres enfoques metodológicos: modelos estadísticos tradicionales, algoritmos de *machine learning* y modelos de aprendizaje profundo. El objetivo es evaluar su desempeño en distintos contextos, utilizando métricas como el porcentaje del error absoluto medio (MAPE) y el *Interval Score*, con el fin de analizar ventajas, limitaciones y potenciales usos de cada uno.
+Sin embargo, aún persisten interrogantes sobre el desempeño de estos nuevos modelos y la falta de acceso al código fuente de algunos de estos limita la posibilidad de auditar sus resultados o replicar su implementación. Por ello, esta tesina propone realizar una comparación sistemática de modelos de pronóstico para series de tiempo, abordando tres enfoques metodológicos: modelos estadísticos tradicionales, algoritmos de *machine learning* y modelos de aprendizaje profundo. El objetivo es evaluar su desempeño en distintos contextos, utilizando métricas como el porcentaje del error absoluto medio (MAPE) y el *Interval Score*, con el fin de analizar ventajas, limitaciones y potenciales usos de cada uno.
 
 Este análisis busca aportar una mirada crítica e informada sobre el uso de nuevas tecnologías en la predicción de series de tiempo, contribuyendo a la toma de decisiones metodológicas más sólidas desde una perspectiva estadística.
 
@@ -96,31 +101,35 @@ El objetivo de esta tesina es, en primer lugar, comparar la precisión, eficienc
 
 - Desarrollar modelos de aprendizaje profundo, en particular redes LSTM, dando introducción a las redes neuronales y modelos de pronóstico más complejos.
 
-- Realizar pronósticos con modelos fundacionales tales como TimeGPT y Chronos, buscando entender como funcionan.
+- Realizar pronósticos con modelos fundacionales(TimeGPT,Chronos) y comprender su funcionamiento.
 
 - Definir y aplicar métricas de evaluación (MAPE, *Interval Score*) para comparar el rendimiento de todos los modelos bajo un mismo conjunto de datos.
 
-- Reflexionar críticamente sobre los criterios de selección de modelos en función del contexto de aplicación, la complejidad computacional y la interpretabilidad de los resultados.
+- Reflexionar valorativamente sobre los criterios de selección de modelos en función del contexto de aplicación, la complejidad computacional y la interpretabilidad de los resultados.
 
 \newpage
 
-# 3. Metodología
+# 3. Metodología {#metodologia}
 
-El enfoque metodológico adoptado en esta tesina se basa en la comparación del desempeño de distintos modelos de pronóstico aplicados a series temporales. Para ello, se seleccionarán modelos representativos de tres enfoques principales: estadísticos tradicionales, algoritmos de aprendizaje automático (machine learning) y modelos de aprendizaje profundo. El análisis se estructura en tres componentes fundamentales: la caracterización de los modelos, la implementación práctica sobre series con distintas características y la evaluación comparativa mediante métricas cuantitativas.
+El enfoque metodológico adoptado en esta tesina consiste en comparar el desempeño de distintos modelos de pronóstico aplicados a series temporales. Para ello, se seleccionan modelos representativos de tres enfoques principales: modelos estadísticos tradicionales, algoritmos de aprendizaje automático (*machine learning*) y modelos de aprendizaje profundo (*deep learning*).
+
+El análisis se estructura en tres componentes fundamentales: una descripción conceptual de los modelos, su implementación práctica sobre series con diferentes características, y una evaluación cuantitativa comparativa a través de métricas de error.
 
 ## 3.1 Conceptos básicos de series de tiempo
 
 Se denomina serie de tiempo a un conjunto de observaciones $\{z_1, z_2, ..., z_t, ..., z_n\}$ cuantitativas ordenadas en el tiempo, usualmente de forma equidistante, sobre una variable de interés. El análisis de series de tiempo tiene como objetivo sintetizar y extraer información estadística relevante, tanto para interpretar el comportamiento histórico de la variable como para generar pronósticos $\{ z_{n+1}, ...,z_{n+l}, ...., z_{n+h} \}$.
 
-Dado que las series temporales pueden exhibir diversos patrones subyacentes, resulta útil descomponerlas en componentes diferenciadas, cada una de las cuales representa una característica estructural específica del comportamiento de la serie.
+Dado que las series temporales pueden exhibir diversos patrones subyacentes, resulta útil descomponerlas en componentes separadas, cada una de las cuales representa una característica estructural específica del comportamiento de la serie.
 
 - Estacionalidad: corresponde a las fluctuaciones periódicas que se repiten a intervalos regulares de tiempo. Un ejemplo típico es la temperatura, que tiende a disminuir en invierno y aumentar en verano, repitiendo este patrón anualmente.
 
 - Tendencia (o tendencia-ciclo): refleja la evolución a largo plazo de la media de la serie, asociada a procesos de crecimiento o decrecimiento sostenido. Por ejemplo, la población mundial exhibe una tendencia creciente a lo largo del tiempo.
 
-- Residuos: representa las variaciones no sistemáticas que no pueden ser explicadas por la tendencia ni la estacionalidad. Estas fluctuaciones suelen deberse a eventos impredecibles o factores exógenos, y se asume que siguen un comportamiento aleatorio.
+- Residuos: representa las variaciones no sistemáticas que no pueden ser explicadas por la tendencia ni la estacionalidad. Estas fluctuaciones, que suelen deberse a eventos impredecibles o factores exógenos, se asumen como aleatorias.
 
 ## 3.2 Modelos estadísticos tradicionales
+
+Son llamados modelos tradicionales a aquellos que surgen antes del auge del *machine learning* y los modelos de aprendizaje profundo. Son caracterizados por sus fuertes fundamentos estadísticos y su capacidad en capturar dependencias temporales en los datos.
 
 ### 3.2.1 SARIMA
 
@@ -128,13 +137,13 @@ Se dice que una serie es débilmente estacionaria si la media y la variancia se 
 
 Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas.
 
-Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además generaliza en el sentido de los modelos diferenciados (I), en los que se resta a cada observacion los $d$-ésimo valores anteriores para estacionarizar en media.
+Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además, estos modelos pueden adaptarse a series no estacionarias mediante la aplicación de diferenciaciones de orden $d$, las cuales implican restar a cada observación el valor registrado $d$ periodos anteriores.
 
 Formalmente un modelo $ARIMA(p,d,q)$ se define como:
 
 $$
 \psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
-$$
+$${#eq-1}
 
 Donde $z_t$ es la observación $t$-ésima, $\psi_p(B)$ y $\theta_q(B)$ son funciones de los rezagos ($B$), correspondientes a la parte autoregresiva y promedio móvil respectivamente, $d$ es el grado de diferenciación y $\alpha_t$ es el error de la $t$-ésima observación.
 
@@ -144,7 +153,7 @@ Se debe tener en cuenta estos aspectos importantes:
 
 - Por definición, todo modelo MA es estacionario.
 
-- $\psi_p(B) = 1 - \psi_1 B - \psi_2 B_2 - ... - \psi_p B^p$ es el polinomio característico de la componente AR y $\theta_q(B) = 1 - \theta_1 B - \theta_2 B^2 - ... - \theta_p B^q$ de la componente MA. Si las raíces de los polinomios característicos caen fuera del círculo unitario, entonces un proceso AR se puede esctribir de forma MA y es estacionario, y a su vez un proceso MA se puede escribir de forma AR y es invertible.
+- $\psi_p(B) = 1 - \psi_1 B - \psi_2 B_2 - ... - \psi_p B^p$ es el polinomio característico de la componente AR y $\theta_q(B) = 1 - \theta_1 B - \theta_2 B^2 - ... - \theta_p B^q$ de la componente MA. Si las raíces de los polinomios característicos caen fuera del círculo unitario, entonces un proceso AR se puede escribir de forma MA y es estacionario, y a su vez un proceso MA se puede escribir de forma AR y es invertible.
 
 - Un proceso $ARIMA$ es estacionario e invertible si su componente AR y MA lo son respectivamente.
 
@@ -152,7 +161,7 @@ Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad q
 
 Un buen modelo $SARIMA$ debe cumplir las siguientes propiedades:
 
-- Sus residuos se comportan como ruido blanco, es decir, estan incorrelacionados y se distribuyen normal, con media y variancia constante.
+- Sus residuos se comportan como ruido blanco, es decir, están incorrelacionados y siguen una distribución normal, con media y variancia constantes.
 
 - Es admisible, es decir que es invertible y estacionario.
 
@@ -160,9 +169,9 @@ Un buen modelo $SARIMA$ debe cumplir las siguientes propiedades:
 
 - Es estable en los parámetros, que se cumple cuando las correlaciones entre los parámetros no son altas.
 
-## 3.3 Algoritmos de apredizaje automático
+## 3.3 Algoritmos de aprendizaje automático
 
-El aprendizaje automático (del inglés *machine learning*) se define como una rama de la inteligencia artificial enfocada a permitir que las computadoras y máquinas imiten la forma en que los humanos aprenden, para realizar tareas de forma autónoma y mejorar la eficiencia y eficacia a través de la experiencia y la exposición a mas información. Si bien los métodos que se presentan no fueron diseñados especificamente para el análisis de datos temporales, como los modelos tradicionales o aquellos que utilizan aprendizaje profundo que se mencionarán más adelante, si probaron ser útiles a lo largo del tiempo y a través de distintas pruebas.
+El aprendizaje automático (machine learning) es una rama de la inteligencia artificial que permite a las computadoras aprender de los datos y realizar tareas de forma autónoma. Aunque los métodos presentados no fueron diseñados específicamente para datos temporales, han demostrado ser útiles en múltiples contextos mediante diversas pruebas empíricas.
 
 Los métodos de *machine learning*, a diferencia de los modelos tradicionales, se enfocan principalmente en identificar los patrones que describen el comportamiento del proceso que sean relevantes para pronosticar la variable de interés, y no se componen de reglas ni supuestos que tengan que seguir. Para la identificación de patrones, estos modelos requieren la generación de características. 
 
@@ -170,7 +179,7 @@ Los métodos de *machine learning*, a diferencia de los modelos tradicionales, s
 
 Los árboles de decisión pueden ser explicados sencillamente como un conjunto extenso de estructuras condicionales *if-else*. El modelo pronosticará un cierto valor $x$ si una cierta condición es verdadera, u otro valor $y$ si es falsa. Es importante ver que no hay una tendencia lineal en este tipo de lógica, por lo que los árboles de decisión pueden ajustar tendencias no lineales. El resultado que se obtiene al aplicar esta técnica puede resumirse gráficamente como un camino que toma diferentes bifurcaciones (o un tronco con diferentes ramas), y de esta característica surge su nombre.
 
-Un árbol puede tener distinta cantidad de divisiones en un mismo nivel, llamadas hojas, y profundidad, las cúales determinan que tanto se ajusta el modelo a los datos con los cúales se entrena. Lógicamente árboles más profundos y con más hojas producirán un sobreajuste, y es esta la mayor desventaja que tienen este tipo de modelos.
+Un árbol puede tener distinta cantidad de divisiones en un mismo nivel, llamadas hojas, y profundidad, las cuales determinan en qué medida el modelo se ajusta a los datos con los que se entrena. Lógicamente árboles más profundos y con más hojas suelen generar sobreajuste, es decir, un modelo que se adapta demasiado a los datos de entrenamiento y generaliza mal.
 
 ![Ejemplo de árbol de decisión](../Imgs/arbol_decision.png)
 
@@ -185,21 +194,37 @@ La dirección de máximo crecimiento para una función está determinada por su 
 
 ![Ejemplo del descenso del gradiente en una función de pérdida](../Imgs/desc_gradiente.png)
 
-Sin embargo, los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamblaje (XGBoost, LightGBM, CatBoost, AdaBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos XGBoost y LightGBM.
+Sin embargo, los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamblaje (XGBoost, LightGBM, CatBoost, AdaBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos *eXtreme Gradient Boosting* (XGBoost) y *Light Gradient-Boosting Machine* (LightGBM).
 
 ### 3.3.2 Diferencias entre XGBoost y LightGBM
 
 Las diferencias entre XGBoost y LightGBM radican en la forma en que cada uno identifica las mejores divisiones dentro de los árboles y de que forma los hacen crecer.
 
-Mientras que XGBoost usa un método en el que se construyen histogramas para cada una de las características generadas para elegir la mejor división por característica, LightGBM usa un método más eficiente llamado *Gradient-Based One-Side Sample* (GOSS). GOSS calcula los gradientes para cada punto y lo usa para filtrar afuera aquellos puntos que tengan un bajo gradiente, ya que esto significaría que estos están mejor pronosticados que el resto y no es necesario enfocarse tanto en ellos. Además, LightGBM utiliza un procedimiento que acelera el ajuste cuando se tienen muchas características correlacionadas de las cuáles elegir. 
+Mientras que XGBoost usa un método en el que se construyen histogramas para cada una de las características generadas para elegir la mejor división por característica, LightGBM usa un método más eficiente llamado *Gradient-Based One-Side Sample* (GOSS). GOSS calcula los gradientes para cada punto y lo usa para filtrar afuera aquellos puntos que tengan un bajo gradiente, ya que esto significaría que estos están mejor pronosticados que el resto y no es necesario enfocarse tanto en ellos. Además, LightGBM utiliza un procedimiento que acelera el ajuste cuando se tienen muchas características correlacionadas de las cuales elegir. 
 
 A la hora de hacer crecer los árboles, XGBoost lo hace nivel a nivel, es decir que primero se crean todas las divisiones de un nivel, y luego se pasa al siguiente, priorizando que el árbol sea simétrico y tenga la misma profundidad en todas sus ramas. LigthGBM, en cambio, se expande a partir de la hoja que más reduce el error, mejorando la precisión y eficiencia en series largas, pero arriesgándose a posibles sobreajustes si no se limita correctamente la profundidad de los árboles.
 
-## 3.4 Modelos de apredizaje profundo
+### 3.3.3 Intervalos de confianza en algoritomos de aprendizaje automático
+
+No depender del cumplimiento de los supuestos distribucionales de los errores es una gran ventaja, pero conlleva la consecuencia de no poder obtener pronósticos probabilísticos. Para obtener intervalos de confianza que acompañen los pronósticos puntuales existen varias alternativas. 
+
+La regresión cuantil con *boosting* consiste en forzar al modelo a pronosticar los cuantiles deseados en lugar de la media. Sin embargo, esta opción no es fácilmente aplicable a XGBoost.
+
+Una alternativa que recientemente gana popularidad es *conformal predictions*, que es una familia de métodos no paramétricos para construir intervalos de predicción. En general, esta familia de métodos requieren el cumplimiento del supuesto de intercambiabilidad, es decir, que las observaciones no deben ser dependientes del tiempo, algo que no se cumple en series de tiempo. Sin embargo, *Ensemble Batch Prediction Intervals* (EnbPI) es un método de conformal prediction diseñado específicamente para series de tiempo que no requiere este supuesto.
+
+Para aplicar EnmPI primero se debe elegir un estimador por ensamblado y formar $B$ muestras con *Bootstrap* por bloques. Esto último consiste en dividir el conjunto de datos de entrenamiento en bloques y formar un nuevo conjunto remuestreando sobre estos mismos bloques para mantener la correlación de los datos. Se ajustan $B$ modelos, uno para cada muestra bootstrap. Para cada punto en el conjunto de entrenamiento se calcula el residuo usando únicamente aquellos estimadores que no contenían al punto en cuestión. Se generan los pronósticos puntuales usando la media de los pronósticos de los $B$ modelos. Los intervalos de confianza se consiguen sumando a los pronósticos puntuales los cuantiles de la distribución de los residuos.
+
+$$
+IC_{Z_{n+l}; 1-\alpha}= Z_{n}(l) \pm Q_{1-\alpha}(e)
+$${#eq-2}
+
+Este último método será el que se utilizará para calcular los intervalos de confianza en los algoritmos de aprendizaje automático. 
+
+## 3.4 Modelos de aprendizaje profundo
 
 El *deep learning* (aprendizaje profundo) es una rama del *machine learning* que tiene como base un conjunto de algoritmos que intentan modelar niveles altos de abstracción en los datos usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales. 
 
-Entre el conjunto de algoritmos que se menciona están las redes neuronales, las cúales son un tipo de modelo que toma decisiones de la misma forma que las personas, usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. 
+Entre estos algoritmos se encuentran las redes neuronales, que imitan el funcionamiento del cerebro humano usando procesos que simulan la forma biológica en la que trabajan las neuronas para identificar fenómenos, evaluar opciones y llegar a conclusiones. 
 
 ### 3.4.1 Introducción a redes neuronales
 
@@ -223,7 +248,7 @@ Lo que caracterizan a las redes neuronales recurrentes son los bucles de retroal
 ![Ejemplo de RNN](../Imgs/red_recurrente.png){#fig-rnn}
 
 
-Un problema común de las RNN es la dificultad que tienen para capturar dependencias a largo plazo en los datos. Esto puede tener 2 causas, el desvanecimiento o la explosión del gradiente. El desvanecimiento del gradiente ocurre cuando, iteración tras iteración, el gradiente se aproxima a cero y se estabiliza, evitando que la red siga aprendiendo. Por el contrario, cuando el gradiente crece exponencialmente se habla de una explosión, esto lleva a inestabilidades en el aprendizaje, haciendo que las actualizaciones de los parámetros sean erráticas e impredecibles.
+Un problema frecuente en las RNN es su dificultad para capturar dependencias de largo plazo. Esto puede tener 2 causas, el desvanecimiento o la explosión del gradiente. El desvanecimiento del gradiente ocurre cuando, iteración tras iteración, el gradiente se aproxima a cero y se estabiliza, evitando que la red siga aprendiendo. Por el contrario, cuando el gradiente crece exponencialmente se habla de una explosión, esto lleva a inestabilidades en el aprendizaje, haciendo que las actualizaciones de los parámetros sean erráticas e impredecibles.
 
 Las redes neuronales con memoria a corto y largo plazo (LSTM) son un tipo de RNN que solucionan este problema mediante un algoritmo logístico de 3 puertas, y usando una neurona que guarda la información histórica necesaria para la red.
 
@@ -235,11 +260,11 @@ La puerta de guardado se encarga de decidir si mantener o descartar la informaci
 
 $$
 \sigma(x) =  \frac{1}{1+e^{-x}}
-$$
+$${#eq-3}
 
 $$
 K_t = \sigma(W_k \times [S_{t-1}, x_t] + B_k)
-$$
+$${#eq-4}
 
 Si $K_t$ es igual a 1, significa que la información guardada debe ser mantenida perfectamente. Si $K_t$ fuera igual a 0, la información guardada debe ser descartada completamente.
 
@@ -247,7 +272,7 @@ Sean $S_{t-1}$ el estado actual de la RNN, $x_t$ la entrada actual, y $W_t$ y $B
 
 $$
 Old_t = K_t \times C_{t-1}
-$$
+$${#eq-5}
 
 Donde $C_{t-1}$ es la información guardada actualmente y $Old_t$ lo que se mantendrá para la próxima iteración de la red.
 
@@ -257,11 +282,11 @@ La puerta de entrada controla que información añadir a la neurona de memoria. 
 
 $$
 I_t = \sigma(W_i\times[S_{t-1},x_t]+B_i)
-$$
+$${#eq-6}
 
 $$
 New_t = I_t \times N_t
-$$
+$${#eq-7}
 
 Donde $N_t$ es el nuevo valor propuesto por la red neuronal y $New_t$ es la información que se va a agregar a la neurona de memoria. Luego, el nuevo valor de la neurona de memoria es:
 
@@ -273,11 +298,11 @@ La puerta de salida se encarga de extraer la información más importante del es
 
 $$
 O_t = \sigma(W_o \times [S_{t-1},x_t] + B_o)
-$$
+$${#eq-8}
 
 $$
 S_t = O_t \times tanh(C_t)
-$$
+$${#eq-9}
 
 Donde $S_t$ es el nuevo estado de la red neuronal.
 
@@ -285,7 +310,7 @@ Las 3 puertas son logísticas para que sea sencillo aplicar la retropropagación
 
 ### 3.4.3 Modelos transformadores
 
-Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. La autoatención captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
+Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cúales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs; gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. La autoatención captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
 Los modelos transformadores fueron creados originalmente con el propósito de generar texto. Sin embargo, tanto TimeGPT como Chronos explotan esta tecnología para el pronóstico de series de tiempo. Ambos modelos son preentrenados, lo cúal significa que la optimización de parámetros y pesos fue realizada antes de usarse el modelo. Esto se logra entrenando y generalizando el modelo en un conjunto de datos extenso, por lo general de fuentes públicas. El preentrenamiento permite que el modelo adquiera conocimientos generales sobre la estructura y los patrones de los datos, los cuales luego pueden ser reutilizados en tareas concretas mediante técnicas como *fine-tuning* (ajuste fino). Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
 
@@ -299,8 +324,8 @@ $$
 q(x)= \left \{ \begin{matrix} 1 \ \ \ \ \ \ \ \ \text{si} \ \ -\infty \leq x < b_1 \hfill \\ 
 2 \ \ \ \ \ \ \ \ \text{si} \ \ b_1 \leq x < b_2 \hfill \\
  \ \vdots \hfill \\
-B \ \ \ \ \ \ \ \ \text{si} \ \ b_{B-1} \leq x < \infty \hfill \end{matrix} \right. \hspace{2, cm} \text{and} \hspace{2, cm} d(j) = c_j
-$$
+B \ \ \ \ \ \ \ \ \text{si} \ \ b_{B-1} \leq x < \infty \hfill \end{matrix} \right. \hspace{2, cm} \text{y} \hspace{2, cm} d(j) = c_j
+$${#eq-10}
 
 Una vez se hayan transformado las observaciones para poder ser leídas por el modelo, el funcionamiento de un transformador es el siguiente: 
 
@@ -324,19 +349,19 @@ Ahora que se sabe que tokens son relevantes para otros tokens, es necesario sabe
 
 $$
 \Delta \vec E_j = \sum_i S_j \cdot \vec V_i
-$$
+$${#eq-11}
 
 Con múltiples 'cabezas', cada una con sus propias matrices $W_K$, $W_Q$ y $W_V$, se generan varios $\Delta \vec E$ que se suman y se añaden al vector de entrada original. 
 
 $$
 \vec E \Leftarrow \vec E+ \sum_h \Delta \vec E_h
-$$
+$${#eq-12}
 
 De forma resumida
 
 $$
 \text{Atención}(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}})V
-$$
+$${#eq-13}
 
 Es importante notar que todas las matrices $Q$, $K$ y $V$ son preentrenadas.
 
@@ -373,7 +398,7 @@ Tal vez la diferencia más importante es como operan los modelos. Se mencionó a
 La función de pérdida utilizada por Chronos está dada por:
 $$
 \ell(\theta) = \sum^{h+1}_{l=1} \sum^{|\nu_{ts}|}_{i=1} \mathbfcal{1}_{z_{n+l+1}=i} log \ \mathcal{p}_\theta(z_{n+l+1}=i| z_{1:n+l})
-$$
+$${#eq-14}
 
 Donde $|\nu_{ts}|$ es el tamaño del diccionario de tokens, el cúal depende del número de intervalos creados. $z_{n+h+1}$ es la serie transformada en *tokens* de la cúal las primeras $n$ observaciones se usarán como entrenamiento para pronosticar las siguientes $h$, y se agrega al final un token $\texttt{EOS}$ que se utiliza comunmente en los modelos de lenguaje para denotar el final de la secuencia. $\mathcal{p}_\theta$ es la probabilidad estimada por el modelo bajo la parametrización $\theta$.
 
@@ -384,57 +409,57 @@ Otra diferencia entre TimeGPT y Chronos es el tipo de red neuronal que utilizan 
 ## 3.5 Métricas de evaluación
 
 
-Para comparar el rendimiento de los modelos, se utilizarán métricas cuantitativas. Para los pronósticos puntuales se usará el porcentaje del error absoluto medio (MAPE), mientras que para los pronósticos probabilísticos se aplicará el *Interval Score*, propuesto por Gneiting y Raftery (2007), que penaliza tanto la amplitud de los intervalos como la falta de cobertura. Las comparaciones permitirán evaluar precisión, robustez y eficiencia de cada enfoque.
+Para comparar el rendimiento de los modelos se utilizan métricas cuantitativas. Para los pronósticos puntuales se usará el porcentaje del error absoluto medio (MAPE), mientras que para los pronósticos probabilísticos se aplicará el *Interval Score*, propuesto por Gneiting y Raftery (2007), que penaliza tanto la amplitud de los intervalos como la falta de cobertura. Estas comparaciones permiten evaluar la precisión, la robustez y la eficiencia de cada enfoque.
 
-Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ es el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $h$ pasos hacia adelante son:
+Sea $e_l = Z_{n+l} - \hat Z_n(l)$ el error de la l-ésima predicción, donde $\hat Z_n(l)$ representa el pronóstico $l$ pasos hacia adelante, algunas medidas del error para pronósticos $h$ pasos hacia adelante son:
 
-- Error Cuadrático Medio (*Mean Square Error (MSE)*):
+- Error Cuadrático Medio (*Mean Square Error, MSE*):
 
 $$
 MSE = \frac{1}{h}\sum^h_{l=1}e_l^2
-$$
+$${#eq-15}
 
-- Error absoluto medio (*Mean Absolute Error (MAE)*):
+- Error absoluto medio (*Mean Absolute Error, MAE*):
 
 $$
 MAE = \frac{1}{h}\sum^h_{l=1}|e_l|
-$$
+$${#eq-16}
 
-- Porcentaje del error absoluto medio (*Mean Absolute Percentage Error (MAPE)*)
+- Porcentaje del error absoluto medio (*Mean Absolute Percentage Error, MAPE*)
 
 $$
 MAPE = (\frac{1}{h}\sum^h_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
-$$
+$${#eq-17}
 
-Aquel modelo que tenga el menor valor en estas medidas será considerado el mejor.
-
-El problema de estos errores es que solo tienen en cuenta la estimación puntual, y por lo general es buena idea trabajar con pronosticos probabilisticos para cuantificar la incertidumbre de los valores futuros de la variable. Gneiting & Raftery (2007, JASA) propusieron en [Strictly Proper Scoring Rules, Prediction, and Estimation](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf) una nueva medida del error que tiene en cuenta los intervalos probabilísticos de la estimación, llamandola *Interval Score*:
+El problema de estos errores es que solo tienen en cuenta la estimación puntual, y por lo general es buena idea trabajar con pronósticos probabilísticos para cuantificar la incertidumbre de los valores futuros de la variable. Gneiting y Raftery (2007, JASA) propusieron en [*Strictly Proper Scoring Rules, Prediction, and Estimation*](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf) una nueva medida del error que tiene en cuenta los intervalos probabilísticos de la estimación, llamándola *Interval Score*:
 
 $$
 S = \frac{1}{h}\sum_{l=1}^h (W_l + O_l + U_l) 
-$$
+$${#eq-18}
 
 Donde:
 
 $$
 W_l = IS_l - II_l \hspace{1, cm}
-$$
+$${#eq-19}
 
 $$
 O_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_n(l) - Z_{n+l}) \hspace{10,mm} \text{si } Z_n(l) > Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right. \hspace{1, cm} U_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_{n+l} - Z_n(l)) \hspace{10,mm} \text{si } Z_n(l) < Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.
-$$
+$${#eq-20}
 
 Siendo $IS_l$ e $II_l$ los extremos superior e inferior del intervalo del l-ésimo pronóstico respectivamente. Es fácil darse cuenta que $W$ es una penalización por el ancho del intervalo, y que $O$ y $U$ son penalizaciones por sobre y subestimación respectivamente.
 
+Se considera mejor al modelo que minimiza estas métricas.
+
 ## 3.6 Técnicas para la estimación de parámetros
 
-La correcta elección de los parámetros del modelo es la tarea más importante para llegar a un buen ajuste de los datos. Sin embargo, no es prudente utilizar todos los datos con los que se cuenta para este propósito, ya que se produciría un sobreajuste. Se habla de sobreajuste cuando el modelo aprende mucho de los datos de entrenamiento y se ajusta demasiado al patrón de estos, logrando que al querer estimar datos nuevos el modelo se desempeñe muy mal. Para evitar esto se utilizan distintas técnicas para la estimación de parámetros.
+La correcta elección de los parámetros del modelo constituye una de las tareas más importantes para lograr un buen ajuste de los datos. No resulta conveniente utilizar todos los datos disponibles para este fin, ya que esto puede conducir a un sobreajuste (*overfitting*). Se habla de sobreajuste cuando el modelo ase adapta excesivamente a los datos de entrenamiento, lo que perjudica su capacidad para generalizar sobre datos nuevos. Para evitar este problema se aplican técnicas específicas de validación que permiten seleccionar los parámetros sin comprometer la capacidad predictiva del modelo.
 
-La validación holdout consiste en reservar una parte del conjunto de entrenamiento como validación, e ir probando las métricas de evaluación de las distintas configuraciones de parámetros del modelo, ajustado sobre el resto de los datos de entrenamiento, sobre este nuevo conjunto. Luego, para ajustar el modelo con la mejor combinación de parámetros, se utilizarán tanto los datos de entrenamiento como de validación. Por la ordinalidad de los datos, el conjunto de validación tendrá que ser más reciente que el conjunto de entrenamiento. 
+La validación *holdout* consiste en reservar una parte del conjunto de entrenamiento como validación, e ir probando las métricas de evaluación de las distintas configuraciones de parámetros del modelo, ajustado sobre el resto de los datos de entrenamiento, sobre este nuevo conjunto. Luego, para ajustar el modelo con la mejor combinación de parámetros, se utilizarán tanto los datos de entrenamiento como de validación. Por la ordinalidad de los datos, el conjunto de validación tendrá que ser más reciente que el conjunto de entrenamiento. 
 
 $$
 \text{Conjunto de entrenamiento total : } \{\underbrace{z_1, ...,  z_c}_{\text{Entrenamiento}}, \underbrace{z_{c+1}, ..., z_n}_{\text{Validación}} \}
-$$
+$${#eq-21}
 
 Si alguna serie presentara estacionalidad, se priorizará que el conjunto de validación tenga el largo del ciclo, para poder evaluar el ajuste del modelo en todo el ciclo.
 
@@ -444,19 +469,20 @@ Para ARIMA se usará el método de Box-Jenkins. En este método se compararán a
 
 # 4. Aplicación
 
-La aplicación empírica del trabajo tiene como objetivo implementar, ajustar y comparar los modelos previamente detallados sobre un conjunto de series temporales seleccionadas, usando el software de programación de código abierto Python.
+La aplicación empírica de esta tesina tuvo como objetivo implementar, ajustar y comparar los modelos presentados en la [sección 3](#metodologia), utilizando un conjunto de series temporales seleccionadas. Para ello, se empleó el lenguaje de programación Python, junto con diversas librerías de código abierto.
 
-Se trabajará con series temporales reales obtenidas de bases de datos públicas y confiables. Para cada serie se implementarán los distintos modelos de pronóstico contemplados en el trabajo, agrupados en función de su enfoque metodológico: estadístico tradicional, aprendizaje automático y modelos de aprendizaje profundo. Para cada modelo se explorarán distintas configuraciones de parámetros explicando sus significados y funciones.
+Se trabajó con series temporales reales, obtenidas de bases de datos públicas y confiables. Cada serie fue modelada desde tres enfoques metodológicos distintos: modelos estadísticos tradicionales, algoritmos de aprendizaje automático y modelos de aprendizaje profundo. Para cada uno de ellos, se exploraron distintas configuraciones de parámetros, explicando su significado y función en el ajuste.
 
-  - Los modelos estadísticos clásicos, como ARIMA y SARIMA, serán ajustados utilizando la librería `pmdarima`. La selección de parámetros se realizará manualmente y con la librería mencionada, basandose en el criterio de información de Akaike (AIC). 
 
-  - En el caso de los modelos de aprendizaje automático, se emplearán bosques aleatorios con *boosting* haciendo uso de los algoritmos XGBoost y LightGBM. Estos modelos serán implementados con las librerías `xgboost` y `lightgbm` respectivamente.
+  - Los modelos estadísticos clásicos, como ARIMA y SARIMA, serán ajustados utilizando la librería `pmdarima`. La selección de parámetros se se realizó manualmente y mediante procedimientos automáticos, tomando como criterio principal el Criterio de Información de Akaike (AIC).
 
-  - Para los modelos de aprendizaje profundo, se desarrollarán redes neuronales del tipo LSTM, usando en este caso la librería `neuralforecast`.
+  - Para el enfoque de aprendizaje automático, se emplearon algoritmos de boosting, específicamente XGBoost y LightGBM, implementados con las librerías `xgboost` y `lightgbm` respectivamente.
 
-  - Por último, se explorarán dos modelos fundacionales preentrenados. El primero es TimeGPT, que será accedido a través de la API provista por Nixtla y haciendo uso de la librería `nixtla`. El segundo es Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services* cuya implementación será llevada a cabo con la librería `autogluon`.
+  - En el caso de los modelos de aprendizaje profundo, se entrenaron redes LSTM utilizando la librería `neuralforecast`.
 
-Cada modelo será evaluado en función de su desempeño predictivo, utilizando métricas como MAPE e *Interval Score*, junto con observaciones sobre el tiempo de cómputo, la facilidad de implementación e interpretabilidad de cada uno. Los resultados se sistematizarán en tablas comparativas y visualizaciones gráficas, acompañadas de un análisis crítico.
+  - Finalmente, se exploraron dos modelos fundacionales preentrenados: TimeGPT, accedido a través de la API de Nixtla mediante la librería `nixtla`, y Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services* cuya implementación se llevó a cabo con la librería `autogluon`.
+
+Cada modelo fue evaluado en función de su desempeño predictivo, utilizando métricas como el error absoluto porcentual medio (MAPE) y el *Interval Score*. Además, se consideraron aspectos adicionales como el tiempo de cómputo, la facilidad de implementación y la interpretabilidad de los resultados. Los resultados fueron presentados en tablas comparativas y visualizaciones gráficas, acompañadas de un análisis crítico.
 
 ## 4.1 Series a utilizar
 
@@ -529,7 +555,7 @@ trabajadores_trunc = trabajadores.head(len(trabajadores)-12).copy()
 temperatura_trunc = tiempo_rosario.head(len(tiempo_rosario)-24).copy()
 ```
 
-La primera serie que se pronosticará son las atenciones de guardia mensuales por patologías respiratorias (Códigos CIE10: J09-J18, J21, J22 y J44) en el hospital de niños Víctor J. Vilela de la ciudad de Rosario. Estos datos fueron proporcionados por la Dirección General de Estadística de la Municipalidad de Rosario.
+La primera serie analizada correspondió al número mensual de atenciones de guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario. Esta información fue provista por la Dirección General de Estadística de la Municipalidad de Rosario. La serie mostró una marcada estacionalidad, con picos en los meses de invierno, y una fuerte caída en 2020, atribuida a las medidas sanitarias adoptadas durante la pandemia de COVID-19.
 
 ```{python}
 # Grafico serie Atenciones
@@ -542,7 +568,7 @@ plt.ylabel('Atenciones')
 
 Esta serie no presenta una tendencia clara pero si estacionalidad, ya que se observan picos en los meses de invierno. Este patrón es más dicernible con el gráfico @fig-atenciones_estacionalidad del anexo. La abrupta caída en el número de atenciones del año 2020 se atribuye al estado de pandemia causado por el Covid-19. El objetivo será pronosticar las atenciones en guardia del año 2024.
 
-Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registradas en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, presentadose descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian la consecuencias de la pandemia. Se buscará pronosticar los trabajadores registrados en el área de enseñanza del año 2024.
+Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registradas en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, presentadose descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian las consecuencias de la pandemia. Se buscará pronosticar los trabajadores registrados en el área de enseñanza del año 2024.
 
 ```{python}
 # Grafico serie trabajadores
@@ -712,46 +738,161 @@ En las autocorrelaciones de la serie de trabajadores resultan significativos el 
 Además, por medio de la función `auto_arima` de la librería `pmdarima` se propusieron modelos automáticos. Se elegirá como mejor modelo aquel que minimice el Criterio de Información de Akaike (AIC) y cumpla con las propiedades del modelo ARIMA.
 
 \begin{table}[H]
+\centering
 \caption{Cumplimiento de las condiciones de estacionariedad e invertibilidad de los modelos ajustados.}
 \begin{tabular}{|clclcl|}
 \hline
 \multicolumn{1}{|c|}{\multirow{2}{*}{Modelo}}     & \multicolumn{1}{c|}{\multirow{2}{*}{AIC}} & \multicolumn{2}{c|}{Parte regular}                                         & \multicolumn{2}{c|}{Parte estacional}                 \\ \cline{3-6} 
 \multicolumn{1}{|c|}{}                            & \multicolumn{1}{c|}{}                     & \multicolumn{1}{c|}{Estacionariedad} & \multicolumn{1}{c|}{Invertibilidad} & \multicolumn{1}{c|}{Estacionariedad} & Invertibilidad \\ \hline
 \multicolumn{6}{|c|}{ATENCIONES EN GUARDIA}                                                                                                                                                                                        \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,1,0)_{12}$} & \multicolumn{1}{l|}{857.6}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(0,1,1)(0,1,0)_{12}$} & \multicolumn{1}{l|}{852.1}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,1)(0,1,0)_{12}$} & \multicolumn{1}{l|}{857.6}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,0)(0,1,1)_{12}$} & \multicolumn{1}{l|}{852.1}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
 \multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,0,0)_{12}$} & \multicolumn{1}{l|}{1013.5}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
 \multicolumn{6}{|c|}{TRABAJADORES}                                                                                                                                                                                                 \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(0,1,1)(1,1,0)_{12}$} & \multicolumn{1}{l|}{366.6}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(2,0,0)(2,1,0)_{12}$} & \multicolumn{1}{l|}{364.8}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,1)(1,1,0)_{12}$} & \multicolumn{1}{l|}{359.9}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(2,0,0)(2,1,0)_{12}$} & \multicolumn{1}{l|}{356.7}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
 \multicolumn{6}{|c|}{TEMPERATURA}                                                                                                                                                                                                  \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(1,1,1)(2,0,1)_{24}$} & \multicolumn{1}{l|}{1067.1}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{No}              & Si             \\ \hline
+\multicolumn{1}{|c|}{$SARIMAX(1,1,1)(2,0,1)_{24}$} & \multicolumn{1}{l|}{1067.1}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{No}              & Si             \\ \hline
 \end{tabular}
 \end{table}
 
-Para la serie de atenciones se seguirá trabajando con el segundo modelo propuesto y con el seleccionado de manera automática, ya que el parámetro AR del primer modelo prupuesto no es significativo. Por otro lado, los dos modelos probados para la serie de trabajadores seguirán siendo utilizados. El modelo automático para la serie de temperaturas no goza de estacionariedad, por lo que se proponen los modelos $SARIMA(1,1,1)(1,0,1)_{24}$, $SARIMA(1,1,0)(2,0,1)_{24}$ y $SARIMA(1,1,0)(1,1,0)_{24}$, de los cúales únicamente el último cumple con todas las propiedades buscadas, con un AIC de 1119.3.
+Para la serie de atenciones se seguirá trabajando con el segundo modelo propuesto y con el seleccionado de manera automática, ya que el parámetro MA del primer modelo prupuesto no es significativo. Por otro lado, los dos modelos probados para la serie de trabajadores seguirán siendo utilizados. El modelo automático para la serie de temperaturas no goza de estacionariedad, por lo que se proponen los modelos $SARIMAX(1,1,1)(1,0,1)_{24}$, $SARIMAX(1,1,0)(2,0,1)_{24}$ y $SARIMAX(1,1,0)(1,1,0)_{24}$, de los cúales únicamente el último cumple con todas las propiedades buscadas, con un AIC de 1119.3.
 
-Lo siguiente es comprobar que los residuos se comportan como ruido blanco.
+Las salidas de los modelos se pueden ver en el [anexo](#salidas_arima) para comprobar los resultados.
+
+Lo siguiente es comprobar que los residuos estandarizados se comporten como ruido blanco.
 
 ```{python}
-# Pronosticos automaticos
+#| fig-cap: "Comprobación de supuestos del 2º modelo manual para las atenciones en guardia"
 
-plt.figure(figsize=(9, 5))
-plt.subplot(3,1,1)
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 24)
-
-plt.subplot(3,1,2)
-plot_forecast(data = trabajadores, forecast = resultados_2_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 24)
-
-plt.subplot(3,1,3)
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_arima['pred'], pred_color = 'red', label = 'ARIMA', long = 36)
+resid_check(resultados_arima['resid_arima_atenciones_2'], ds = atenciones_trunc['ds'])
 ```
 
+El histograma muestra la distribución de los residuos, pudiendo ver y comprobar con el test de Kolmogorov-Smirnov que es normal. La serie de los residuos muestra como estos no tienen un patrón particular ni variabilidad dependiente del tiempo, solo 2 *outlayers* fáciles de ignorar. Por último, los gráficos inferiores muestran las autocorrelaciones y autocorrelaciones parciales, esperando que no haya ninguna significativa. Por medio del test de Ljung-Box se comprueba que ninguna lo es y se concluye que los residuos no están correlacionados. Por lo tanto todos los supuestos se cumplen para este modelo. 
+
+Con el propósito de no poblar de gráficos el documento, el resto de los gráficos para la comprobación de supuestos de los demás modelos se encuentran en el [anexo](#supuestos_arima). En estos se destaca que todos los modelos, con excepción del seleccionado automáticamente para los trabajadores, superaron la comprobación de supuestos. El problema de este modelo es la existencia de correlación en los residuos, supuesto que es sumamente importante al ajustar modelos ARIMA. Si bien los residuos del modelo seleccionado manualmente para los trabajadores no cumple con normalidad, es sencillo ver que esto se debe a unos poco valores extremos, y que sin estos es muy probable que se sí se distribuyan normalmente. De lo contrario, en la próxima sección se detallarán posibles soluciones.
+
+```{python}
+#| layout-ncol: 2
+#| fig-cap: 
+#|   - "Line Plot 1"
+#|   - "Line Plot 2"
+
+plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_1'], pred_color = 'green', label = 'ARIMA', long = 48)
+
+plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], pred_color = 'green', label = 'ARIMA', long = 48)
+
+```
+
+```{python}
+#| layout-ncol: 2
+#| fig-cap: 
+#|   - "Line Plot 1"
+#|   - "Line Plot 2"
+
+plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_2'], pred_color = 'grey', line_color='#6BC78A', label = 'IC 80%', long = 48)
+
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = 'grey', line_color='#6BC78A', label = 'IC 80%', long = 48)
+
+```
+
+```{python}
+#| layout-ncol: 2
+#| fig-cap: 
+#|   - "Line Plot 1"
+#|   - "Line Plot 2"
+
+plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], pred_color = 'grey', line_color='#5299CB', label = 'IC 80%', long = 48)
+
+plot_forecast(data = tiempo_rosario[['ds','y']], forecast = resultados_arima['pred_temperatura_3'], pred_color = 'grey', line_color='#E23C47', label = 'IC 80%', long = 48)
+
+```
+
+Uno de los problemas de pronosticar con ARIMA es que para trabajar con variables exógenas se debe conocer los valores futuros de estas. Para este caso se asume que los valores de humedad y presión atmosférica son conocidos para el día 21, sin embargo, para el resto de aplicaciones esto no será así y se considera esto como una desventaja de este modelo de pronóstico.
+
+Otro problema que se encuentra es que el intervalo de confianza para las atenciones por guardia toma valores negativos, algo claramente ilógico. Esto se puede resolver ajustando modelos sobre el logaritmo de la variable, y luego transformando los valores pronosticados a la escala original. Esta solución queda propuesta para un futuro trabajo y se usan los resultados como exposición de los problemas para pronosticar usando la familia de modelos ARIMA.
+
+```{python}
+# CALCULO DE MAPES
+mape_atenciones_2 = mean_absolute_percentage_error(y_true=atenciones_guardia.tail(12)['y'], y_pred=resultados_arima['pred_atenciones_2']['pred'])
+
+mape_trabajadores_1 = mean_absolute_percentage_error(y_true=trabajadores.tail(12)['y'], y_pred=resultados_arima['pred_trabajadores_1']['pred'])
+
+mape_temperatura_3 = mean_absolute_percentage_error(y_true=tiempo_rosario.tail(24)['y'], y_pred=resultados_arima['pred_temperatura_3']['pred'])
+
+
+# CALCULO DE INTERVAL SCORES
+is_atenciones_2 = interval_score(obs=atenciones_guardia.tail(12)['y'], lower = resultados_arima['pred_atenciones_2']['lower'], upper = resultados_arima['pred_atenciones_2']['upper'], alpha = 0.2)
+
+is_trabajadores_1 = interval_score(obs=trabajadores.tail(12)['y'], lower = resultados_arima['pred_trabajadores_1']['lower'], upper = resultados_arima['pred_trabajadores_1']['upper'], alpha = 0.2)
+
+is_temperatura_3 = interval_score(obs=tiempo_rosario.tail(24)['y'], lower = resultados_arima['pred_temperatura_3']['lower'], upper = resultados_arima['pred_temperatura_3']['upper'], alpha = 0.2)
+```
+
+\begin{table}[H]
+\centering
+\caption{Métricas de evaluación de los modelos ARIMA.}
+\begin{tabular}{|clc|}
+\hline
+\multicolumn{1}{|c|}{\multirow{2}{*}{Modelo}}     & \multicolumn{1}{c|}{\multirow{2}{*}{MAPE}} & \multirow{2}{*}{\textit{Interval Score}} \\
+\multicolumn{1}{|c|}{}                            & \multicolumn{1}{c|}{}                      &                                   \\ \hline
+\multicolumn{3}{|c|}{Atenciones en guardia}                                                                                        \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,0)(0,1,1)_{12}$} & \multicolumn{1}{l|}{`{python} round(mape_atenciones_2, 4)`}                  & `{python} round(is_atenciones_2, 4)`                                \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,0,0)_{12}$} & \multicolumn{1}{l|}{`{python} round(resultados_1_arima['mape'], 4)`}                  & `{python} round(resultados_1_arima['score'], 4)`                                \\ \hline
+\multicolumn{3}{|c|}{Trabajadores registrados}                                                                                                 \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(0,1,1)(1,1,0)_{12}$} & \multicolumn{1}{l|}{`{python} round(mape_trabajadores_1, 4)`}                  & `{python} round(is_trabajadores_1, 4)`                                \\ \hline
+\multicolumn{3}{|c|}{Temperatura}                                                                                                  \\ \hline
+\multicolumn{1}{|c|}{$SARIMA(1,1,0)(1,1,0)_{24}$} & \multicolumn{1}{l|}{`{python} round(mape_temperatura_3, 4)`}                  & `{python} round(is_temperatura_3, 4)`                                \\ \hline
+\end{tabular}
+\end{table}
 
 
 ### 4.2.2 XGBoost
 
-los intervalos de estos pronosticos no son probabilisticos, estoy usando conformal predictions
+Los modelos de pronóstico basados en el aprendizaje automático no tienen supuestos que cumplir, por lo que el modelaje se vuelve mucho más sencillo y automatizable. Los únicos aspectos en los que se debe tener especial cuidado y atención es en la selección de características y parámetros del modelo.
+
+Tanto para XGBoost como para LightGBM las características elegidas para todas las series fueron las siguientes:
+
+- Identificación temporal
+
+- El promedio de las 3 observaciones anteriores 
+
+- El desvío estándar de las 3 observaciones anteriores
+
+- El valor del primer rezago
+
+- El valor del segundo rezago
+
+- El valor del rezago estacional
+
+Con el objetivo de seleccionar los mejores hiperparámetros, se elaboró una grilla con diferentes combinaciones de valores para cada parámetro. Se ajustaron modelos cumpliendo cada combinación en la grilla sobre un conjunto de validación.
+
+XGBoost permite parametrizar los modelos de varias formas, los que se eligieron ajustar en este trabajo son los siguientes:
+
+- Número de árboles que se contruyen paralelamente en cada iteración ($A$). Opciones: 20, 50, 100, 150.
+
+- Profundidad máxima del árbol ($P$). Opciones: 2, 3, 4, 5.
+
+- Número máximo de hojas del árbol ($H$). Opciones: 2, 4, 8, 16.
+
+- Tasa de aprendizaje en el método del gradiente ($\eta$). Opciones: 0.1, 0.2, 0.3.
+
+En la tabla @tbl-resultadosxgb se muestra para cada serie que combinación de parámetros, de las 192 posibles, fue la que menor MAPE produjo sobre el conjunto de validación. Además, se presenta el MAPE e *Interval Score* que devuelve el modelo entrenado con todos los datos de entrenamiento y evaluado sobre el conjunto de prueba.
+
+\begin{table}[]
+\centering
+\caption{Modelos XGBoost seleccionados y métricas de evaluación.}
+\label{tbl-resultadosxgb}
+\begin{tabular}{|c|l|l|l|l|c|c|}
+\hline
+\multirow{2}{*}{Serie}   & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$A$\end{tabular}}}            & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$P$\end{tabular}}}            & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$H$\end{tabular}}}         & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$\eta$\end{tabular}}}              & \multirow{2}{*}{MAPE}                         & \multirow{2}{*}{\textit{Interval Score}}              \\
+                         & \multicolumn{1}{c|}{}                                                                                                    & \multicolumn{1}{c|}{}                                                                                                 & \multicolumn{1}{c|}{}                                                                                                  & \multicolumn{1}{c|}{}                                                                                                     &                                               &                                                \\ \hline
+Atenciones en guardia    & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} round(resultados_1_xgb['mape'], 4)` & `{python} round(resultados_1_xgb['score'], 4)` \\ \hline
+Trabajadores registrados & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} round(resultados_2_xgb['mape'], 4)` & `{python} round(resultados_2_xgb['score'], 4)` \\ \hline
+Temperatura              & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} round(resultados_3_xgb['mape'], 4)` & `{python} round(resultados_3_xgb['score'], 4)` \\ \hline
+\end{tabular}
+\end{table}
+
 
 ```{python}
 plt.figure(figsize=(9, 5))
@@ -767,8 +908,6 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_c
 ```
 
 ### 4.2.3 LightGBM
-
-importante, los quantiles de estos pronosticos son independientes
 
 ```{python}
 plt.figure(figsize=(9, 5))
@@ -844,57 +983,60 @@ metricas_3
 - Fortalezas y limitaciones de TimeGPT en comparación con otros modelos.
 - Proporciona recomendaciones finales y reflexiones sobre posibles direcciones futuras de investigación. -->
 
+Problemas arima: consume mucho tiempo, necesita muchos conocimientos teoricos para problemas especificos (variables de conteo, evitar negativos, variancia no constante), puede que se trabaje hasta llegar a un modelo que luego no cumpla los supuestos, no es util cuando se tienen variables exogenas, porque solo permite variables ya conocidas
+
+En este documento se presentan 3 contribuciones claves para el campo de la estadística. En primer lugar y como objetivo principal de esta tesina, la introducción de los modelos transformadores para el pronóstico de series temporales. Además se incluyeron aportes como evaluar el desempeño de los modelos con una nueva medida del error, el *interval score*, el cúal no tiene en cuenta únicamente el pronóstico puntual sino también probabilístico. El último gran aporte es la construcción de intervalos de pronóstico por medio de *conformal predictions*, que no depende de conocer la distribución de los residuos.
+
 \newpage
 
 # 6. Bibliografía
 
-**Ansari et al.** (4 de noviembre de 2024). Chronos: Learning the Language of Time Series. Transactions on Machine Learning Research. [https://arxiv.org/abs/2403.07815](https://arxiv.org/abs/2403.07815)
+**Ansari et al.** (2024). *Chronos: Learning the Language of Time Series*. Transactions on Machine Learning Research. [https://arxiv.org/abs/2403.07815](https://arxiv.org/abs/2403.07815)
 
-**Awan, A.** (2 de septiembre de 2024). Time Series Forecasting With TimeGPT. Datacamp. [https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt](https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt)
+**Awan, A.** (2 de septiembre de 2024). *Time Series Forecasting With TimeGPT*. Datacamp. [https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt](https://www.datacamp.com/tutorial/time-series-forecasting-with-time-gpt)
 
-**Bermejo, J.** (21 de mayo de 2024). Redes neuronales. Facultad de Ciencias Económicas y Estadística de la Universidad Nacional de Rosario.
+**Bermejo, J.** (21 de mayo de 2024). *Redes neuronales*. Facultad de Ciencias Económicas y Estadística de la Universidad Nacional de Rosario.
 
-**Elhariri, K.** (1 de marzo de 2022). The Transformer Model. Medium. [https://medium.com/data-science/attention-is-all-you-need-e498378552f9](https://medium.com/data-science/attention-is-all-you-need-e498378552f9)
+**Elhariri, K.** (1 de marzo de 2022). *The Transformer Model*. Medium. [https://medium.com/data-science/attention-is-all-you-need-e498378552f9](https://medium.com/data-science/attention-is-all-you-need-e498378552f9)
 
-**Gilliland, M., Sglavo, U., & Tashman, L.** (2016). Forecast Error Measures: Critical Review and Practical Recommendations. John Wiley & Sons Inc.
+**Gilliland, M., Sglavo, U., & Tashman, L.** (2016). *Forecast Error Measures: Critical Review and Practical Recommendations*. John Wiley & Sons Inc.
 
-**Gneiting, T., & Raftery A. E.** (2007). Strictly Proper Scoring Rules, Prediction, and Estimation. Journal of the American Statistical Association.
+**Gneiting, T., & Raftery A. E.** (2007). *Strictly Proper Scoring Rules, Prediction, and Estimation*. Journal of the American Statistical Association, 102(477), 359–378. [https://doi.org/10.1198/016214506000001437](https://doi.org/10.1198/016214506000001437)
 
-**Hyndman, R. J., & Athanasopoulos, G.** (2021). Forecasting: principles and practice (3rd ed.).
+**Hyndman, R. J., & Athanasopoulos, G.** (2021). *Forecasting: principles and practice (3rd ed.).*
 OTexts. [https://otexts.com/fpp3/](https://otexts.com/fpp3/)
 
-**IBM**. (s.f.). Explainers. Recuperado el 14 de marzo de 2025 en [https://www.ibm.com/think/topics](https://www.ibm.com/think/topics)
+**IBM**. (s.f.). *Explainers*. Recuperado el 14 de marzo de 2025 en [https://www.ibm.com/think/topics](https://www.ibm.com/think/topics)
 
-**Kamtziris, G.** (27 de febrero de 2023). Time Series Forecasting with XGBoost and LightGBM: Predicting Energy Consumption. Medium. [https://medium.com/@geokam/time-series-forecasting-with-xgboost-and-lightgbm-predicting-energy-consumption-460b675a9cee](https://medium.com/@geokam/time-series-forecasting-with-xgboost-and-lightgbm-predicting-energy-consumption-460b675a9cee)
+**Kamtziris, G.** (27 de febrero de 2023). *Time Series Forecasting with XGBoost and LightGBM: Predicting Energy Consumption.* Medium. [https://medium.com/@geokam/time-series-forecasting-with-xgboost-and-lightgbm-predicting-energy-consumption-460b675a9cee](https://medium.com/@geokam/time-series-forecasting-with-xgboost-and-lightgbm-predicting-energy-consumption-460b675a9cee)
 
-**Korstanje, J.** (2021). Advanced Forecasting with Python. Apress.
+**Korstanje, J.** (2021). A*dvanced Forecasting with Python*. Apress.
 
-**Nielsen, A.** (2019). Practical Time Series Analysis: Prediction with Statistics and Machine Learning. O'Reilly Media.
+**Nielsen, A.** (2019). *Practical Time Series Analysis: Prediction with Statistics and Machine Learning*. O'Reilly Media.
 
-**Nixtla**. (s.f.-a). About TimeGPT. Recuperado en diciembre de 2024 de [https://docs.nixtla.io/docs/getting-started-about_timegpt](https://docs.nixtla.io/docs/getting-started-about_timegpt)
+**Nixtla**. (s.f.-a). *About TimeGPT*. Recuperado en diciembre de 2024 de [https://docs.nixtla.io/docs/getting-started-about_timegpt](https://docs.nixtla.io/docs/getting-started-about_timegpt)
 
-**Nixtla**. (s.f.-b). LSTM. Recuperado el 9 de abril de 2025 en [https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
+**Nixtla**. (s.f.-b). *LSTM*. Recuperado el 9 de abril de 2025 en [https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
 
-**Parmezan, A., Souza, V., & Batista, G.** (1 de mayo de 2019). Evaluation of statistical and machine learning models for time series prediction: Identifying the state-of-the-art and the best conditions for the use of each model. Information Sciences. [https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945](https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945)
+**Parmezan, A., Souza, V., & Batista, G.** (1 de mayo de 2019). *Evaluation of statistical and machine learning models for time series prediction: Identifying the state-of-the-art and the best conditions for the use of each model*. Information Sciences. [https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945](https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945)
 
-**Prunello, M., & Marfetán, D.** (12 de mayo de 2024). Árboles de decisión. Facultad de Ciencias Económicas y Estadística de la Universidad Nacional de Rosario.
+**Prunello, M., & Marfetán, D.** (12 de mayo de 2024). *Árboles de decisión*. Facultad de Ciencias Económicas y Estadística de la Universidad Nacional de Rosario.
 
-**Sanderson, G.** [3Blue1Brown]. (2024). Attention in transformers, step-by-step | DL6 [Video]. Youtube. [https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s](https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s)
+**Sanderson, G.** [3Blue1Brown]. (2024). *Attention in transformers, step-by-step | DL6 [Video]*. Youtube. [https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s](https://www.youtube.com/watch?v=eMlx5fFNoYc&t=1204s)
 
-**Sanderson, G.** [3Blue1Brown]. (2024). Transformers (how LLMs work) explained visually | DL5 [Video]. Youtube. [https://www.youtube.com/watch?v=wjZofJX0v4M](https://www.youtube.com/watch?v=wjZofJX0v4M)
+**Sanderson, G.** [3Blue1Brown]. (2024). *Transformers (how LLMs work) explained visually | DL5 [Video]*. Youtube. [https://www.youtube.com/watch?v=wjZofJX0v4M](https://www.youtube.com/watch?v=wjZofJX0v4M)
 
-**Shastri, Y.** (26 de abril de 2024). Attention Mechanism in LLMs: An Intuitive Explanation. Datacamp. [https://www.datacamp.com/blog/attention-mechanism-in-llms-intuition](https://www.datacamp.com/blog/attention-mechanism-in-llms-intuition)
+**Shastri, Y.** (26 de abril de 2024). *Attention Mechanism in LLMs: An Intuitive Explanation*. Datacamp. [https://www.datacamp.com/blog/attention-mechanism-in-llms-intuition](https://www.datacamp.com/blog/attention-mechanism-in-llms-intuition)
 
-**Silberstein, E.** (7 de noviembre de 2024). Tracing the Transformer in Diagrams. Medium. [https://medium.com/data-science/tracing-the-transformer-in-diagrams-95dbeb68160c](https://medium.com/data-science/tracing-the-transformer-in-diagrams-95dbeb68160c)
+**Silberstein, E.** (7 de noviembre de 2024). *Tracing the Transformer in Diagrams*. Medium. [https://medium.com/data-science/tracing-the-transformer-in-diagrams-95dbeb68160c](https://medium.com/data-science/tracing-the-transformer-in-diagrams-95dbeb68160c)
 
-**Vaswani et al.** (2017). Attention is all you need. Google. [https://arxiv.org/pdf/1706.03762](https://arxiv.org/pdf/1706.03762)
+**Vaswani et al.** (2017). *Attention is all you need*. Google. [https://arxiv.org/pdf/1706.03762](https://arxiv.org/pdf/1706.03762)
 
 
 \newpage
 
 # 7. Anexo
 
-Incluye cualquier material adicional, como código fuente, datos adicionales, detalles sobre la implementación en R o Python, entre otros.
 ## 7.1 Gráficos estacionales
 
 ```{python}
@@ -949,6 +1091,91 @@ plt.xlabel("Hora")
 plt.ylabel("Temperatura (Cº)")
 ```
 
+## 7.2 Salidas de modelos arima {#salidas_arima}
+
+**Atenciones modelo 1**
+
+```{python}
+print(resultados_arima['salida_arima_atenciones_1'])
+```
+
+**Atenciones modelo 2**
+
+```{python}
+print(resultados_arima['salida_arima_atenciones_2'])
+```
+
+**Atenciones modelo selección automática**
+
+```{python}
+print(resultados_arima['salida_arima_atenciones_auto'])
+```
+
+**Trabajadores modelo 1**
+
+```{python}
+print(resultados_arima['salida_arima_trabajadores_1'])
+```
+
+**Trabajadores modelo selección automática**
+
+```{python}
+print(resultados_arima['salida_arima_trabajadores_auto'])
+```
+
+**Temperatura modelo selección automática**
+
+```{python}
+print(resultados_arima['salida_arima_temperatura_auto'])
+```
+
+**Temperatura modelo 1**
+
+```{python}
+print(resultados_arima['salida_arima_temperatura_1'])
+```
+
+**Temperatura modelo 2**
+
+```{python}
+print(resultados_arima['salida_arima_temperatura_2'])
+```
+
+**Temperatura modelo 3**
+
+```{python}
+print(resultados_arima['salida_arima_temperatura_3'])
+```
+
+## 7.3 Comprobación de supuestos de modelos arima {#supuestos_arima}
+
+**Modelo atenciones selección automática**
+
+```{python}
+#| fig-cap: "Comprobación de supuestos del modelo automático para las atenciones en guardia"
+resid_check(resultados_arima['resid_arima_atenciones_auto'], ds = atenciones_trunc['ds'])
+```
+
+**Modelo trabajadores 1**
+
+```{python}
+#| fig-cap: "Comprobación de supuestos del modelo manual para los trabajadores en el rubro de la enseñanza"
+resid_check(resultados_arima['resid_arima_trabajadores_1'], ds = trabajadores_trunc['ds'])
+```
+
+**Modelo trabajadores selección automática**
+
+```{python}
+#| fig-cap: "Comprobación de supuestos del modelo automático para los trabajadores en el rubro de la enseñanza"
+resid_check(resultados_arima['resid_arima_trabajadores_auto'], ds = trabajadores_trunc['ds'])
+```
+
+**Modelo Temperatura 3**
+
+```{python}
+#| fig-cap: "Comprobación de supuestos del 3º modelo manual para la temperatura"
+resid_check(resultados_arima['resid_arima_temperatura_3'], ds = temperatura_trunc['ds'])
+```
 
 # NOTAS
 
@@ -958,14 +1185,13 @@ plt.ylabel("Temperatura (Cº)")
       variable exogena > Temperatura + humedad + presion atmosferica (https://www.smn.gob.ar/descarga-de-datos)
       
 - TO DO: 
-      Introduccion a las series a utilizar (acomodar graficos y sacar lo que se debe pronosticar)
+      Definir y aplicar las caracteristicas para la serie de temperatura
+      Redactar EnbPI para XGBoost y Lightgbm
       Explicar Aplicacion, parametros usados
-      Que hacer con los outlayesrs de humedad
       Revisar Arima
       revisar transformers
       revisar medidas de evaluacion
-      revisar uso de variables exogenas (deberia usar solo la parte entrenamiento?, entrenamiento y despues brindar para el testeo? o usar todo como conocido?) CAPAZ MEJOR COMO PASADAS
-      revisar niveles de confianza en todos los metodos y en el interval score
+      Volver a correr toda la aplicacion y verificar resultados
       verificar luego de la aplicacion cuales son las librerias que termino usando
       Verificar, actualizar y completar las descripciones de las funciones
       Actualizar los requirements
@@ -997,6 +1223,8 @@ nomenclatura:
 
 - implementar boosting y ensamblaje con otros metodos
 
+- Explorar otras caracteristicas para los metodos de ensamblaje
+
 - medir el tiempo de ejecucion de los algoritmos de otra manera
 
 - Series con distintas periodicidades (semestrales, trimestrales, etc) y distintas unidades (diarias. anuales, horarias, etc)
@@ -1010,3 +1238,19 @@ nomenclatura:
 # Preguntas nanda
 
 Para la serie de temperatura: Como diferencio para sacar la estacionalidad? La humedad y la presion las tomo como variables exogenas pasadas o futuras?
+
+La humedad tienen claros outlayers, que hago? no parecen afectar los pronosticos
+
+Que hago con los modelos arima con los que no dan los supuestos? me la rebusco?
+
+Para pronosticar a varios horizontes, puedo usar simplemente un horizonte mas largo y compararlo progresivamente? 
+
+debo explicar sarimax? que tanto debo profundizar sobre la teoria de arima?
+
+identificar con colores las series o los pronosticos?
+
+Uso conformal predictions tmb para Lightgmb? o me quedo con el pronostico cuantilico?
+
+
+
+

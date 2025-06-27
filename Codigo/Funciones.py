@@ -14,6 +14,12 @@ import seaborn as sns
 # Para autocorrelaciones
 from statsmodels.tsa.stattools import acf, pacf
 
+# Para calcular el test de ljung box
+import statsmodels.api as sm
+
+# Para la transformacion de box y cox y el test de normalidad
+from scipy import stats
+
 # ---------------------------------------- FUNCIONES ------------------------------------
 
 # Funcion interval_score()
@@ -167,3 +173,62 @@ def autocorr_plot(data, lags, atype = 'acf'):
     plt.axhspan(1, 2, color='grey', alpha=0.5)
     plt.axhspan(-1, -2, color='grey', alpha=0.5)
     plt.ylim(-1.15,1.15)
+
+
+
+
+# ------------------------------------------------------------------------------------
+# Funcion resid_chek()
+# Grafica la comprobacion de supuestos para los modelos arima
+
+def resid_check(residuos_sin_estandarizar, ds):
+
+    residuos = (residuos_sin_estandarizar - np.mean(residuos_sin_estandarizar))/ np.std(residuos_sin_estandarizar)
+        
+    # Histograma
+    plt.subplot(2,2,1)
+    sns.histplot(residuos, bins=20)
+
+    # Test de normalidad
+    ks = stats.kstest(residuos,'norm').pvalue
+    if ks < 0.0001:
+        ks = '< 0.0001'
+    else:
+        ks = round(ks, 4)
+
+    ax = plt.gca()
+
+    plt.text(0.98, 0.9, 
+         f'P-value test de\nnormalidad K-S: {ks}', fontsize=6, color='black',
+         transform=ax.transAxes,
+         ha = 'right', va = 'top')
+
+    # Serie de los residuos
+    plt.subplot(2,2,2)
+    sns.lineplot(x = ds, y = residuos)
+    plt.axhline(y = 3, color = 'black', ls = '--')
+    plt.axhline(y = -3, color = 'black', ls = '--')
+    plt.ylabel('')
+    outlayers = ((residuos > 3) | (residuos < -3))
+    plt.scatter(
+         x = ds[outlayers],
+         y = residuos[outlayers],
+         color = 'red', zorder = 10, marker='.')
+
+    # Autocorrelaciones
+    plt.subplot(2,2,3)
+    autocorr_plot(residuos, lags=30)
+    plt.title('')
+
+    # Test de Ljung-box
+    p_value = sm.stats.acorr_ljungbox(residuos, lags= range(1,20) , return_df=True)['lb_pvalue'].min()
+
+    plt.text(10, -0.85, 
+            f'Test de Ljung-Box\nMenor p-value: {round(p_value,4)}', fontsize=8, color='black')
+
+
+    plt.subplot(2,2,4)
+    autocorr_plot(residuos, lags=30, atype='pacf')
+    plt.title('')
+
+    plt.show()

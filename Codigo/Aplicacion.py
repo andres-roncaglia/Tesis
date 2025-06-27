@@ -7,7 +7,7 @@ import pandas as pd
 from pmdarima.arima import ARIMA
 
 # Cargamos funciones
-from Codigo.Funciones import save_env, load_env
+from Codigo.Funciones import plot_forecast, save_env, load_env
 from Codigo.tuner_fun import Tuner
 
 # Definimos una semilla
@@ -60,22 +60,32 @@ resultados_1_arima = Tuner(forecaster_fun= 'ARIMA', datos=atenciones_guardia, pa
 metricas_1.loc[len(metricas_1)] = ['ARIMA', resultados_1_arima['mape'], resultados_1_arima['score'], resultados_1_arima['tiempo']]
 
 # Modelos manuales
-atenciones_trunc = atenciones_guardia.head(len(atenciones_guardia)-long_pred).copy()
+atenciones_train = atenciones_guardia.head(len(atenciones_guardia)-long_pred).copy()
+ds = atenciones_guardia.tail(long_pred)['ds'].reset_index(drop = True)
 
 # Modelo 1
 arima_atenciones_1 = ARIMA( 
     order=(0, 1, 1), 
     seasonal_order=(0,1,0,12))
 
-arima_atenciones_1 = arima_atenciones_1.fit(atenciones_trunc['y'])
+arima_atenciones_1 = arima_atenciones_1.fit(atenciones_train['y'])
 
+pred, pred_int = arima_atenciones_1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_atenciones_1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_atenciones_1['pred'] = pred.reset_index(drop = True)
+pred_atenciones_1['ds'] = ds
 
 # Modelo 2
 arima_atenciones_2 = ARIMA( 
     order=(0, 1, 0), 
     seasonal_order=(0,1,1,12))
 
-arima_atenciones_2 = arima_atenciones_2.fit(atenciones_trunc['y'])
+arima_atenciones_2 = arima_atenciones_2.fit(atenciones_train['y'])
+
+pred, pred_int = arima_atenciones_2.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_atenciones_2 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_atenciones_2['pred'] = pred.reset_index(drop = True)
+pred_atenciones_2['ds'] = ds
 
 
 # ------------------------------- 1.3 XGBOOST -------------------------------
@@ -85,33 +95,47 @@ arima_atenciones_2 = arima_atenciones_2.fit(atenciones_trunc['y'])
 params = {
     "tree_method": ['exact'],
     "random_state": [seed],
+    "eval_metric" : ['mape'],
     "max_leaves": [2,4,8,16],
     "max_depth": [2,3,4,5],
     "learning_rate": [0.1, 0.2, 0.3],
-    "n_estimators": [20, 50, 100, 150]
-
+    "n_estimators": [20, 50, 100, 150],
+    "colsample_bytree": [0.7, 1.0],
 }
 
+# Calculamos las características a usar
+caracteristicas_atenciones = pd.DataFrame({
+    'month' : atenciones_guardia['ds'].dt.month,
+    'year' : atenciones_guardia['ds'].dt.year,
+    "promedio_3_meses" : atenciones_guardia["y"].shift(1).rolling(window=3).mean(),
+    "desvio_3_meses" : atenciones_guardia["y"].shift(1).rolling(window=3).std(),
+    "lag_1" : atenciones_guardia["y"].shift(1),
+    "lag_2" : atenciones_guardia["y"].shift(2),
+    "lag_12" : atenciones_guardia["y"].shift(12),
+})
+
+
 # Tuneamos los parametros y ajustamos el modelo
-resultados_1_xgb = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_1_xgb = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia, parametros=params, caracteristicas=caracteristicas_atenciones, alpha= alpha, long_pred = long_pred)
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['XGBoost', resultados_1_xgb['mape'], resultados_1_xgb['score'], resultados_1_xgb['tiempo']]
 
 # ------------------------------- 1.4 LIGHTGBM -------------------------------
 
-
 # Definimos los parametros a tunear
 params = {
     "random_state": [seed],
+    "verbose": [-1],
     "max_depth": [2,3,4,5],
     "learning_rate": [0.1, 0.2, 0.3],
     "n_estimators": [20, 50, 100, 150],
-    'num_leaves' : [5, 10, 20, 30, 50]
+    'num_leaves' : [5, 10, 20, 30, 50],
+    "colsample_bytree": [0.7, 1.0],
 }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_1_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia, parametros=params, caracteristicas=caracteristicas_atenciones, alpha= alpha, long_pred = long_pred)
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LightGBM', resultados_1_lgbm['mape'], resultados_1_lgbm['score'], resultados_1_lgbm['tiempo']]
@@ -179,6 +203,9 @@ trabajadores['ds'] = trabajadores['ds'].apply(
 trabajadores['ds'] = pd.to_datetime(trabajadores['ds'], format='%d-%m-%Y')
 
 
+# Eliminamos los datos del 2025 para tener solo años completos
+trabajadores = trabajadores[trabajadores['ds'].dt.year != 2025]
+
 # Definicion del nivel de significacion y el largo del pronostico
 alpha = 0.2
 long_pred = 12
@@ -208,6 +235,7 @@ metricas_2.loc[len(metricas_2)] = ['ARIMA', resultados_2_arima['mape'], resultad
 
 # Modelos manuales
 trabajadores_trunc = trabajadores.head(len(trabajadores)-long_pred).copy()
+ds = trabajadores.tail(long_pred)['ds'].reset_index(drop = True)
 
 # Modelo 1
 arima_trabajadores_1 = ARIMA( 
@@ -216,7 +244,10 @@ arima_trabajadores_1 = ARIMA(
 
 arima_trabajadores_1 = arima_trabajadores_1.fit(trabajadores_trunc['y'])
 
-
+pred, pred_int = arima_trabajadores_1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_trabajadores_1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_trabajadores_1['pred'] = pred.reset_index(drop = True)
+pred_trabajadores_1['ds'] = ds
 
 # ------------------------------- 2.3 XGBOOST -------------------------------
 
@@ -232,8 +263,19 @@ params = {
 
 }
 
+# Calculamos las características a usar
+caracteristicas_trabajadores = pd.DataFrame({
+    'month' : trabajadores['ds'].dt.month,
+    'year' : trabajadores['ds'].dt.year,
+    "promedio_3_meses" : trabajadores["y"].shift(1).rolling(window=3).mean(),
+    "desvio_3_meses" : trabajadores["y"].shift(1).rolling(window=3).std(),
+    "lag_1" : trabajadores["y"].shift(1),
+    "lag_2" : trabajadores["y"].shift(2),
+    "lag_12" : trabajadores["y"].shift(12),
+})
+
 # Tuneamos los parametros y ajustamos el modelo
-resultados_2_xgb = Tuner(forecaster_fun= 'XGBoost', datos=trabajadores, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_2_xgb = Tuner(forecaster_fun= 'XGBoost', datos=trabajadores, parametros=params, caracteristicas=caracteristicas_trabajadores, alpha= alpha, long_pred = long_pred)
 
 # Guardamos las metricas
 metricas_2.loc[len(metricas_2)] = ['XGBoost', resultados_2_xgb['mape'], resultados_2_xgb['score'], resultados_2_xgb['tiempo']]
@@ -252,7 +294,7 @@ params = {
 }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_2_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=trabajadores, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_2_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=trabajadores, parametros=params, caracteristicas=caracteristicas_trabajadores, alpha= alpha, long_pred = long_pred)
 
 # Guardamos las metricas
 metricas_2.loc[len(metricas_2)] = ['LightGBM', resultados_2_lgbm['mape'], resultados_2_lgbm['score'], resultados_2_lgbm['tiempo']]
@@ -351,27 +393,34 @@ metricas_3.loc[len(metricas_3)] = ['ARIMA', resultados_3_arima['mape'], resultad
 
 # Modelos manuales
 temperatura_trunc = tiempo_rosario.head(len(tiempo_rosario)-long_pred).copy()
+ds = tiempo_rosario.tail(long_pred)['ds'].reset_index(drop = True)
 
 # Modelo 1
 arima_temperatura_1 = ARIMA( 
     order=(1,1,1), 
-    seasonal_order=(1,0,1,24))
+    seasonal_order=(1,0,1,24)
+    )
 
-arima_temperatura_1 = arima_temperatura_1.fit(temperatura_trunc['y'])
+arima_temperatura_1 = arima_temperatura_1.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
 
 # Modelo 2
 arima_temperatura_2 = ARIMA( 
     order=(1,1,0), 
     seasonal_order=(2,0,1,24))
 
-arima_temperatura_2 = arima_temperatura_2.fit(temperatura_trunc['y'])
+arima_temperatura_2 = arima_temperatura_2.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
 
 # Modelo 3
 arima_temperatura_3 = ARIMA( 
     order=(1,1,0), 
     seasonal_order=(1,1,0,24))
 
-arima_temperatura_3 = arima_temperatura_3.fit(temperatura_trunc['y'])
+arima_temperatura_3 = arima_temperatura_3.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
+
+pred, pred_int = arima_temperatura_3.predict(n_periods = long_pred, X= tiempo_rosario.tail(long_pred)[['HUM', 'PNM']], alpha = alpha, return_conf_int=True)
+pred_temperatura_3 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_temperatura_3['pred'] = pred.reset_index(drop = True)
+pred_temperatura_3['ds'] = ds
 
 # ------------------------------- 3.3 XGBOOST -------------------------------
 
@@ -388,8 +437,21 @@ params = {
 
 }
 
+# Calculamos las características a usar
+caracteristicas_temperatura = pd.DataFrame({
+    'day' : tiempo_rosario['ds'].dt.day,
+    'hour' : tiempo_rosario['ds'].dt.hour,
+    "promedio_3_horas" : tiempo_rosario["y"].shift(1).rolling(window=3).mean(),
+    "desvio_3_horas" : tiempo_rosario["y"].shift(1).rolling(window=3).std(),
+    "lag_1" : tiempo_rosario["y"].shift(1),
+    "lag_2" : tiempo_rosario["y"].shift(2),
+    "lag_6" : tiempo_rosario["y"].shift(6),
+    "lag_12" : tiempo_rosario["y"].shift(12),
+    "lag_24" : tiempo_rosario["y"].shift(24),
+})
+
 # Tuneamos los parametros y ajustamos el modelo
-resultados_3_xgb = Tuner(forecaster_fun= 'XGBoost', datos=tiempo_rosario[['ds','y']], parametros=params, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']])
+resultados_3_xgb = Tuner(forecaster_fun= 'XGBoost', datos=tiempo_rosario[['ds','y']], parametros=params, caracteristicas=caracteristicas_temperatura, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']])
 
 # Guardamos las metricas
 metricas_3.loc[len(metricas_3)] = ['XGBoost', resultados_3_xgb['mape'], resultados_3_xgb['score'], resultados_3_xgb['tiempo']]
@@ -408,7 +470,7 @@ params = {
 }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_3_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=tiempo_rosario[['ds','y']], parametros=params, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']])
+resultados_3_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=tiempo_rosario[['ds','y']], parametros=params, caracteristicas=caracteristicas_temperatura, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']])
 
 # Guardamos las metricas
 metricas_3.loc[len(metricas_3)] = ['LightGBM', resultados_3_lgbm['mape'], resultados_3_lgbm['score'], resultados_3_lgbm['tiempo']]
@@ -456,16 +518,32 @@ metricas_3.loc[len(metricas_3)] = ['TimeGPT', resultados_3_gpt['mape'], resultad
 # --------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------
 
-modelos_arima = {
-    'arima_atenciones_1': arima_atenciones_1,
-    'arima_atenciones_2': arima_atenciones_2,
-    'arima_trabajadores_1': arima_trabajadores_1,
-    'arima_temperatura_1': arima_temperatura_1,
-    'arima_temperatura_2': arima_temperatura_2,
-    'arima_temperatura_3': arima_temperatura_3,
-    'arima_atenciones_auto': resultados_1_arima['modelo'],
-    'arima_trabajadores_auto':resultados_2_arima['modelo'],
-    'arima_temperatura_auto':resultados_3_arima['modelo']
+resultados_arima = {
+    # Residuos
+    'resid_arima_atenciones_1' : arima_atenciones_1.resid(),
+    'resid_arima_atenciones_2' : arima_atenciones_2.resid(),
+    'resid_arima_trabajadores_1' : arima_trabajadores_1.resid(),
+    'resid_arima_temperatura_1' : arima_temperatura_1.resid(),
+    'resid_arima_temperatura_2' : arima_temperatura_2.resid(),
+    'resid_arima_temperatura_3' : arima_temperatura_3.resid(),
+    'resid_arima_atenciones_auto' : resultados_1_arima['modelo'].resid(),
+    'resid_arima_trabajadores_auto' : resultados_2_arima['modelo'].resid(),
+    'resid_arima_temperatura_auto' : resultados_3_arima['modelo'].resid(),
+    # Pronosticos
+    'pred_atenciones_1': pred_atenciones_1,
+    'pred_atenciones_2': pred_atenciones_2,
+    'pred_trabajadores_1': pred_trabajadores_1,
+    'pred_temperatura_3': pred_temperatura_3,
+    # Salidas
+    'salida_arima_atenciones_1' : arima_atenciones_1.summary(),
+    'salida_arima_atenciones_2' : arima_atenciones_2.summary(),
+    'salida_arima_trabajadores_1' : arima_trabajadores_1.summary(),
+    'salida_arima_temperatura_1' : arima_temperatura_1.summary(),
+    'salida_arima_temperatura_2' : arima_temperatura_2.summary(),
+    'salida_arima_temperatura_3' : arima_temperatura_3.summary(),
+    'salida_arima_atenciones_auto' : resultados_1_arima['modelo'].summary(),
+    'salida_arima_trabajadores_auto' : resultados_2_arima['modelo'].summary(),
+    'salida_arima_temperatura_auto' : resultados_3_arima['modelo'].summary(),
 }
 
 # Guardamos el ambiente
@@ -488,23 +566,106 @@ save_env(env_dict= {
     "resultados_3_lgbm" : {k: v for k, v in resultados_3_lgbm.items() if k != 'modelo'},
     "resultados_3_lstm" : {k: v for k, v in resultados_3_lstm.items() if k != 'modelo'},
     #"resultados_3_gpt" : {k: v for k, v in resultados_3_gpt.items() if k != 'modelo'},
-    "metricas_3" : metricas_3
+    "metricas_3" : metricas_3,
+    'resultados_arima' : resultados_arima,
 }, filename="Codigo/Ambiente/Amb_Aplicacion.pkl")
 
 # Guardamos los modelos
 
 save_env(env_dict= {
+    'arima_atenciones_auto': resultados_1_arima['modelo'],
     "modelo_1_xgb" : resultados_1_xgb['modelo'],
     "modelo_1_lgbm" : resultados_1_lgbm['modelo'],
     "modelo_1_lstm" : resultados_1_lstm['modelo'],
     #"modelo_1_gpt" : resultados_1_gpt['modelo'],
+    'arima_trabajadores_auto':resultados_2_arima['modelo'],
     "modelo_2_xgb" : resultados_2_xgb['modelo'],
     "modelo_2_lgbm" : resultados_2_lgbm['modelo'],
     "modelo_2_lstm" : resultados_2_lstm['modelo'],
     #"modelo_2_gpt" : resultados_2_gpt['modelo'],
+    'arima_temperatura_auto':resultados_3_arima['modelo'],
     "modelo_3_xgb" : resultados_3_xgb['modelo'],
     "modelo_3_lgbm" : resultados_3_lgbm['modelo'],
     "modelo_3_lstm" : resultados_3_lstm['modelo'],
     #"modelo_3_gpt" : resultados_3_gpt['modelo'],
-    "modelos_arima":modelos_arima
+
+    'arima_atenciones_1': arima_atenciones_1,
+    'arima_atenciones_2': arima_atenciones_2,
+    'arima_trabajadores_1': arima_trabajadores_1,
+    'arima_temperatura_1': arima_temperatura_1,
+    'arima_temperatura_2': arima_temperatura_2,
+    'arima_temperatura_3': arima_temperatura_3,
 }, filename="Codigo/Ambiente/modelos_aplicacion.pkl")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ------------------------- prueba -----------------------
+# Para conformal predictions
+from xgboost import XGBRegressor
+from mapie.regression import MapieTimeSeriesRegressor
+from mapie.subsample import BlockBootstrap
+import matplotlib.pyplot as plt
+import numpy as np
+from Codigo.Funciones import plot_forecast
+
+x_train = caracteristicas_atenciones.head(len(atenciones_guardia)-long_pred).copy()
+x_test = caracteristicas_atenciones.tail(long_pred).copy()
+
+model = XGBRegressor(tree_method = 'exact', max_leaves=  4,
+    max_depth = 3,
+    learning_rate = 0.2,
+    n_estimators = 50)
+
+bt_blocks = BlockBootstrap(
+    n_resamplings=50, length=long_pred, overlapping=True, random_state=seed)
+
+mapie_enbpi = MapieTimeSeriesRegressor(
+    model, method="enbpi", cv=bt_blocks, agg_function="mean", n_jobs=-1)
+
+mapie_enbpi = mapie_enbpi.fit(x_train, atenciones_train['y'])
+
+pred, y_pis = mapie_enbpi.predict(x_test, alpha=alpha, ensemble=True)
+
+pred_lower = y_pis.squeeze()[:,0]
+pred_upper = y_pis.squeeze()[:,1]
+
+forecaster = pd.DataFrame({
+    'ds' : atenciones_guardia.tail(long_pred)['ds'],
+    'pred' : pred,
+    'lower' : pred_lower,
+    'upper' : pred_upper
+})
+
+plot_forecast(data = atenciones_guardia, forecast = forecaster, pred_color = 'green', label = 'XGBoost', long = 24)
+plt.show()
+X = np.arange(len(atenciones_train)).reshape(-1, 1)
+y = atenciones_train['y']
+for i, (train_idx, test_idx) in enumerate(bt_blocks.split(X, y)):
+    y_bootstrap = np.full_like(y, np.nan, dtype=np.float32)
+    y_bootstrap[train_idx] = y[train_idx]
+    plt.plot(y_bootstrap, label=f"Bootstrap {i+1}", alpha=0.3)
+
+# Serie original
+plt.legend()
+plt.show()
+plt.plot(y, label="Original", color="black", linewidth=2)
+plt.title("Muestras Bootstrap vs Serie Original")
+plt.xlabel("Índice")
+plt.ylabel("Valor")
+plt.grid(True)
+
+
+
+# ------------------------- prueba -----------------------
