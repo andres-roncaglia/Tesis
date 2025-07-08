@@ -189,11 +189,20 @@ def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, exog, devolv
 # - devolver_tiempo : Delvolver el tiempo que tardo en ajustar o no
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
-def fit_pred_lstm(datos, long_pred, kwargs, alpha, exog, devolver_tiempo = False, devolver_modelo = False):
+def fit_pred_lstm(datos, long_pred, kwargs, alpha, freq, exog, devolver_tiempo = False, devolver_modelo = False):
 
     # Agregamos la columna unique_id necesaria por Neuralforecast
     datos_lstm = datos.copy()
     datos_lstm['unique_id'] = 0
+
+    # Debemos garantizar que los int y los floats se mantengan como tal
+    kwargs = {
+        k: int(v) if (
+            (isinstance(v, float) and v.is_integer()) or 
+            (isinstance(v, str) and v.isdigit())
+        ) else v
+        for k, v in kwargs.items()
+    }
 
     # Agregamos a los argumentos algunos otros necesarios
     parametros = kwargs.copy()
@@ -208,10 +217,10 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, exog, devolver_tiempo = False
         parametros['hist_exog_list'] = exog_names
 
     timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
-        
+
     # Ajustamos el modelo y pronosticamos 
-    model = NeuralForecast(models=[LSTM(**parametros)], freq='M')
-    model.fit(df = datos_lstm)
+    model = NeuralForecast(models=[LSTM(**parametros)], freq=freq)
+    model.fit(df = datos_lstm, val_size=long_pred)
     forecaster = model.predict()
 
     timer_final = time.time()
@@ -265,7 +274,7 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, caracteristicas, exog, devolve
     X_train = datos_xgb_train.drop(columns = ['ds','y'])
     X_test = datos_xgb_test.drop(columns = ['ds','y'])
 
-    # Por un error de train, debemos garantizar que los int y los floats se mantengan como tal
+    # Debemos garantizar que los int y los floats se mantengan como tal
     kwargs = {
         k: int(v) if (
             (isinstance(v, float) and v.is_integer()) or 
@@ -415,7 +424,7 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, caracteristicas, exog, de
 # - tiempo : Tiempo que tardó el ultimo modelo en ajustarse
 # - grilla : Grilla con las metricas de los modelos probados sobre el conjunto de validacion
 
-def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12, caracteristicas = pd.DataFrame(), exog = pd.DataFrame()):
+def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12, caracteristicas = pd.DataFrame(), exog = pd.DataFrame(), tgpt_freq = 'MS'):
 
     # Dividimos el conjunto de datos que queremos pronosticar
     datos_fulltrain = datos.head(len(datos)-long_pred)
@@ -456,9 +465,9 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
             if forecaster_fun == 'XGBoost':
                 forecast = fit_pred_xgb(datos = datos_fulltrain, long_pred = len(datos_val), alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, exog= exog_fulltrain)
             elif forecaster_fun == 'TimeGPT':
-                forecast = fit_pred_tgpt(df = datos_train, h = len(datos_val), time_col= 'ds', target_col= 'y', freq= 'M', alpha = alpha, kwargs=kwargs, exog= exog_train)
+                forecast = fit_pred_tgpt(df = datos_train, h = len(datos_val), time_col= 'ds', target_col= 'y', freq= tgpt_freq, alpha = alpha, kwargs=kwargs, exog= exog_train)
             elif forecaster_fun == 'LSTM':
-                forecast = fit_pred_lstm(datos= datos_train, long_pred= len(datos_val), kwargs= kwargs, alpha=alpha, exog= exog_train)
+                forecast = fit_pred_lstm(datos= datos_train, long_pred= len(datos_val), kwargs= kwargs, alpha=alpha, exog= exog_train, freq= tgpt_freq)
             elif forecaster_fun == 'LightGBM':
                 forecast = fit_pred_lightgbm(datos = datos_fulltrain, long_pred = len(datos_val), alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, exog= exog_fulltrain)
 
@@ -491,9 +500,9 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
     elif forecaster_fun == 'XGBoost':
         forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     elif forecaster_fun == 'TimeGPT':
-        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= 'M', alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= tgpt_freq, alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
     elif forecaster_fun == 'LSTM':
-        forecast, tiempo, model = fit_pred_lstm(datos= datos_fulltrain, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        forecast, tiempo, model = fit_pred_lstm(datos= datos_fulltrain, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain, freq= tgpt_freq)
     elif forecaster_fun == 'LightGBM':
         forecast, tiempo, model = fit_pred_lightgbm(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     

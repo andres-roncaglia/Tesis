@@ -555,37 +555,44 @@ trabajadores_trunc = trabajadores.head(len(trabajadores)-12).copy()
 temperatura_trunc = tiempo_rosario.head(len(tiempo_rosario)-24).copy()
 ```
 
-La primera serie analizada correspondió al número mensual de atenciones de guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario. Esta información fue provista por la Dirección General de Estadística de la Municipalidad de Rosario. La serie mostró una marcada estacionalidad, con picos en los meses de invierno, y una fuerte caída en 2020, atribuida a las medidas sanitarias adoptadas durante la pandemia de COVID-19.
+Se analizaron 3 series con distintas características con el objetivo de evaluar los resultados bajo distintas circunstancias, estas son:
+
+- Atenciones de guardia mensuales por patologías respiratorias en un hospital de Rosario.
+
+- Personas registradas con empleo asalariado por mes en el sector educativo privado de Argentina.
+
+- Temperatura horaria en la ciudad de Rosario.
+
+La primera serie analizada corresponde al número mensual de atenciones de guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario. Esta información fue provista por la Dirección General de Estadística de la Municipalidad de Rosario. La serie mostró una marcada estacionalidad, con picos en los meses de invierno, y una fuerte caída en 2020, atribuida a las medidas sanitarias adoptadas durante la pandemia de COVID-19. Esta estacionalidad es más dicernible en el gráfico @fig-atenciones_estacionalidad del anexo. El objetivo para esta serie es pronosticar las atenciones del año 2024.
 
 ```{python}
 # Grafico serie Atenciones
 
-plt.plot(atenciones_trunc['ds'], atenciones_trunc['y'], color = "#292F36")
+plt.plot(atenciones_trunc['ds'], atenciones_trunc['y'], color = "#6BC78A")
 plt.xlabel('Fecha')
 plt.ylabel('Atenciones')
-
+plt.show()
 ```
 
-Esta serie no presenta una tendencia clara pero si estacionalidad, ya que se observan picos en los meses de invierno. Este patrón es más dicernible con el gráfico @fig-atenciones_estacionalidad del anexo. La abrupta caída en el número de atenciones del año 2020 se atribuye al estado de pandemia causado por el Covid-19. El objetivo será pronosticar las atenciones en guardia del año 2024.
-
-Una serie que si presenta tendencia y estacionalidad al mismo tiempo es la cantidad de personas con empleo asalariado en el área de enseñanza, registradas en el sector privado. La cantidad de empleados aumenta casi constantemente año tras año, presentadose descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian las consecuencias de la pandemia. Se buscará pronosticar los trabajadores registrados en el área de enseñanza del año 2024.
+La cantidad de personas en Argentina con empleo asalariado en el área de enseñanza y registradas en el sector privado aumenta casi constantemente año tras año. Presenta descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian las consecuencias de la pandemia. El objetivo es pronosticar la cantidad de trabajadores registrados en el área de enseñanza en el año 2024. Los datos fueron relevados del informe de [Situación y evolución del Trabajo Registrado](https://www.argentina.gob.ar/trabajo/estadisticas/situacion-y-evolucion-del-trabajo-registrado) elaborado por el Instituto Nacional de Estadísticas y Censos (INDEC).
 
 ```{python}
 # Grafico serie trabajadores
 
-plt.plot(trabajadores_trunc['ds'], trabajadores_trunc['y'], color = "#4D533C")
+plt.plot(trabajadores_trunc['ds'], trabajadores_trunc['y'], color = "#5299CB")
 plt.xlabel('Fecha')
 plt.ylabel('Trabajadores (miles)')
+plt.show()
 ```
 
-Por último, se analizarán las temperaturas por hora a lo largo de los días del mes de marzo 2025, estudiando sus comportamientos en relación a la humedad relativa y a la presión atmosférica estándar.  
+Por último, se analizarán las temperaturas por hora a lo largo de los días del mes de marzo 2025, estudiando sus comportamientos en relación a la humedad relativa y a la presión atmosférica estándar. Gracias al gráfico @fig-temp_estacional del anexo, se puede observar el patrón estacional diario que tiene la temperatura, la cual se mantiene constante entre la noche y la mañana, pero a la tarde sube pronunciadamente. Se estimarán las temperaturas horarias del 21 y 22 de mayo de 2025. La información necesaria fue extraída de la página del [Servicio Meteorológico Nacional](https://www.smn.gob.ar/descarga-de-datos).
 
 ```{python}
 # Grafico serie temperatura
 
 plt.subplot(3,1,1)
 
-plt.plot(temperatura_trunc['ds'], temperatura_trunc['y'], color = "#520004")
+plt.plot(temperatura_trunc['ds'], temperatura_trunc['y'], color = "#E23C47")
 
 plt.xlabel('')
 plt.ylabel('Temperatura (ºC)')
@@ -593,23 +600,22 @@ plt.tick_params(labelbottom=False)
 
 plt.subplot(3,1,2)
 
-plt.plot(temperatura_trunc['ds'], temperatura_trunc['HUM'], color = "#520004")
+plt.plot(temperatura_trunc['ds'], temperatura_trunc['HUM'], color = "black")
 plt.xlabel('')
 plt.ylabel('Humedad (%)')
 plt.tick_params(labelbottom=False)
 
 plt.subplot(3,1,3)
 
-plt.plot(temperatura_trunc['ds'], temperatura_trunc['PNM'], color = "#520004")
+plt.plot(temperatura_trunc['ds'], temperatura_trunc['PNM'], color = "black")
 plt.xlabel('Fecha')
 plt.ylabel('Presión atmosférica (hPa)')
 
+plt.show()
+
 ```
 
-Gracias al gráfico @fig-temp_estacional del anexo, se puede observar el patrón estacional diario que tiene la temperatura, se mantiene constante entre la noche y la mañana, pero a la tarde sube pronunciadamente. Se estimarán las temperaturas horarias del 21 y 22 de mayo de 2025.
-
 ## 4.2 Modelado
-
 
 ```{python}
 
@@ -707,33 +713,42 @@ plt.ylabel("Trabajadores (miles)")
 Para descubrir las componentes AR y MA que afectan a las series se grafican las autocorrelaciones y autocorrelaciones parciales de cada una.
 
 ```{python}
-plt.subplot(2,1,1)
-autocorr_plot(atenciones_ajust["y_diff"], lags=25)
-plt.subplot(2,1,2)
-autocorr_plot(atenciones_ajust["y_diff"], lags=25, atype='pacf')
+
+autocorr_plot(atenciones_ajust["y_diff"], lags=25).save("../Imgs/plotnine/autocorr1.png", width=6, height=4/2.1, dpi=700)
+
+autocorr_plot(atenciones_ajust["y_diff"], lags=25, atype='pacf').save("../Imgs/plotnine/autocorr2.png", width=6, height=4/2.1, dpi=700)
 ```
+
+::: {#fig-pronarima1 layout-nrow=2}
+
+![](../Imgs/plotnine/autocorr1.png)
+
+![](../Imgs/plotnine/autocorr2.png)
+
+Autocorrelaciones de la serie de atenciones
+:::
 
 En la serie de atenciones se puede ver que tanto en las autocorrelaciones como en las autocorrelaciones parciales, hay valores significativos en el quinto y doceavo rezago, lo que podrían significar que existen compotentes MA y AR en la parte estacional o estacionaria de la serie.
 
 Se proponen entonces los modelos $SARIMA(0,1,1)(0,1,0)_{12}$ y $SARIMA(0,1,0)(0,1,1)_{12}$.
 
 ```{python}
-plt.subplot(2,1,1)
-autocorr_plot(trabajadores_trunc["y_diff"], lags=25)
-plt.subplot(2,1,2)
-autocorr_plot(trabajadores_trunc["y_diff"], lags=25, atype='pacf')
+
+autocorr_plot(trabajadores_trunc["y_diff"], lags=25).save("../Imgs/plotnine/autocorr3.png", width=6, height=4/2.1, dpi=700)
+
+autocorr_plot(trabajadores_trunc["y_diff"], lags=25, atype='pacf').save("../Imgs/plotnine/autocorr4.png", width=6, height=4/2.1, dpi=700)
 ```
+
+::: {#fig-pronarima1 layout-nrow=2}
+
+![](../Imgs/plotnine/autocorr3.png)
+
+![](../Imgs/plotnine/autocorr4.png)
+
+Autocorrelaciones de la serie de trabajadores
+:::
 
 En las autocorrelaciones de la serie de trabajadores resultan significativos el primer y doceavo rezago, mientras que en las autocorrelaciones parciales se destacan los rezagos 1, 12, 13 y 24. Se puede suponer que el rezago 13 no es en realidad significativo y que la serie presenta una componente MA en la parte estacionaria y una AR en la estacional, formando el modelo $SARIMA(0,1,1)(1,1,0)_{12}$.
-
-```{python}
-# plt.subplot(2,1,1)
-# autocorr_plot(temperatura_trunc["y_diff"], lags=48)
-# plt.subplot(2,1,2)
-# autocorr_plot(temperatura_trunc["y_diff"], lags=48, atype='pacf')
-```
-
-<!-- Por último, se puede concluir que la serie de temperatura presenta componentes AR en la parte estacionaria y estacional, $SARIMA(1,1,1)(1,2,0)_{12}$. -->
 
 Además, por medio de la función `auto_arima` de la librería `pmdarima` se propusieron modelos automáticos. Se elegirá como mejor modelo aquel que minimice el Criterio de Información de Akaike (AIC) y cumpla con las propiedades del modelo ARIMA.
 
@@ -743,15 +758,15 @@ Además, por medio de la función `auto_arima` de la librería `pmdarima` se pro
 \begin{tabular}{|clclcl|}
 \hline
 \multicolumn{1}{|c|}{\multirow{2}{*}{Modelo}}     & \multicolumn{1}{c|}{\multirow{2}{*}{AIC}} & \multicolumn{2}{c|}{Parte regular}                                         & \multicolumn{2}{c|}{Parte estacional}                 \\ \cline{3-6} 
-\multicolumn{1}{|c|}{}                            & \multicolumn{1}{c|}{}                     & \multicolumn{1}{c|}{Estacionariedad} & \multicolumn{1}{c|}{Invertibilidad} & \multicolumn{1}{c|}{Estacionariedad} & Invertibilidad \\ \hline
-\multicolumn{6}{|c|}{ATENCIONES EN GUARDIA}                                                                                                                                                                                        \\ \hline
+\multicolumn{1}{|c|}{}                            & \multicolumn{1}{c|}{}                     & \multicolumn{1}{c|}{Est.} & \multicolumn{1}{c|}{Inv.} & \multicolumn{1}{c|}{Est.} & \multicolumn{1}{c|}{Inv.} \\ \hline
+\multicolumn{6}{|c|}{Atenciones en guardia}                                                                                                                                                                                        \\ \hline
 \multicolumn{1}{|c|}{$SARIMA(0,1,1)(0,1,0)_{12}$} & \multicolumn{1}{l|}{857.6}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
 \multicolumn{1}{|c|}{$SARIMA(0,1,0)(0,1,1)_{12}$} & \multicolumn{1}{l|}{852.1}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
 \multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,0,0)_{12}$} & \multicolumn{1}{l|}{1013.5}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
-\multicolumn{6}{|c|}{TRABAJADORES}                                                                                                                                                                                                 \\ \hline
+\multicolumn{6}{|c|}{Trabajadores}                                                                                                                                                                                                 \\ \hline
 \multicolumn{1}{|c|}{$SARIMA(0,1,1)(1,1,0)_{12}$} & \multicolumn{1}{l|}{359.9}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
 \multicolumn{1}{|c|}{$SARIMA(2,0,0)(2,1,0)_{12}$} & \multicolumn{1}{l|}{356.7}                & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{Si}              & Si             \\ \hline
-\multicolumn{6}{|c|}{TEMPERATURA}                                                                                                                                                                                                  \\ \hline
+\multicolumn{6}{|c|}{Temperatura}                                                                                                                                                                                                  \\ \hline
 \multicolumn{1}{|c|}{$SARIMAX(1,1,1)(2,0,1)_{24}$} & \multicolumn{1}{l|}{1067.1}               & \multicolumn{1}{c|}{Si}              & \multicolumn{1}{c|}{Si}             & \multicolumn{1}{c|}{No}              & Si             \\ \hline
 \end{tabular}
 \end{table}
@@ -763,50 +778,57 @@ Las salidas de los modelos se pueden ver en el [anexo](#salidas_arima) para comp
 Lo siguiente es comprobar que los residuos estandarizados se comporten como ruido blanco.
 
 ```{python}
-#| fig-cap: "Comprobación de supuestos del 2º modelo manual para las atenciones en guardia"
-
-resid_check(resultados_arima['resid_arima_atenciones_2'], ds = atenciones_trunc['ds'])
+resid_check(resultados_arima['resid_arima_atenciones_2'], ds = atenciones_trunc['ds'], time='%Y', name='resid_atenciones_2')
 ```
+
+::: {#fig-pronarima2 layout-nrow=2}
+
+![](../Imgs/plotnine/resid_atenciones_2_1.png)
+
+![](../Imgs/plotnine/resid_atenciones_2_2.png)
+
+![](../Imgs/plotnine/resid_atenciones_2_3.png)
+
+![](../Imgs/plotnine/resid_atenciones_2_4.png)
+
+Comprobación de supuestos del segundo modelo arima manual para la serie de atenciones
+:::
 
 El histograma muestra la distribución de los residuos, pudiendo ver y comprobar con el test de Kolmogorov-Smirnov que es normal. La serie de los residuos muestra como estos no tienen un patrón particular ni variabilidad dependiente del tiempo, solo 2 *outlayers* fáciles de ignorar. Por último, los gráficos inferiores muestran las autocorrelaciones y autocorrelaciones parciales, esperando que no haya ninguna significativa. Por medio del test de Ljung-Box se comprueba que ninguna lo es y se concluye que los residuos no están correlacionados. Por lo tanto todos los supuestos se cumplen para este modelo. 
 
-Con el propósito de no poblar de gráficos el documento, el resto de los gráficos para la comprobación de supuestos de los demás modelos se encuentran en el [anexo](#supuestos_arima). En estos se destaca que todos los modelos, con excepción del seleccionado automáticamente para los trabajadores, superaron la comprobación de supuestos. El problema de este modelo es la existencia de correlación en los residuos, supuesto que es sumamente importante al ajustar modelos ARIMA. Si bien los residuos del modelo seleccionado manualmente para los trabajadores no cumple con normalidad, es sencillo ver que esto se debe a unos poco valores extremos, y que sin estos es muy probable que se sí se distribuyan normalmente. De lo contrario, en la próxima sección se detallarán posibles soluciones.
+Con el propósito de no poblar de gráficos el documento, el resto de los gráficos para la comprobación de supuestos de los demás modelos se encuentran en el [anexo](#supuestos_arima). En estos se destaca que todos los modelos, con excepción del seleccionado automáticamente para los trabajadores, superaron la comprobación de supuestos. El problema de este modelo es la existencia de correlación en los residuos, supuesto que es sumamente importante al ajustar modelos ARIMA. Si bien los residuos del modelo seleccionado manualmente para los trabajadores no cumple con normalidad, es sencillo ver que esto se debe a unos poco valores extremos, y que sin estos es muy probable que se sí se distribuyan normalmente.
 
 ```{python}
-#| layout-ncol: 2
-#| fig-cap: 
-#|   - "Line Plot 1"
-#|   - "Line Plot 2"
 
-plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_1'], pred_color = 'green', label = 'ARIMA', long = 48)
+plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_2'], pred_color = 'green', line_color='#6BC78A', label = 'ARIMA', long = 48, ylabel= 'Atenciones', legend_position = (0.3,0.98)).save("../Imgs/plotnine/arima1.png", width=6, height=4/2.1, dpi=700)
 
-plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], pred_color = 'green', label = 'ARIMA', long = 48)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = 'grey', line_color='#6BC78A', label = 'ARIMA', ylabel= 'Atenciones', legend_position = 'none', long = 48).save("../Imgs/plotnine/arima2.png", width=6, height=4/2.1, dpi=700)
+
+plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], pred_color = 'green', label = 'ARIMA', long = 48, ylabel= 'Trabajadores (miles)', legend_position = (0.3,0.98)).save("../Imgs/plotnine/arima3.png", width=6, height=4/2.1, dpi=700)
+
+plot_forecast(data = tiempo_rosario[['ds','y']], forecast = resultados_arima['pred_temperatura_3'], pred_color = 'grey', line_color='#E23C47', label = 'ARIMA', long = 48, ylabel= 'Atenciones', legend_position = 'none').save("../Imgs/plotnine/arima4.png", width=6, height=4/2.1, dpi=700)
 
 ```
 
-```{python}
-#| layout-ncol: 2
-#| fig-cap: 
-#|   - "Line Plot 1"
-#|   - "Line Plot 2"
 
-plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_2'], pred_color = 'grey', line_color='#6BC78A', label = 'IC 80%', long = 48)
+::: {#fig-pronarima1 layout-nrow=2}
 
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = 'grey', line_color='#6BC78A', label = 'IC 80%', long = 48)
+![](../Imgs/plotnine/arima1.png)
 
-```
+![](../Imgs/plotnine/arima2.png)
 
-```{python}
-#| layout-ncol: 2
-#| fig-cap: 
-#|   - "Line Plot 1"
-#|   - "Line Plot 2"
+Pronostico de atenciones con ARIMA
+:::
 
-plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], pred_color = 'grey', line_color='#5299CB', label = 'IC 80%', long = 48)
+::: {#fig-pronarima2 layout-nrow=2}
 
-plot_forecast(data = tiempo_rosario[['ds','y']], forecast = resultados_arima['pred_temperatura_3'], pred_color = 'grey', line_color='#E23C47', label = 'IC 80%', long = 48)
+![](../Imgs/plotnine/arima3.png)
 
-```
+![](../Imgs/plotnine/arima4.png)
+
+Pronostico de trabajadores y temperatura con ARIMA
+:::
+
 
 Uno de los problemas de pronosticar con ARIMA es que para trabajar con variables exógenas se debe conocer los valores futuros de estas. Para este caso se asume que los valores de humedad y presión atmosférica son conocidos para el día 21, sin embargo, para el resto de aplicaciones esto no será así y se considera esto como una desventaja de este modelo de pronóstico.
 
@@ -847,7 +869,7 @@ is_temperatura_3 = interval_score(obs=tiempo_rosario.tail(24)['y'], lower = resu
 \end{table}
 
 
-### 4.2.2 XGBoost
+### 4.2.2 Modelos de aprendizaje automático
 
 Los modelos de pronóstico basados en el aprendizaje automático no tienen supuestos que cumplir, por lo que el modelaje se vuelve mucho más sencillo y automatizable. Los únicos aspectos en los que se debe tener especial cuidado y atención es en la selección de características y parámetros del modelo.
 
@@ -867,7 +889,7 @@ Tanto para XGBoost como para LightGBM las características elegidas para todas l
 
 Con el objetivo de seleccionar los mejores hiperparámetros, se elaboró una grilla con diferentes combinaciones de valores para cada parámetro. Se ajustaron modelos cumpliendo cada combinación en la grilla sobre un conjunto de validación.
 
-XGBoost permite parametrizar los modelos de varias formas, los que se eligieron ajustar en este trabajo son los siguientes:
+XGBoost y Lightgbm permiten parametrizar los modelos de varias formas, los que se eligieron ajustar en este trabajo son los siguientes:
 
 - Número de árboles que se contruyen paralelamente en cada iteración ($A$). Opciones: 20, 50, 100, 150.
 
@@ -875,84 +897,164 @@ XGBoost permite parametrizar los modelos de varias formas, los que se eligieron 
 
 - Número máximo de hojas del árbol ($H$). Opciones: 2, 4, 8, 16.
 
-- Tasa de aprendizaje en el método del gradiente ($\eta$). Opciones: 0.1, 0.2, 0.3.
+- Tasa de aprendizaje en el método del gradiente ($\eta$). Opciones: 0.001, 0.1, 0.2.
 
-En la tabla @tbl-resultadosxgb se muestra para cada serie que combinación de parámetros, de las 192 posibles, fue la que menor MAPE produjo sobre el conjunto de validación. Además, se presenta el MAPE e *Interval Score* que devuelve el modelo entrenado con todos los datos de entrenamiento y evaluado sobre el conjunto de prueba.
+- Proporción de características que se usa en cada árbol ($C$). Opciones: 0.7, 1.
 
-\begin{table}[]
+En las tablas @tbl-resultadosxgb y @tbl-resultadoslgbm se muestran para cada serie que combinación de parámetros, de las 384 posibles, fue la que menor MAPE produjo sobre el conjunto de validación aplicando XGBoost o LightGBM respectivamente. Además, se presenta el MAPE e *Interval Score* que devuelve el modelo entrenado con todos los datos de entrenamiento y evaluado sobre el conjunto de prueba.
+
+\begin{table}[H]
 \centering
 \caption{Modelos XGBoost seleccionados y métricas de evaluación.}
 \label{tbl-resultadosxgb}
-\begin{tabular}{|c|l|l|l|l|c|c|}
+\begin{tabular}{|c|l|l|l|l|l|c|c|}
 \hline
-\multirow{2}{*}{Serie}   & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$A$\end{tabular}}}            & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$P$\end{tabular}}}            & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$H$\end{tabular}}}         & \multicolumn{1}{c|}{\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}$\eta$\end{tabular}}}              & \multirow{2}{*}{MAPE}                         & \multirow{2}{*}{\textit{Interval Score}}              \\
-                         & \multicolumn{1}{c|}{}                                                                                                    & \multicolumn{1}{c|}{}                                                                                                 & \multicolumn{1}{c|}{}                                                                                                  & \multicolumn{1}{c|}{}                                                                                                     &                                               &                                                \\ \hline
-Atenciones en guardia    & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} round(resultados_1_xgb['mape'], 4)` & `{python} round(resultados_1_xgb['score'], 4)` \\ \hline
-Trabajadores registrados & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} round(resultados_2_xgb['mape'], 4)` & `{python} round(resultados_2_xgb['score'], 4)` \\ \hline
-Temperatura              & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} round(resultados_3_xgb['mape'], 4)` & `{python} round(resultados_3_xgb['score'], 4)` \\ \hline
+\multirow{2}{*}{Serie}   & \multicolumn{1}{c|}{\multirow{2}{*}{$A$}}                                                                                   & \multicolumn{1}{c|}{\multirow{2}{*}{$P$}}                                                                                & \multicolumn{1}{c|}{\multirow{2}{*}{$H$}}                                                                                 & \multicolumn{1}{c|}{\multirow{2}{*}{$\eta$}}                                                                                        & \multicolumn{1}{c|}{\multirow{2}{*}{$C$}}                                                                                              & \multirow{2}{*}{MAPE}                                              & \multirow{2}{*}{\textit{Interval Score}}       \\
+                         & \multicolumn{1}{c|}{}                                                                                                       & \multicolumn{1}{c|}{}                                                                                                    & \multicolumn{1}{c|}{}                                                                                                     & \multicolumn{1}{c|}{}                                                                                                               & \multicolumn{1}{c|}{}                                                                                                                  &                                                                    &                                                \\ \hline
+Atenciones en guardia    & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` & \multicolumn{1}{l|}{`{python} round(resultados_1_xgb['mape'], 4)`} & `{python} round(resultados_1_xgb['score'], 4)` \\ \hline
+Trabajadores registrados & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` & `{python} round(resultados_2_xgb['mape'], 4)`                      & `{python} round(resultados_2_xgb['score'], 4)` \\ \hline
+Temperatura              & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` & `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` & `{python} round(resultados_3_xgb['mape'], 4)`                      & `{python} round(resultados_3_xgb['score'], 4)` \\ \hline
 \end{tabular}
 \end{table}
 
-
 ```{python}
-plt.figure(figsize=(9, 5))
-plt.subplot(3,1,1)
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 24)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 36, ylabel= 'Atenciones', legend_position = (0.3,0.98)
+).save("../Imgs/plotnine/xgboost1.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,2)
-plot_forecast(data = trabajadores, forecast = resultados_2_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 24)
+plot_forecast(data = trabajadores, forecast = resultados_2_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 36, ylabel= 'Trabajadores', legend_position='none'
+).save("../Imgs/plotnine/xgboost2.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,3)
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 36)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_color = 'green', label = 'XGBoost', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+).save("../Imgs/plotnine/xgboost3.png", width=6, height=4/3.1, dpi=700)
 
 ```
 
-### 4.2.3 LightGBM
+::: {#fig-pronxgb layout-nrow=3}
+
+![](../Imgs/plotnine/xgboost1.png)
+
+![](../Imgs/plotnine/xgboost2.png)
+
+![](../Imgs/plotnine/xgboost3.png)
+
+Pronosticos con XGBoost
+
+:::
+
+\begin{table}[H]
+\centering
+\caption{Modelos LightGBM seleccionados y métricas de evaluación.}
+\label{tbl-resultadoslgbm}
+\begin{tabular}{|c|l|l|l|l|l|c|c|}
+\hline
+\multirow{2}{*}{Serie}   & \multicolumn{1}{c|}{\multirow{2}{*}{$A$}}                                                                                     & \multicolumn{1}{c|}{\multirow{2}{*}{$P$}}                                                                                  & \multicolumn{1}{c|}{\multirow{2}{*}{$H$}}                                                                                   & \multicolumn{1}{c|}{\multirow{2}{*}{$\eta$}}                                                                                          & \multicolumn{1}{c|}{\multirow{2}{*}{$C$}}                                                                                                & \multirow{2}{*}{MAPE}                          & \multirow{2}{*}{\textit{Interval Score}}        \\
+                         & \multicolumn{1}{c|}{}                                                                                                         & \multicolumn{1}{c|}{}                                                                                                      & \multicolumn{1}{c|}{}                                                                                                       & \multicolumn{1}{c|}{}                                                                                                                 & \multicolumn{1}{c|}{}                                                                                                                    &                                                &                                                 \\ \hline
+Atenciones en guardia    & `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` & `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` & `{python} round(resultados_1_lgbm['mape'], 4)` & `{python} round(resultados_1_lgbm['score'], 4)` \\ \hline
+Trabajadores registrados & `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` & `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` & `{python} round(resultados_2_lgbm['mape'], 4)` & `{python} round(resultados_2_lgbm['score'], 4)` \\ \hline
+Temperatura              & `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` & `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` & `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` & `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` & `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` & `{python} round(resultados_3_lgbm['mape'], 4)` & `{python} round(resultados_3_lgbm['score'], 4)` \\ \hline
+\end{tabular}
+\end{table}
 
 ```{python}
-plt.figure(figsize=(9, 5))
-plt.subplot(3,1,1)
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_lgbm['pred'], pred_color = 'green', label = 'LigthGBM', long = 24)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_lgbm['pred'], pred_color = 'green', label = 'LightGBM', long = 36, ylabel= 'Atenciones', legend_position = (0.3,0.98)
+).save("../Imgs/plotnine/lgbm1.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,2)
-plot_forecast(data = trabajadores, forecast = resultados_2_lgbm['pred'], pred_color = 'green', label = 'LigthGBM', long = 24)
+plot_forecast(data = trabajadores, forecast = resultados_2_lgbm['pred'], pred_color = 'green', label = 'LightGBM', long = 36, ylabel= 'Trabajadores', legend_position='none'
+).save("../Imgs/plotnine/lgbm2.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,3)
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_color = 'green', label = 'LigthGBM', long = 36)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_color = 'green', label = 'LightGBM', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+).save("../Imgs/plotnine/lgbm3.png", width=6, height=4/3.1, dpi=700)
+
 ```
 
+::: {#fig-pronlgbm layout-nrow=3}
 
-### 4.2.4 LSTM
+![](../Imgs/plotnine/lgbm1.png)
+
+![](../Imgs/plotnine/lgbm2.png)
+
+![](../Imgs/plotnine/lgbm3.png)
+
+Pronosticos con LightGBM
+
+:::
+
+### 4.2.3 LSTM
+
+Los modelos basados en aprendizaje profundo se encargan de definir las características más relevantes y los parámetros más adecuados de forma automática. En las redes neuronales, como es el caso de LSTM, solo se tendrá que elegir la forma del modelo, es decir, las capas y la cantidad de iteraciones. 
+
+Para evitar el sobreajuste en redes neuronales existen numerosas alternativas. Entre estas se puede optar por frenar el entrenamiento antes de completar todas las iteraciones si es que no se ve mejora en la función de pérdida, esto se conoce como *early stop*. Otra opción es *ignorar* una cierta proporción de neuronas en cada iteración, que es equivalente a entrenar distintas redes neuronales. Esta última técnica es denominada *dropout*.
+
+- Número de iteraciones ($N$). Opciones: 50, 100, 200, 500.
+
+- Número de capas del codificador ($C$). Opciones: 1, 2, 3.
+
+- Número de capas del decodificador ($D$). Opciones: 1, 2, 3.
+
+- Tasa de aprendizaje ($\eta$). Opciones: 0.001, 0.1, 0.2.
+
+- Paciencia para el *early stop* ($P$). Opciones: 5, 10, $\infty$.
+
+- *Dropout* ($O$). Opciones: 0, 0.1, 0.3.
+
+Cada 10 iteraciones se evalúa la función de perdida, que la paciencia sea igual a 5 significa que si la función de pérdida no mejora en las últimas 5 iteraciones, se detiene el entrenamiento. Que el *dropout* sea 0.1 lleva a que cada neurona tenga una probabilidad de 0.1 de que se apague en cada iteración.
+
+Codificador hace referencia al modelo LSTM, mientras que decodificador a un modelo perceptrón multicapa simple que garantiza eficiencia y estabilidad.
+
 
 ```{python}
-plt.figure(figsize=(9, 5))
-plt.subplot(3,1,1)
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_lstm['pred'], pred_color = 'violet', label = 'LSTM', long = 24)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_lstm['pred'], pred_color = 'green', label = 'LSTM', long = 36, ylabel= 'Atenciones', legend_position = (0.3,0.98)
+).save("../Imgs/plotnine/lstm1.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,2)
-plot_forecast(data = trabajadores, forecast = resultados_2_lstm['pred'], pred_color = 'violet', label = 'LSTM', long = 24)
+plot_forecast(data = trabajadores, forecast = resultados_2_lstm['pred'], pred_color = 'green', label = 'LSTM', long = 36, ylabel= 'Trabajadores', legend_position='none'
+).save("../Imgs/plotnine/lstm2.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,3)
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_color = 'violet', label = 'LSTM', long = 36)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_color = 'green', label = 'LSTM', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+).save("../Imgs/plotnine/lstm3.png", width=6, height=4/3.1, dpi=700)
 
 ```
 
-### 4.2.5 Chronos
+::: {#fig-pronlstm layout-nrow=3}
+
+![](../Imgs/plotnine/lstm1.png)
+
+![](../Imgs/plotnine/lstm2.png)
+
+![](../Imgs/plotnine/lstm3.png)
+
+Pronosticos con LSTM
+
+:::
+
+
+### 4.2.4 Modelos fundacionales
+
+La mejoría de los modelos fundacionales por sobre las redes neuronales convencionales radica en que el ajuste de parámetros ya fue realizado con un preentrenamiento en grandes conjuntos de datos. Aún así, es posible utilizar la arquitectura transformer y realizar un ajuste más personalizado conocido como *fine tuning*. 
+
 
 ```{python}
-plt.figure(figsize=(9, 5))
-plt.subplot(3,1,1)
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_chronos['pred'], pred_color = 'violet', label = 'Chronos', long = 24)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_chronos['pred'], pred_color = 'green', label = 'Chronos', long = 36, ylabel= 'Atenciones', legend_position = (0.3,0.98)
+).save("../Imgs/plotnine/chronos1.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,2)
-plot_forecast(data = trabajadores, forecast = resultados_2_chronos['pred'], pred_color = 'violet', label = 'Chronos', long = 24)
+plot_forecast(data = trabajadores, forecast = resultados_2_chronos['pred'], pred_color = 'green', label = 'Chronos', long = 36, ylabel= 'Trabajadores', legend_position='none'
+).save("../Imgs/plotnine/chronos2.png", width=6, height=4/3.1, dpi=700)
 
-plt.subplot(3,1,3)
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pred_color = 'violet', label = 'Chronos', long = 36)
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pred_color = 'green', label = 'Chronos', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+).save("../Imgs/plotnine/chronos3.png", width=6, height=4/3.1, dpi=700)
+
 ```
 
+::: {#fig-pronchronos layout-nrow=3}
 
-### 4.2.6 TimeGPT
+![](../Imgs/plotnine/chronos1.png)
+
+![](../Imgs/plotnine/chronos2.png)
+
+![](../Imgs/plotnine/chronos3.png)
+
+Pronosticos con Chronos
+
+:::
 
 ## 4.3 Comparaciones
 
@@ -1069,6 +1171,7 @@ plt.xticks(
     ],
 )
 
+plt.show()
 ```
 
 ```{python}
@@ -1089,6 +1192,7 @@ sns.lineplot(
 
 plt.xlabel("Hora")
 plt.ylabel("Temperatura (Cº)")
+plt.show()
 ```
 
 ## 7.2 Salidas de modelos arima {#salidas_arima}
@@ -1152,30 +1256,80 @@ print(resultados_arima['salida_arima_temperatura_3'])
 **Modelo atenciones selección automática**
 
 ```{python}
-#| fig-cap: "Comprobación de supuestos del modelo automático para las atenciones en guardia"
-resid_check(resultados_arima['resid_arima_atenciones_auto'], ds = atenciones_trunc['ds'])
+resid_check(resultados_arima['resid_arima_atenciones_2'], ds = atenciones_trunc['ds'], time='%Y', name='resid_atenciones_auto')
 ```
+
+::: {#fig-pronarima2 layout-nrow=2}
+
+![](../Imgs/plotnine/resid_atenciones_auto_1.png)
+
+![](../Imgs/plotnine/resid_atenciones_auto_2.png)
+
+![](../Imgs/plotnine/resid_atenciones_auto_3.png)
+
+![](../Imgs/plotnine/resid_atenciones_auto_4.png)
+
+Comprobación de supuestos del modelo arima automático para la serie de atenciones
+:::
 
 **Modelo trabajadores 1**
 
 ```{python}
-#| fig-cap: "Comprobación de supuestos del modelo manual para los trabajadores en el rubro de la enseñanza"
-resid_check(resultados_arima['resid_arima_trabajadores_1'], ds = trabajadores_trunc['ds'])
+resid_check(resultados_arima['resid_arima_trabajadores_1'], ds = trabajadores_trunc['ds'], time='%Y', name='resid_trabajadores_1')
 ```
+
+::: {#fig-pronarima2 layout-nrow=2}
+
+![](../Imgs/plotnine/resid_trabajadores_1_1.png)
+
+![](../Imgs/plotnine/resid_trabajadores_1_2.png)
+
+![](../Imgs/plotnine/resid_trabajadores_1_3.png)
+
+![](../Imgs/plotnine/resid_trabajadores_1_4.png)
+
+Comprobación de supuestos del modelo arima manual para la serie de trabajadores
+:::
+
 
 **Modelo trabajadores selección automática**
 
 ```{python}
-#| fig-cap: "Comprobación de supuestos del modelo automático para los trabajadores en el rubro de la enseñanza"
-resid_check(resultados_arima['resid_arima_trabajadores_auto'], ds = trabajadores_trunc['ds'])
+resid_check(resultados_arima['resid_arima_trabajadores_auto'], ds = trabajadores_trunc['ds'], time='%Y', name='resid_trabajadores_auto')
 ```
+
+::: {#fig-pronarima2 layout-nrow=2}
+
+![](../Imgs/plotnine/resid_trabajadores_auto_1.png)
+
+![](../Imgs/plotnine/resid_trabajadores_auto_2.png)
+
+![](../Imgs/plotnine/resid_trabajadores_auto_3.png)
+
+![](../Imgs/plotnine/resid_trabajadores_auto_4.png)
+
+Comprobación de supuestos del modelo arima automático para la serie de trabajadores
+:::
 
 **Modelo Temperatura 3**
 
 ```{python}
-#| fig-cap: "Comprobación de supuestos del 3º modelo manual para la temperatura"
-resid_check(resultados_arima['resid_arima_temperatura_3'], ds = temperatura_trunc['ds'])
+resid_check(resultados_arima['resid_arima_temperatura_3'], ds = temperatura_trunc['ds'], time='%d', name='resid_temperatura_3')
 ```
+
+::: {#fig-pronarima2 layout-nrow=2}
+
+![](../Imgs/plotnine/resid_temperatura_3_1.png)
+
+![](../Imgs/plotnine/resid_temperatura_3_2.png)
+
+![](../Imgs/plotnine/resid_temperatura_3_3.png)
+
+![](../Imgs/plotnine/resid_temperatura_3_4.png)
+
+Comprobación de supuestos del tercer modelo arima manual para la serie de temperatura
+:::
+
 
 # NOTAS
 
@@ -1184,9 +1338,13 @@ resid_check(resultados_arima['resid_arima_temperatura_3'], ds = temperatura_trun
       Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional, ENFERMEDADES RESPIRATORIAS
       variable exogena > Temperatura + humedad + presion atmosferica (https://www.smn.gob.ar/descarga-de-datos)
       
-- TO DO: 
-      Definir y aplicar las caracteristicas para la serie de temperatura
-      Redactar EnbPI para XGBoost y Lightgbm
+- TO DO:
+      corregir graficos residuos
+      Volver a correr lstm (todos)
+      Corregir pronosticos de chronos
+      Corregir tablas
+      pasar todos los graficos a plotnine
+      Explicar como se eligen los modelos (mape), y como se registra el tiempo
       Explicar Aplicacion, parametros usados
       Revisar Arima
       revisar transformers
@@ -1197,8 +1355,11 @@ resid_check(resultados_arima['resid_arima_temperatura_3'], ds = temperatura_trun
       Actualizar los requirements
 
 
-- Hacer dendograma de importancia de variables para los modelos de machine learning, timegpt (variables exogenas)
+Agregar fientes a los primeros graficos
+Autocorrelaciones en la descripciones de las series
+Puedo si utilizar los pronosticos de a poco
 
+- Hacer dendograma de importancia de variables para los modelos de machine learning, timegpt (variables exogenas)
 
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
 
@@ -1207,7 +1368,6 @@ resid_check(resultados_arima['resid_arima_temperatura_3'], ds = temperatura_trun
 - leer fpp3 que tiene unas cosas que pueden servir , tambien https://otexts.com/fpppy/nbs/15-foundation-models.html#chronos
 
 
-Nombrar ls 3 opcions de calculo de intervalo de xgboost
 Tomar el tiempo como el ultimo modelo PERO EXPLICARLO
 
 nomenclatura: 
@@ -1235,22 +1395,9 @@ nomenclatura:
 
 - Validacion cruzada temporal para el entrenamiento de los modelos
 
+
 # Preguntas nanda
 
-Para la serie de temperatura: Como diferencio para sacar la estacionalidad? La humedad y la presion las tomo como variables exogenas pasadas o futuras?
-
-La humedad tienen claros outlayers, que hago? no parecen afectar los pronosticos
-
-Que hago con los modelos arima con los que no dan los supuestos? me la rebusco?
-
-Para pronosticar a varios horizontes, puedo usar simplemente un horizonte mas largo y compararlo progresivamente? 
-
-debo explicar sarimax? que tanto debo profundizar sobre la teoria de arima?
-
-identificar con colores las series o los pronosticos?
-
-Uso conformal predictions tmb para Lightgmb? o me quedo con el pronostico cuantilico?
-
-
+- En realidad no es correcto tomar los pronosticos de a poco para comparar al corto y largo plazo porque los modelos se eligen segun que tan bien ajustan a cierto horizonte, si se cambia el horizonte esto podria modificarse
 
 

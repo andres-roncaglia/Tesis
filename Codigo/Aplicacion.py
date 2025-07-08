@@ -98,7 +98,7 @@ params = {
     "eval_metric" : ['mape'],
     "max_leaves": [2,4,8,16],
     "max_depth": [2,3,4,5],
-    "learning_rate": [0.1, 0.2, 0.3],
+    "learning_rate": [0.001, 0.1, 0.2],
     "n_estimators": [20, 50, 100, 150],
     "colsample_bytree": [0.7, 1.0],
 }
@@ -128,9 +128,9 @@ params = {
     "random_state": [seed],
     "verbose": [-1],
     "max_depth": [2,3,4,5],
-    "learning_rate": [0.1, 0.2, 0.3],
+    "learning_rate": [0.001, 0.1, 0.2],
     "n_estimators": [20, 50, 100, 150],
-    'num_leaves' : [5, 10, 20, 30, 50],
+    'num_leaves' : [2,4,8,16],
     "colsample_bytree": [0.7, 1.0],
 }
 
@@ -140,7 +140,6 @@ resultados_1_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia, 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LightGBM', resultados_1_lgbm['mape'], resultados_1_lgbm['score'], resultados_1_lgbm['tiempo']]
 
-
 # ------------------------------- 1.5 LSTM -------------------------------
 
 # Definimos los parametros a tunear
@@ -148,7 +147,11 @@ parametros = {
     'max_steps' : [50, 100, 200, 500],
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
-    'decoder_layers' : [1,2,3]
+    'decoder_layers' : [1,2,3],
+    'early_stop_patience_steps': [-1, 5, 10],
+    'val_check_steps' : [10],
+    'learning_rate': [0.001, 0.1, 0.2],
+    'encoder_dropout': [0, 0.1, 0.3]
     }
 
 # Tuneamos los parametros y ajustamos el modelo
@@ -164,12 +167,12 @@ metricas_1.loc[len(metricas_1)] = ['LSTM', resultados_1_lstm['mape'], resultados
 # Definimos los parametros a tunear
 parametros = {
     'finetune_loss' : ['mape'],
-    'finetune_steps' : [1,2,5,10,15],
-    'finetune_depth' : [1, 2, 3, 5]
+    'finetune_steps' : [1,2,5,10],
+    'finetune_depth' : [1, 3, 5]
     }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_1_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, parametros= parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, parametros= parametros, alpha= alpha, long_pred = long_pred, tgpt_freq='ME')
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['TimeGPT', resultados_1_gpt['mape'], resultados_1_gpt['score'], resultados_1_gpt['tiempo']]
@@ -256,11 +259,12 @@ pred_trabajadores_1['ds'] = ds
 params = {
     "tree_method": ['exact'],
     "random_state": [seed],
+    "eval_metric" : ['mape'],
     "max_leaves": [2,4,8,16],
     "max_depth": [2,3,4,5],
-    "learning_rate": [0.1, 0.2, 0.3],
-    "n_estimators": [20, 50, 100, 150]
-
+    "learning_rate": [0.001, 0.1, 0.2],
+    "n_estimators": [20, 50, 100, 150],
+    "colsample_bytree": [0.7, 1.0],
 }
 
 # Calculamos las características a usar
@@ -287,10 +291,12 @@ metricas_2.loc[len(metricas_2)] = ['XGBoost', resultados_2_xgb['mape'], resultad
 # Definimos los parametros a tunear
 params = {
     "random_state": [seed],
+    "verbose": [-1],
     "max_depth": [2,3,4,5],
-    "learning_rate": [0.1, 0.2, 0.3],
+    "learning_rate": [0.001, 0.1, 0.2],
     "n_estimators": [20, 50, 100, 150],
-    'num_leaves' : [5, 10, 20, 30, 50]
+    'num_leaves' : [2,4,8,16],
+    "colsample_bytree": [0.7, 1.0],
 }
 
 # Tuneamos los parametros y ajustamos el modelo
@@ -307,7 +313,11 @@ parametros = {
     'max_steps' : [50, 100, 200, 500],
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
-    'decoder_layers' : [1,2,3]
+    'decoder_layers' : [1,2,3],
+    'early_stop_patience_steps': [-1, 5, 10],
+    'val_check_steps' : [10],
+    'learning_rate': [0.001, 0.1, 0.2],
+    'encoder_dropout': [0, 0.1, 0.3]
     }
 
 # Tuneamos los parametros y ajustamos el modelo
@@ -324,12 +334,12 @@ metricas_2.loc[len(metricas_2)] = ['LSTM', resultados_2_lstm['mape'], resultados
 # Definimos los parametros a tunear
 parametros = {
     'finetune_loss' : ['mape'],
-    'finetune_steps' : [1,2,5,10,15],
-    'finetune_depth' : [1, 2, 3, 5]
+    'finetune_steps' : [1,2,5,10],
+    'finetune_depth' : [1, 3, 5]
     }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_2_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=trabajadores, parametros= parametros, alpha= alpha, long_pred = long_pred)
+resultados_2_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=trabajadores, parametros= parametros, alpha= alpha, long_pred = long_pred, tgpt_freq='ME')
 
 # Guardamos las metricas
 metricas_2.loc[len(metricas_2)] = ['TimeGPT', resultados_2_gpt['mape'], resultados_2_gpt['score'], resultados_2_gpt['tiempo']]
@@ -430,13 +440,13 @@ pred_temperatura_3['ds'] = ds
 params = {
     "tree_method": ['exact'],
     "random_state": [seed],
+    "eval_metric" : ['mape'],
     "max_leaves": [2,4,8,16],
     "max_depth": [2,3,4,5],
-    "learning_rate": [0.1, 0.2, 0.3],
-    "n_estimators": [20, 50, 100, 150]
-
+    "learning_rate": [0.001, 0.1, 0.2],
+    "n_estimators": [20, 50, 100, 150],
+    "colsample_bytree": [0.7, 1.0],
 }
-
 # Calculamos las características a usar
 caracteristicas_temperatura = pd.DataFrame({
     'day' : tiempo_rosario['ds'].dt.day,
@@ -463,10 +473,12 @@ metricas_3.loc[len(metricas_3)] = ['XGBoost', resultados_3_xgb['mape'], resultad
 # Definimos los parametros a tunear
 params = {
     "random_state": [seed],
+    "verbose": [-1],
     "max_depth": [2,3,4,5],
-    "learning_rate": [0.1, 0.2, 0.3],
+    "learning_rate": [0.001, 0.1, 0.2],
     "n_estimators": [20, 50, 100, 150],
-    'num_leaves' : [5, 10, 20, 30, 50]
+    'num_leaves' : [2,4,8,16],
+    "colsample_bytree": [0.7, 1.0],
 }
 
 # Tuneamos los parametros y ajustamos el modelo
@@ -474,7 +486,6 @@ resultados_3_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=tiempo_rosario[['ds'
 
 # Guardamos las metricas
 metricas_3.loc[len(metricas_3)] = ['LightGBM', resultados_3_lgbm['mape'], resultados_3_lgbm['score'], resultados_3_lgbm['tiempo']]
-
 
 
 # ------------------------------- 3.5 LSTM -------------------------------
@@ -485,11 +496,15 @@ parametros = {
     'max_steps' : [50, 100, 200, 500],
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
-    'decoder_layers' : [1,2,3]
+    'decoder_layers' : [1,2,3],
+    'early_stop_patience_steps': [-1, 5, 10],
+    'val_check_steps' : [10],
+    'learning_rate': [0.001, 0.1, 0.2],
+    'encoder_dropout': [0, 0.1, 0.3]
     }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_3_lstm = Tuner(forecaster_fun= 'LSTM', datos=tiempo_rosario[['ds','y']], parametros= parametros, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']])
+resultados_3_lstm = Tuner(forecaster_fun= 'LSTM', datos=tiempo_rosario[['ds','y']], parametros= parametros, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']], tgpt_freq='h')
 
 # Guardamos las metricas
 metricas_3.loc[len(metricas_3)] = ['LSTM', resultados_3_lstm['mape'], resultados_3_lstm['score'], resultados_3_lstm['tiempo']]
@@ -502,12 +517,12 @@ metricas_3.loc[len(metricas_3)] = ['LSTM', resultados_3_lstm['mape'], resultados
 # Definimos los parametros a tunear
 parametros = {
     'finetune_loss' : ['mape'],
-    'finetune_steps' : [1,2,5,10,15],
-    'finetune_depth' : [1, 2, 3, 5]
+    'finetune_steps' : [1,2,5,10],
+    'finetune_depth' : [1, 3, 5]
     }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_3_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=tiempo_rosario[['ds','y']], parametros= parametros, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']])
+resultados_3_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=tiempo_rosario[['ds','y']], parametros= parametros, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']], tgpt_freq='h')
 
 # Guardamos las metricas
 metricas_3.loc[len(metricas_3)] = ['TimeGPT', resultados_3_gpt['mape'], resultados_3_gpt['score'], resultados_3_gpt['tiempo']]
