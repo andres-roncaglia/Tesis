@@ -70,9 +70,7 @@ modelo_1 = TimeSeriesPredictor(
     hyperparameters={
         "Chronos": [
             {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
-            {"model_path": "bolt_tiny", "fine_tune": True, "ag_args": {"name_suffix": "tiny-FineTuned"}},
-            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}},
-            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "small-FineTuned"}},
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}}
         ]
     },
     random_seed = seed,
@@ -142,6 +140,8 @@ trabajadores['timestamp'] = trabajadores['timestamp'].apply(
 
 trabajadores['timestamp'] = pd.to_datetime(trabajadores['timestamp'], format='%d-%m-%Y')
 
+# Eliminamos los datos del 2025 para tener solo años completos
+trabajadores = trabajadores[trabajadores['timestamp'].dt.year != 2025]
 
 # Definicion del nivel de significacion y el largo del pronostico
 alpha = 0.2
@@ -172,9 +172,7 @@ modelo_2 = TimeSeriesPredictor(
     hyperparameters={
         "Chronos": [
             {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
-            {"model_path": "bolt_tiny", "fine_tune": True, "ag_args": {"name_suffix": "tiny-FineTuned"}},
-            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}},
-            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "small-FineTuned"}},
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}}            
         ]
     },
     random_seed = seed,
@@ -267,15 +265,14 @@ modelo_3 = TimeSeriesPredictor(
     prediction_length=long_pred,
     quantile_levels =  [q_lower, q_upper],
     eval_metric = 'MAPE',
+    freq = "h"
 
     ).fit(
     tiempo_rosario_train, 
     hyperparameters={
         "Chronos": [
             {"model_path": "bolt_tiny", "ag_args": {"name_suffix": "tiny-ZeroShot"}},
-            {"model_path": "bolt_tiny", "fine_tune": True, "covariate_regressor": "XGB", "target_scaler": "standard", "ag_args": {"name_suffix": "tiny-FineTuned"}},
-            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}},
-            {"model_path": "bolt_small", "fine_tune": True, "covariate_regressor": "XGB", "target_scaler": "standard", "ag_args": {"name_suffix": "small-FineTuned"}},
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "small-ZeroShot"}}
         ]
     },
     random_seed = seed,
@@ -294,8 +291,8 @@ score = interval_score(obs=tiempo_rosario_test['target'], lower=predictions['low
 # Modificamos los datasets para tener el mismo formato que con el resto de modelos
 tiempo_rosario.drop('item_id', axis = 1, inplace = True)
 tiempo_rosario_test.drop('item_id', axis = 1, inplace = True)
-tiempo_rosario.columns = ['ds', 'y']
-tiempo_rosario_test.columns = ['ds', 'y']
+tiempo_rosario.columns = ['ds', 'y', 'HUM', 'PNM']
+tiempo_rosario_test.columns = ['ds', 'y', 'HUM', 'PNM']
 predictions.reset_index(drop=True, inplace=True)
 tiempo_rosario_test.reset_index(drop=True, inplace=True)
 

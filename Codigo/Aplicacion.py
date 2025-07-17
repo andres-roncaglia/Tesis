@@ -148,9 +148,9 @@ parametros = {
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
     'decoder_layers' : [1,2,3],
-    'early_stop_patience_steps': [-1, 5, 10],
+    'early_stop_patience_steps': [5, 10],
     'val_check_steps' : [10],
-    'learning_rate': [0.001, 0.1, 0.2],
+    'learning_rate': [0.01, 0.1, 0.2],
     'encoder_dropout': [0, 0.1, 0.3]
     }
 
@@ -160,23 +160,13 @@ resultados_1_lstm = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia, para
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LSTM', resultados_1_lstm['mape'], resultados_1_lstm['score'], resultados_1_lstm['tiempo']]
 
-
 # ------------------------------- 1.6 TIMEGPT -------------------------------
 
-
-# Definimos los parametros a tunear
-parametros = {
-    'finetune_loss' : ['mape'],
-    'finetune_steps' : [1,2,5,10],
-    'finetune_depth' : [1, 3, 5]
-    }
-
 # Tuneamos los parametros y ajustamos el modelo
-resultados_1_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, parametros= parametros, alpha= alpha, long_pred = long_pred, tgpt_freq='ME')
+resultados_1_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, alpha= alpha, long_pred = long_pred)
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['TimeGPT', resultados_1_gpt['mape'], resultados_1_gpt['score'], resultados_1_gpt['tiempo']]
-
 
 
 # -------------------------------------------------------------------------
@@ -314,9 +304,9 @@ parametros = {
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
     'decoder_layers' : [1,2,3],
-    'early_stop_patience_steps': [-1, 5, 10],
+    'early_stop_patience_steps': [5, 10],
     'val_check_steps' : [10],
-    'learning_rate': [0.001, 0.1, 0.2],
+    'learning_rate': [0.01, 0.1, 0.2],
     'encoder_dropout': [0, 0.1, 0.3]
     }
 
@@ -330,20 +320,11 @@ metricas_2.loc[len(metricas_2)] = ['LSTM', resultados_2_lstm['mape'], resultados
 
 # ------------------------------- 2.6 TIMEGPT -------------------------------
 
-
-# Definimos los parametros a tunear
-parametros = {
-    'finetune_loss' : ['mape'],
-    'finetune_steps' : [1,2,5,10],
-    'finetune_depth' : [1, 3, 5]
-    }
-
 # Tuneamos los parametros y ajustamos el modelo
-resultados_2_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=trabajadores, parametros= parametros, alpha= alpha, long_pred = long_pred, tgpt_freq='ME')
+resultados_2_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=trabajadores, alpha= alpha, long_pred = long_pred)
 
 # Guardamos las metricas
 metricas_2.loc[len(metricas_2)] = ['TimeGPT', resultados_2_gpt['mape'], resultados_2_gpt['score'], resultados_2_gpt['tiempo']]
-
 
 
 
@@ -497,9 +478,9 @@ parametros = {
     'random_seed' : [seed],
     'encoder_n_layers' : [1,2,3],
     'decoder_layers' : [1,2,3],
-    'early_stop_patience_steps': [-1, 5, 10],
+    'early_stop_patience_steps': [5, 10],
     'val_check_steps' : [10],
-    'learning_rate': [0.001, 0.1, 0.2],
+    'learning_rate': [0.01, 0.1, 0.2],
     'encoder_dropout': [0, 0.1, 0.3]
     }
 
@@ -513,20 +494,11 @@ metricas_3.loc[len(metricas_3)] = ['LSTM', resultados_3_lstm['mape'], resultados
 # ------------------------------- 3.6 TIMEGPT -------------------------------
 
 
-
-# Definimos los parametros a tunear
-parametros = {
-    'finetune_loss' : ['mape'],
-    'finetune_steps' : [1,2,5,10],
-    'finetune_depth' : [1, 3, 5]
-    }
-
 # Tuneamos los parametros y ajustamos el modelo
-resultados_3_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=tiempo_rosario[['ds','y']], parametros= parametros, alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']], tgpt_freq='h')
+resultados_3_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=tiempo_rosario[['ds','y']], alpha= alpha, long_pred = long_pred, exog=tiempo_rosario[['HUM','PNM']], tgpt_freq='h')
 
 # Guardamos las metricas
 metricas_3.loc[len(metricas_3)] = ['TimeGPT', resultados_3_gpt['mape'], resultados_3_gpt['score'], resultados_3_gpt['tiempo']]
-
 
 
 # --------------------------------------------------------------------------------------
@@ -568,19 +540,19 @@ save_env(env_dict= {
     "resultados_1_xgb" : {k: v for k, v in resultados_1_xgb.items() if k != 'modelo'},
     "resultados_1_lgbm" : {k: v for k, v in resultados_1_lgbm.items() if k != 'modelo'},
     "resultados_1_lstm" : {k: v for k, v in resultados_1_lstm.items() if k != 'modelo'},
-    #"resultados_1_gpt" : {k: v for k, v in resultados_1_gpt.items() if k != 'modelo'},
+    "resultados_1_gpt" : {k: v for k, v in resultados_1_gpt.items() if k != 'modelo'},
     "metricas_1" : metricas_1,
     "resultados_2_arima" : {k: v for k, v in resultados_2_arima.items() if k != 'modelo'},
     "resultados_2_xgb" : {k: v for k, v in resultados_2_xgb.items() if k != 'modelo'},
     "resultados_2_lgbm" : {k: v for k, v in resultados_2_lgbm.items() if k != 'modelo'},
     "resultados_2_lstm" : {k: v for k, v in resultados_2_lstm.items() if k != 'modelo'},
-    #"resultados_2_gpt" : {k: v for k, v in resultados_2_gpt.items() if k != 'modelo'},
+    "resultados_2_gpt" : {k: v for k, v in resultados_2_gpt.items() if k != 'modelo'},
     "metricas_2" : metricas_2,
     "resultados_3_arima" : {k: v for k, v in resultados_3_arima.items() if k != 'modelo'},
     "resultados_3_xgb" : {k: v for k, v in resultados_3_xgb.items() if k != 'modelo'},
     "resultados_3_lgbm" : {k: v for k, v in resultados_3_lgbm.items() if k != 'modelo'},
     "resultados_3_lstm" : {k: v for k, v in resultados_3_lstm.items() if k != 'modelo'},
-    #"resultados_3_gpt" : {k: v for k, v in resultados_3_gpt.items() if k != 'modelo'},
+    "resultados_3_gpt" : {k: v for k, v in resultados_3_gpt.items() if k != 'modelo'},
     "metricas_3" : metricas_3,
     'resultados_arima' : resultados_arima,
 }, filename="Codigo/Ambiente/Amb_Aplicacion.pkl")
@@ -592,17 +564,17 @@ save_env(env_dict= {
     "modelo_1_xgb" : resultados_1_xgb['modelo'],
     "modelo_1_lgbm" : resultados_1_lgbm['modelo'],
     "modelo_1_lstm" : resultados_1_lstm['modelo'],
-    #"modelo_1_gpt" : resultados_1_gpt['modelo'],
+    "modelo_1_gpt" : resultados_1_gpt['modelo'],
     'arima_trabajadores_auto':resultados_2_arima['modelo'],
     "modelo_2_xgb" : resultados_2_xgb['modelo'],
     "modelo_2_lgbm" : resultados_2_lgbm['modelo'],
     "modelo_2_lstm" : resultados_2_lstm['modelo'],
-    #"modelo_2_gpt" : resultados_2_gpt['modelo'],
+    "modelo_2_gpt" : resultados_2_gpt['modelo'],
     'arima_temperatura_auto':resultados_3_arima['modelo'],
     "modelo_3_xgb" : resultados_3_xgb['modelo'],
     "modelo_3_lgbm" : resultados_3_lgbm['modelo'],
     "modelo_3_lstm" : resultados_3_lstm['modelo'],
-    #"modelo_3_gpt" : resultados_3_gpt['modelo'],
+    "modelo_3_gpt" : resultados_3_gpt['modelo'],
 
     'arima_atenciones_1': arima_atenciones_1,
     'arima_atenciones_2': arima_atenciones_2,
@@ -611,76 +583,3 @@ save_env(env_dict= {
     'arima_temperatura_2': arima_temperatura_2,
     'arima_temperatura_3': arima_temperatura_3,
 }, filename="Codigo/Ambiente/modelos_aplicacion.pkl")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ------------------------- prueba -----------------------
-# Para conformal predictions
-from xgboost import XGBRegressor
-from mapie.regression import MapieTimeSeriesRegressor
-from mapie.subsample import BlockBootstrap
-import matplotlib.pyplot as plt
-import numpy as np
-from Codigo.Funciones import plot_forecast
-
-x_train = caracteristicas_atenciones.head(len(atenciones_guardia)-long_pred).copy()
-x_test = caracteristicas_atenciones.tail(long_pred).copy()
-
-model = XGBRegressor(tree_method = 'exact', max_leaves=  4,
-    max_depth = 3,
-    learning_rate = 0.2,
-    n_estimators = 50)
-
-bt_blocks = BlockBootstrap(
-    n_resamplings=50, length=long_pred, overlapping=True, random_state=seed)
-
-mapie_enbpi = MapieTimeSeriesRegressor(
-    model, method="enbpi", cv=bt_blocks, agg_function="mean", n_jobs=-1)
-
-mapie_enbpi = mapie_enbpi.fit(x_train, atenciones_train['y'])
-
-pred, y_pis = mapie_enbpi.predict(x_test, alpha=alpha, ensemble=True)
-
-pred_lower = y_pis.squeeze()[:,0]
-pred_upper = y_pis.squeeze()[:,1]
-
-forecaster = pd.DataFrame({
-    'ds' : atenciones_guardia.tail(long_pred)['ds'],
-    'pred' : pred,
-    'lower' : pred_lower,
-    'upper' : pred_upper
-})
-
-plot_forecast(data = atenciones_guardia, forecast = forecaster, pred_color = 'green', label = 'XGBoost', long = 24)
-plt.show()
-X = np.arange(len(atenciones_train)).reshape(-1, 1)
-y = atenciones_train['y']
-for i, (train_idx, test_idx) in enumerate(bt_blocks.split(X, y)):
-    y_bootstrap = np.full_like(y, np.nan, dtype=np.float32)
-    y_bootstrap[train_idx] = y[train_idx]
-    plt.plot(y_bootstrap, label=f"Bootstrap {i+1}", alpha=0.3)
-
-# Serie original
-plt.legend()
-plt.show()
-plt.plot(y, label="Original", color="black", linewidth=2)
-plt.title("Muestras Bootstrap vs Serie Original")
-plt.xlabel("Índice")
-plt.ylabel("Valor")
-plt.grid(True)
-
-
-
-# ------------------------- prueba -----------------------

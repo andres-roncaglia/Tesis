@@ -5,3 +5,6 @@ AutogluonModels
 lightning_logs
 modelos_aplicacion.pkl
 Modelos_chronos.pkl
+.cache
+__pycache__
+.vscode

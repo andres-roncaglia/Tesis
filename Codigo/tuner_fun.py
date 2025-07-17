@@ -446,7 +446,7 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
         exog_train = pd.DataFrame()
         exog_val = pd.DataFrame()
 
-    if forecaster_fun != 'ARIMA':
+    if forecaster_fun != 'ARIMA' and parametros != {}:
 
         # Creamos vectores para guardar los resultados
         mapes = []
@@ -500,7 +500,10 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
     elif forecaster_fun == 'XGBoost':
         forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     elif forecaster_fun == 'TimeGPT':
-        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= tgpt_freq, alpha=alpha, kwargs=kwargs, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= tgpt_freq, alpha=alpha, kwargs=parametros, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        mape = mean_absolute_percentage_error(datos_test['y'], forecast['pred'])
+        score = interval_score(obs=datos_test['y'], lower=forecast['lower'], upper=forecast['upper'], alpha = alpha)
+        return {'pred': forecast, 'mape': mape, 'score': score, 'tiempo': tiempo}
     elif forecaster_fun == 'LSTM':
         forecast, tiempo, model = fit_pred_lstm(datos= datos_fulltrain, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain, freq= tgpt_freq)
     elif forecaster_fun == 'LightGBM':
