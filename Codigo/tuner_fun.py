@@ -21,9 +21,12 @@ from mapie.regression import MapieTimeSeriesRegressor
 from mapie.subsample import BlockBootstrap
 
 # Para LSTM
-from neuralforecast import NeuralForecast
-from neuralforecast.models import LSTM
-from neuralforecast.losses.pytorch import MQLoss
+from scalecast.Pipeline import Transformer, Reverter, Pipeline
+from scalecast.util import backtest_for_resid_matrix, get_backtest_resid_matrix, overwrite_forecast_intervals
+from scalecast.Forecaster import Forecaster
+from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow.keras.backend as K
+import gc
 
 # Para time GPT
 from nixtla import NixtlaClient
@@ -31,6 +34,8 @@ nixtla_client = NixtlaClient(api_key= creds.api_key)
 import logging
 logging.basicConfig(level=logging.WARNING) # Elimina los mensajes de INFO cuando se ajustan modelos
 
+# Para construir la grilla
+import itertools
 
 # Para calcular el MAPE
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
@@ -53,18 +58,19 @@ from Codigo.Funciones import interval_score
 # salida: Pandas Dataframe
 
 def dict_expand(parametros):
-    nombre_cols = list(parametros.keys())
+    # Obtenemos los nombres
+    keys = list(parametros.keys())
+    # Obtenemos los valores
+    values = list(parametros.values())
 
-    # Expandimos la grilla de parametros para evaluar todas las opciones
-    ## Paso 1: Pasar los valores del diccionario como vectores de una lista
-    grilla_lista = list(parametros.values())
+    # Casteamos todos los valores como lsitas
+    values = [v if isinstance(v, list) else [v] for v in values]
 
-    ## Paso 2: Expandimos la lista por todos los parametros. '*' sirve para desempaquetar los elementos de la lista, en lugar de pasarse como '[elem1, elem2]' se pasan como 'elem1, elem2'
-    grilla_expan = list(map(np.ravel, np.meshgrid(*grilla_lista)))
+    # Expandimos los valores
+    combos = list(itertools.product(*values))
 
-    ## Paso 3: Guardamos todo como un Dataframe
-    grilla = pd.DataFrame(np.array(grilla_expan).T, columns= nombre_cols)
-
+    # Guardamos la grilla
+    grilla = pd.DataFrame(combos, columns=keys)
     return grilla
 
 # ------------------------------------------------------------------------------------
@@ -190,10 +196,44 @@ def fit_pred_tgpt(df, h, time_col, target_col, freq, alpha, kwargs, exog, devolv
 # salida: Pandas Dataframe con estimacion puntual y probabilistica, y opcionalmente el tiempo como variable numerica
 
 def fit_pred_lstm(datos, long_pred, kwargs, alpha, freq, exog, devolver_tiempo = False, devolver_modelo = False):
-
-    # Agregamos la columna unique_id necesaria por Neuralforecast
+    
+    # Creamos una copia de los datos
     datos_lstm = datos.copy()
-    datos_lstm['unique_id'] = 0
+
+    # Definimos las características de los datos a entrenar
+    f = Forecaster(
+        y = datos_lstm['y'],
+        current_dates = datos_lstm['ds'],
+        future_dates= long_pred,
+        freq=freq,
+        test_length = max(long_pred, 1/alpha),
+        cis = False,
+        metrics = ['mape'],
+    )
+
+    # Conseguimos los intervalos de confianza con Conformal Predictions
+    f.eval_cis(mode=True, cilevel=1-alpha)
+
+    # Si tenemos variables exogenas las agregamos
+    if exog.shape[0] != 0:
+        exog_names = list(exog.columns) # Obtenemos los nombres
+        for name in exog_names:
+            f.add_series(exog[name], called = name, first_date=datos['ds'].head(1).values[0], forward_pad = False, back_pad=False)
+
+    # Definimos funciones para el modelo
+    transformer = Transformer(
+        transformers = [
+            ('DetrendTransform',{'poly_order':2}),
+            'DeseasonTransform',
+        ],
+    )
+    reverter = Reverter(
+        reverters = [
+            'DeseasonRevert',
+            'DetrendRevert',
+        ],
+        base_transformer = transformer,
+    )
 
     # Debemos garantizar que los int y los floats se mantengan como tal
     kwargs = {
@@ -204,34 +244,77 @@ def fit_pred_lstm(datos, long_pred, kwargs, alpha, freq, exog, devolver_tiempo =
         for k, v in kwargs.items()
     }
 
-    # Agregamos a los argumentos algunos otros necesarios
-    parametros = kwargs.copy()
-    parametros['h'] = long_pred
-    parametros['input_size'] = long_pred*3
-    parametros['loss'] = MQLoss(level = [(1-alpha)*100])
+    # Extraemos argumentos que no se declaran en el forecaster
+    if 'early_stop_patience' in kwargs.keys():
+        early_stop_patience = kwargs.pop('early_stop_patience')
+
+    # Definimos la forma del modelo
+    modelo = [[]]
+
+    units = kwargs.pop('units', None)
+    dropout = kwargs.pop('dropout', None)
+    activation = kwargs.pop('activation', None)
+
+    for i in range(0, len(units)):
+        modelo[0].append('LSTM')
+        modelo[0].append({'units': units[i]})
+
+        if 'dropout' != None:
+            modelo[0][i*2+1]['dropout'] = dropout
+
+        if 'activation' != None:
+            modelo[0][i*2+1]['activation'] = activation
+        
+
+    # Agregamos early stopping para evitar sobreajustes
+    early_stop = EarlyStopping(
+        monitor='loss',       
+        patience=early_stop_patience,          
+        restore_best_weights=True
+    )
+
+    # Definimos el modelo de pronostico
+    def forecaster(f):
+        f.set_estimator('rnn')
+        f.manual_forecast(
+            call_me = 'lstm',
+            verbose=False,
+            callbacks=[early_stop],
+            layers_struct = modelo,
+            **kwargs
+        )
     
-    # Si tenemos variables exogenas las agregamos
-    if exog.shape[0] != 0:
-        exog_names = list(exog.columns) # Obtenemos los nombres
-        datos_lstm = pd.concat([datos_lstm.reset_index(drop=True), exog.reset_index(drop=True)], axis=1) # Agregamos las variables al dataset
-        parametros['hist_exog_list'] = exog_names
+    # Definimos la forma del modelo (Encoder-Decoder)
+    pipeline = Pipeline(
+        steps = [
+            ('Transform',transformer),
+            ('Forecast',forecaster),
+            ('Revert',reverter),
+        ]
+    )
 
-    timer_comienzo = time.time() # Empiezo a medir cuanto tarda en ajustar
+    # Se pronostica puntualmente el modelo
+    timer_comienzo = time.time()
 
-    # Ajustamos el modelo y pronosticamos 
-    model = NeuralForecast(models=[LSTM(**parametros)], freq=freq)
-    model.fit(df = datos_lstm, val_size=long_pred)
-    forecaster = model.predict()
-
+    f = pipeline.fit_predict(f)
+    
     timer_final = time.time()
 
     # Medimos el tiempo que llevo
     tiempo = timer_final - timer_comienzo
 
-    # Renombramos las columnas para generalizar
-    forecaster.drop('unique_id', axis=1, inplace=True)
-    
+    # Guardamos los pronosticos
+    forecaster = f.export(cis = True, dfs ='lvl_fcsts')
     forecaster.columns = ['ds', 'pred', 'upper', 'lower']
+
+    # Guardamos el modelo
+    model = f
+
+    # Reseteamos el estado de Keras para no construir el modelo sobre uno anterior    
+    f.drop_all_Xvars()
+    K.clear_session()
+    gc.collect()
+
 
     if devolver_tiempo & devolver_modelo:
         return forecaster, tiempo, model
@@ -424,7 +507,7 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, caracteristicas, exog, de
 # - tiempo : Tiempo que tardó el ultimo modelo en ajustarse
 # - grilla : Grilla con las metricas de los modelos probados sobre el conjunto de validacion
 
-def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12, caracteristicas = pd.DataFrame(), exog = pd.DataFrame(), tgpt_freq = 'MS'):
+def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05, long_pred = 12, caracteristicas = pd.DataFrame(), exog = pd.DataFrame(), freq = 'MS'):
 
     # Dividimos el conjunto de datos que queremos pronosticar
     datos_fulltrain = datos.head(len(datos)-long_pred)
@@ -465,9 +548,9 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
             if forecaster_fun == 'XGBoost':
                 forecast = fit_pred_xgb(datos = datos_fulltrain, long_pred = len(datos_val), alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, exog= exog_fulltrain)
             elif forecaster_fun == 'TimeGPT':
-                forecast = fit_pred_tgpt(df = datos_train, h = len(datos_val), time_col= 'ds', target_col= 'y', freq= tgpt_freq, alpha = alpha, kwargs=kwargs, exog= exog_train)
+                forecast = fit_pred_tgpt(df = datos_train, h = len(datos_val), time_col= 'ds', target_col= 'y', freq= freq, alpha = alpha, kwargs=kwargs, exog= exog_train)
             elif forecaster_fun == 'LSTM':
-                forecast = fit_pred_lstm(datos= datos_train, long_pred= len(datos_val), kwargs= kwargs, alpha=alpha, exog= exog_train, freq= tgpt_freq)
+                forecast = fit_pred_lstm(datos= datos_train, long_pred= len(datos_val), kwargs= kwargs, alpha=alpha, exog= exog_train, freq= freq)
             elif forecaster_fun == 'LightGBM':
                 forecast = fit_pred_lightgbm(datos = datos_fulltrain, long_pred = len(datos_val), alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, exog= exog_fulltrain)
 
@@ -500,12 +583,12 @@ def Tuner(forecaster_fun, datos, parametros = {}, metrica = 'MAPE', alpha = 0.05
     elif forecaster_fun == 'XGBoost':
         forecast, tiempo, model = fit_pred_xgb(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     elif forecaster_fun == 'TimeGPT':
-        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= tgpt_freq, alpha=alpha, kwargs=parametros, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
+        forecast, tiempo, model = fit_pred_tgpt(df = datos_fulltrain, h = long_pred, time_col= 'ds', target_col= 'y', freq= freq, alpha=alpha, kwargs=parametros, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain)
         mape = mean_absolute_percentage_error(datos_test['y'], forecast['pred'])
         score = interval_score(obs=datos_test['y'], lower=forecast['lower'], upper=forecast['upper'], alpha = alpha)
         return {'pred': forecast, 'mape': mape, 'score': score, 'tiempo': tiempo}
     elif forecaster_fun == 'LSTM':
-        forecast, tiempo, model = fit_pred_lstm(datos= datos_fulltrain, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain, freq= tgpt_freq)
+        forecast, tiempo, model = fit_pred_lstm(datos= datos_fulltrain, long_pred= long_pred, kwargs= kwargs, alpha=alpha, devolver_tiempo=True, devolver_modelo=True, exog= exog_fulltrain, freq= freq)
     elif forecaster_fun == 'LightGBM':
         forecast, tiempo, model = fit_pred_lightgbm(datos = datos, long_pred= long_pred, alpha = alpha, kwargs = kwargs, caracteristicas=caracteristicas, devolver_tiempo=True, devolver_modelo=True, exog= exog)
     

@@ -8,3 +8,4 @@ Modelos_chronos.pkl
 .cache
 __pycache__
 .vscode
+warnings.log

@@ -131,7 +131,7 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
       theme(
         panel_grid_minor= element_blank(),
         legend_position = legend_position,
-        axis_title=element_text(size = 9),
+        axis_title=element_text(size = 8),
         axis_text= element_text(size = 7),
         legend_title=element_text(size = 8),
         legend_text= element_text(size = 6)

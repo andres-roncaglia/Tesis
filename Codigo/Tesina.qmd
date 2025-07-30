@@ -46,6 +46,7 @@ set_option("figure_size", (6, 2))
 
 # Para manejo de datos
 import pandas as pd
+import numpy as np
 ```
 
 
@@ -74,6 +75,15 @@ import pandas as pd
 \newpage
 
 \section*{Resumen}
+
+La predicción de series temporales desempeña un rol crucial en contextos como la salud, la economía, la energía y la gestión de recursos, donde anticipar el comportamiento futuro de una variable resulta fundamental para la toma de decisiones. Esta tesina compara el desempeño de distintos enfoques para el pronóstico de series temporales, incluyendo modelos estadísticos tradicionales (ARIMA, SARIMA), algoritmos de aprendizaje automático (XGBoost, LightGBM), redes neuronales recurrentes (LSTM) y modelos fundacionales preentrenados basados en transformadores (TimeGPT y Chronos).
+
+La evaluación se llevó a cabo sobre tres series reales representativas, con diferentes estructuras temporales: (i) número mensual de atenciones por patologías respiratorias en un hospital pediátrico, (ii) empleo privado en el sector educativo, y (iii) temperatura horaria durante el mes de marzo. Para cada caso, se implementaron y ajustaron los modelos mencionados, comparando sus resultados mediante métricas puntuales (MAPE) y probabilísticas (*Interval Score*), así como tiempos de cómputo y facilidad de implementación.
+
+Los resultados muestran que no existe un modelo universalmente superior: mientras los modelos estadísticos ofrecen interpretabilidad y precisión en contextos con fuerte estacionalidad, los algoritmos de boosting presentan buena capacidad predictiva con bajo costo computacional. Las redes LSTM, aunque potentes, requieren entrenamiento cuidadoso y muestran sensibilidad al sobreajuste. Por su parte, los modelos fundacionales ofrecen ventajas en automatización y escalabilidad, aunque su comportamiento varía según la naturaleza de la serie y su estructura interna no siempre es accesible.
+
+Este trabajo aporta evidencia empírica y conceptual para una selección informada de modelos de pronóstico en función del contexto, destacando el potencial de las herramientas recientes como TimeGPT y Chronos, así como la importancia de incorporar métricas probabilísticas y técnicas de conformal prediction para mejorar la estimación de la incertidumbre.
+
 Palabras clave: series temporales, predicción, *conformal predictions*, aprendizaje automático, redes neuronales, *transformers*, TimeGPT, *interval score*, Chronos. 
 
 \newpage
@@ -143,8 +153,6 @@ Son llamados modelos estadísticos tradicionales a aquellos que surgen antes del
 
 Se dice que una serie es débilmente estacionaria si la media y la variancia se mantienen constantes en el tiempo y la correlación entre distintas observaciones solo depende de la distancia en el tiempo entre estas. Por comodidad, cuando se mencione estacionariedad se estará haciendo referencia al cumplimiento de estas propiedades. 
 
-Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas.
-
 Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronostico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además, estos modelos pueden adaptarse a series no estacionarias mediante la aplicación de diferenciaciones de orden $d$, las cuales implican restar a cada observación el valor registrado $d$ periodos anteriores.
 
 Formalmente un modelo $ARIMA(p,d,q)$ se define como:
@@ -167,11 +175,103 @@ Se debe tener en cuenta estos aspectos importantes:
 
 Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad que puede tener una serie, es por esto que se introducen los modelos $SARIMA(p,d,q)(P,D,Q)_s$ que agregan componentes AR, MA y diferenciaciones a la parte estacional de la serie con período $s$.
 
+Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas. Estas funciones son necesarias para poder identificar los modelos $SARIMA$ y se definen como:
+
+$$
+\rho_k = Corr(z_t, z_{t+k}) = \frac{Cov(z_t, z_{t+k})}{\sqrt{Var(z_t) \cdot Var(z_{t+k})}}
+$${#eq-auto}
+
+y
+$$
+\phi_{kk} = Corr(z_t, z_{t+k}|z_{t+1}, ..., z_{t+k-1})
+$${#eq-autopar}
+
+Los modelos $AR$ se caracterizan por tener autocorrelaciones significativas que decaen lentamente y autocorrelaciones parciales significativas únicas. Los modelos $MA$ se comportan de forma inversa, tienen autocorrelaciones significativas únicas y autocorrelaciones parciales que decaen progresivamente. Estos comportamientos también se evidencian en las componentes estacionales, presentandose en los rezagos estacionales.
+
+```{python}
+
+# Ejemplos de procedimientos AR Y MA
+
+def plot_ejemplo(autocorrelaciones, atype = 'acf', lags = 20):
+    if atype == 'acf':
+        lags = np.arange(lags+1)
+        ylab = r'$\rho_k$'
+    else:
+        lags = np.arange(lags+1)
+        lags = lags[1:]
+        ylab = r'$\phi_{kk}$'
+
+    # Defino las bandas limite
+    upper_bound = 0.25
+    lower_bound = -0.25
+
+    # Cambio el color del punto si supera el limite
+    col = np.where(
+        autocorrelaciones['y'] < lower_bound,'b',
+        np.where(autocorrelaciones['y'] > upper_bound, 'b', 'green'))
+
+    return(ggplot(autocorrelaciones) +
+    aes(x = 'lag', y = 'y') +
+    geom_rect(ymin = lower_bound, ymax = upper_bound, xmax = np.inf, xmin = -np.inf, alpha = 0.01 ,fill = "#8ED081") +
+    geom_rect(aes(ymin = -1, ymax = -np.inf, xmax = np.inf, xmin = -np.inf), alpha = 0.01 ,fill = "grey") +
+    geom_rect(aes(ymin = 1, ymax = np.inf, xmax = np.inf, xmin = -np.inf), alpha = 0.01 ,fill = "grey") +
+    geom_segment(aes(x = 'lag', xend = autocorrelaciones['lag'], yend = 'y', y = 0)) +
+    geom_hline(yintercept = 0) +
+    geom_hline(color = "green",yintercept = upper_bound, linetype = "dashed") +
+    geom_hline(color = "green",yintercept = lower_bound, linetype = "dashed") +
+    geom_point(color = "#8ED081", size = 0.7) +
+    geom_point(aes(x = 'lag', y = 'y'), color = col, size = 0.7) +
+    scale_y_continuous(limits = (-1,1)) +
+    scale_x_continuous(breaks = list(range(0,max(autocorrelaciones['lag']), 2)), limits = (0,max(autocorrelaciones['lag']))) +
+    labs(x = "Rezago (k)", y = ylab)
+    )
+
+
+ar_acf = pd.DataFrame({"y":[1, 0.74, 0.62, 0.56, 0.5, 0.46, 0.41, 0.37, 0.33, 0.3, 0.26, 0.23, 0.2, 0.17, 0.14, 0.11, 0.08, 0.06, 0.03, 0.01],
+"lag" : np.arange(0,20)
+})
+
+ma_pacf = pd.DataFrame({"y":ar_acf['y']*[1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1],
+"lag" : np.arange(0,20)
+})
+
+pico = pd.DataFrame({"y":[1, 0.7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+"lag" : np.arange(0,20)
+})
+
+#ar
+plot_ejemplo(ar_acf, atype='acf').save("../Imgs/plotnine/ejemplo_ar_1.png", width=6, height=4/2.1, dpi=700)
+plot_ejemplo(pico.tail(19), atype='pacf').save("../Imgs/plotnine/ejemplo_ar_2.png", width=6, height=4/2.1, dpi=700)
+
+#ma
+plot_ejemplo(pico, atype='acf').save("../Imgs/plotnine/ejemplo_ma_1.png", width=6, height=4/2.1, dpi=700)
+plot_ejemplo(ma_pacf.tail(19), atype='pacf').save("../Imgs/plotnine/ejemplo_ma_2.png", width=6, height=4/2.1, dpi=700)
+
+```
+
+::: {#fig-ejemar layout-nrow=2}
+
+![](../Imgs/plotnine/ejemplo_ar_1.png)
+
+![](../Imgs/plotnine/ejemplo_ar_2.png)
+
+Ejemplo de las autocorrelaciones de un proceso $AR(1)$.
+:::
+
+::: {#fig-ejemma layout-nrow=2}
+
+![](../Imgs/plotnine/ejemplo_ma_1.png)
+
+![](../Imgs/plotnine/ejemplo_ma_2.png)
+
+Ejemplo de las autocorrelaciones de un proceso $MA(1)$.
+:::
+
 Un buen modelo $SARIMA$ debe cumplir las siguientes propiedades:
 
 - Sus residuos se comportan como ruido blanco, es decir, están incorrelacionados y siguen una distribución normal, con media y variancia constantes.
 
-- Es admisible, es decir que es invertible y estacionario.
+- Es admisible, es decir, es invertible y estacionario.
 
 - Es parsimonioso, en el sentido de que sus parámetros son significativos.
 
@@ -500,7 +600,7 @@ Se trabajó con series temporales reales, obtenidas de bases de datos públicas 
 
   - Para el enfoque de aprendizaje automático, se emplearon algoritmos de boosting, específicamente XGBoost y LightGBM, implementados con las librerías `xgboost` y `lightgbm` respectivamente.
 
-  - En el caso de los modelos de aprendizaje profundo, se entrenaron redes LSTM utilizando la librería `neuralforecast`.
+  - En el caso de los modelos de aprendizaje profundo, se entrenaron redes LSTM utilizando la librería `scalecast`.
 
   - Finalmente, se exploraron dos modelos fundacionales preentrenados: TimeGPT, accedido a través de la API de Nixtla mediante la librería `nixtla`, y Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services* cuya implementación se llevó a cabo con la librería `autogluon`.
 
@@ -581,7 +681,7 @@ Con el objetivo de ver las capacidades de los modelos bajo distintas circunstanc
 
 - Temperatura horaria en la ciudad de Rosario.
 
-La primera serie analizada corresponde al número mensual de atenciones de guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario. Esta información fue provista por la Dirección General de Estadística de la Municipalidad de Rosario. La serie mostró una marcada estacionalidad, con picos en los meses de invierno, y una fuerte caída en 2020, atribuida a las medidas sanitarias adoptadas durante la pandemia de COVID-19. Esta estacionalidad es más dicernible en el gráfico @fig-atenciones_estacionalidad del anexo. El objetivo para esta serie es pronosticar las atenciones del año 2024.
+La primera serie analizada corresponde al número mensual de atenciones de guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario. Esta información fue provista por la Dirección General de Estadística de la Municipalidad de Rosario. La serie mostró una marcada estacionalidad, con picos en los meses de invierno, y una fuerte caída en 2020, atribuida a las medidas sanitarias adoptadas durante la pandemia de COVID-19. Esta estacionalidad es más dicernible en el gráfico @fig-atenciones_estacionalidad del anexo.
 
 ```{python}
 #| fig-cap: "Atenciones en guardia por enfermedades respiratorias"
@@ -595,7 +695,7 @@ La primera serie analizada corresponde al número mensual de atenciones de guard
   )
 ```
 
-La cantidad de personas en Argentina con empleo asalariado en el área de enseñanza y registradas en el sector privado aumenta casi constantemente año tras año. Presenta descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian las consecuencias de la pandemia. El objetivo es pronosticar la cantidad de trabajadores registrados en el área de enseñanza en el año 2024. Los datos fueron relevados del informe de [Situación y evolución del Trabajo Registrado](https://www.argentina.gob.ar/trabajo/estadisticas/situacion-y-evolucion-del-trabajo-registrado) elaborado por el Instituto Nacional de Estadísticas y Censos (INDEC).
+La cantidad de personas en Argentina con empleo asalariado en el área de enseñanza y registradas en el sector privado aumenta casi constantemente año tras año. Presenta descensos drásticos en los meses de diciembre y enero. En esta serie también se evidencian las consecuencias de la pandemia. Los datos fueron relevados del informe de [Situación y evolución del Trabajo Registrado](https://www.argentina.gob.ar/trabajo/estadisticas/situacion-y-evolucion-del-trabajo-registrado) elaborado por el Instituto Nacional de Estadísticas y Censos (INDEC).
 
 ```{python}
 #| fig-cap: "Personas con empleo asalariado en el área de enseñanza y registradas en el sector privado"
@@ -609,7 +709,7 @@ La cantidad de personas en Argentina con empleo asalariado en el área de enseñ
   )
 ```
 
-Por último, se analizarán las temperaturas por hora a lo largo de los días del mes de marzo 2025, estudiando sus comportamientos en relación a la humedad relativa y a la presión atmosférica estándar. Gracias al gráfico @fig-temp_estacional del anexo, se puede observar el patrón estacional diario que tiene la temperatura, la cual se mantiene constante entre la noche y la mañana, pero a la tarde sube pronunciadamente. Se estimarán las temperaturas horarias del 21 y 22 de mayo de 2025. La información necesaria fue extraída de la página del [Servicio Meteorológico Nacional](https://www.smn.gob.ar/descarga-de-datos).
+Por último, se analizarán las temperaturas por hora a lo largo de los días del mes de marzo 2025, estudiando sus comportamientos en relación a la humedad relativa y a la presión atmosférica estándar. Gracias al gráfico @fig-temp_estacional del anexo, se puede observar el patrón estacional diario que tiene la temperatura, la cual se mantiene constante entre la noche y la mañana, pero a la tarde sube pronunciadamente. La información necesaria fue extraída de la página del [Servicio Meteorológico Nacional](https://www.smn.gob.ar/descarga-de-datos).
 
 ```{python}
 
@@ -668,7 +768,7 @@ Por último, se analizarán las temperaturas por hora a lo largo de los días de
 
 ![](../Imgs/plotnine/temperatura3.png)
 
-Temperatura (Cº), humedad (%) y presión atmosférica (hPa) en Rosario por hora
+Temperatura (Cº), humedad (%) y presión atmosférica (hPa) en Rosario por hora.
 
 :::
 
@@ -682,9 +782,17 @@ globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion.pkl'))
 globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion_chronos.pkl'))
 
 # Guardamos los resultados de Chronos en las metricas
-metricas_1.loc[len(metricas_1)] = ['Chronos', resultados_1_chronos['mape'], resultados_1_chronos['score'], resultados_1_chronos['tiempo']]
-metricas_2.loc[len(metricas_2)] = ['Chronos', resultados_2_chronos['mape'], resultados_2_chronos['score'], resultados_2_chronos['tiempo']]
-metricas_3.loc[len(metricas_3)] = ['Chronos', resultados_3_chronos['mape'], resultados_3_chronos['score'], resultados_3_chronos['tiempo']]
+metricas_1.loc[len(metricas_1)] = ['Chronos', 3, resultados_1_chronos3['mape'], resultados_1_chronos3['score'], resultados_1_chronos3['tiempo']]
+metricas_1.loc[len(metricas_1)] = ['Chronos', 6, resultados_1_chronos6['mape'], resultados_1_chronos6['score'], resultados_1_chronos6['tiempo']]
+metricas_1.loc[len(metricas_1)] = ['Chronos', 12, resultados_1_chronos['mape'], resultados_1_chronos['score'], resultados_1_chronos['tiempo']]
+
+metricas_2.loc[len(metricas_2)] = ['Chronos', 3, resultados_2_chronos3['mape'], resultados_2_chronos3['score'], resultados_2_chronos3['tiempo']]
+metricas_2.loc[len(metricas_2)] = ['Chronos', 6, resultados_2_chronos6['mape'], resultados_2_chronos6['score'], resultados_2_chronos6['tiempo']]
+metricas_2.loc[len(metricas_2)] = ['Chronos', 12, resultados_2_chronos['mape'], resultados_2_chronos['score'], resultados_2_chronos['tiempo']]
+
+metricas_3.loc[len(metricas_3)] = ['Chronos', 6, resultados_3_chronos6['mape'], resultados_3_chronos6['score'], resultados_3_chronos6['tiempo']]
+metricas_3.loc[len(metricas_3)] = ['Chronos', 12, resultados_3_chronos12['mape'], resultados_3_chronos12['score'], resultados_3_chronos12['tiempo']]
+metricas_3.loc[len(metricas_3)] = ['Chronos', 24, resultados_3_chronos['mape'], resultados_3_chronos['score'], resultados_3_chronos['tiempo']]
 ```
 
 ### 4.2.1 ARIMA
@@ -734,7 +842,7 @@ Antes de proponer modelos, se debe hacer un breve análisis exploratorio de las 
 
 ![](../Imgs/plotnine/boxplot2.png)
 
-Variancias periódicas de las series
+Variancias periódicas de las series.
 
 :::
 
@@ -796,7 +904,7 @@ trabajadores_trunc["y_sin_est"] = trabajadores_trunc['y'].diff(12)
 
 ![](../Imgs/plotnine/diffe2.png)
 
-Series diferenciadas estacionalmente
+Series diferenciadas estacionalmente.
 :::
 
 Una vez diferenciadas estacionalmente, es importante que no exista una tendencia clara, por lo que se estandarizan estacionariamente.
@@ -846,7 +954,7 @@ trabajadores_trunc["y_diff"] = trabajadores_trunc['y_sin_est'].diff(1)
 
 ![](../Imgs/plotnine/diff2.png)
 
-Series diferenciadas estacionariamente
+Series diferenciadas estacionariamente.
 :::
 
 Para descubrir las componentes AR y MA que afectan a las series se grafican las autocorrelaciones y autocorrelaciones parciales de cada una.
@@ -864,7 +972,7 @@ autocorr_plot(atenciones_ajust["y_diff"], lags=25, atype='pacf').save("../Imgs/p
 
 ![](../Imgs/plotnine/autocorr2.png)
 
-Autocorrelaciones de la serie de atenciones
+Autocorrelaciones de la serie de atenciones.
 :::
 
 En la serie de atenciones se puede ver que tanto en las autocorrelaciones como en las autocorrelaciones parciales, hay valores significativos en el quinto y doceavo rezago, lo que podrían significar que existen compotentes MA y AR en la parte estacional o estacionaria de la serie.
@@ -884,7 +992,7 @@ autocorr_plot(trabajadores_trunc["y_diff"], lags=25, atype='pacf').save("../Imgs
 
 ![](../Imgs/plotnine/autocorr4.png)
 
-Autocorrelaciones de la serie de trabajadores
+Autocorrelaciones de la serie de trabajadores.
 :::
 
 En las autocorrelaciones de la serie de trabajadores resultan significativos el primer y doceavo rezago, mientras que en las autocorrelaciones parciales se destacan los rezagos 1, 12, 13 y 24. Se puede suponer que el rezago 13 no es en realidad significativo y que la serie presenta una componente MA en la parte estacionaria y una AR en la estacional, formando el modelo $SARIMA(0,1,1)(1,1,0)_{12}$.
@@ -930,7 +1038,7 @@ resid_check(resultados_arima['resid_arima_atenciones_2'], ds = atenciones_trunc[
 
 ![](../Imgs/plotnine/resid_atenciones_2_4.png)
 
-Comprobación de supuestos del segundo modelo arima manual para la serie de atenciones
+Comprobación de supuestos del segundo modelo arima manual para la serie de atenciones.
 :::
 
 El histograma muestra la distribución de los residuos, pudiendo ver y comprobar con el test de Kolmogorov-Smirnov que es normal. La serie de los residuos muestra como estos no tienen un patrón particular ni variabilidad dependiente del tiempo, solo 2 *outlayers* fáciles de ignorar. Por último, los gráficos inferiores muestran las autocorrelaciones y autocorrelaciones parciales, esperando que no haya ninguna significativa. Por medio del test de Ljung-Box se comprueba que ninguna lo es y se concluye que los residuos no están correlacionados. Por lo tanto todos los supuestos se cumplen para este modelo. 
@@ -939,16 +1047,77 @@ Con el propósito de no poblar de gráficos el documento, el resto de los gráfi
 
 ```{python}
 
-plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_2'], pred_color = '#6BC78A', line_color='black', label = 'ARIMA', long = 48, ylabel= 'Atenciones', legend_position = (0.3,0.98)).save("../Imgs/plotnine/arima1.png", width=6, height=4/2.7, dpi=700)
+plot_forecast(data = atenciones_guardia, forecast = resultados_arima['pred_atenciones_2'], pred_color = '#6BC78A', line_color='black', label = 'ARIMA', long = 36, ylabel= 'Atenciones', legend_position = (0.3,0.98)).save("../Imgs/plotnine/arima1.png", width=6, height=4/2.7, dpi=700)
 
-plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = '#6BC78A', line_color='black', label = 'ARIMA', ylabel= 'Atenciones', legend_position = 'none', long = 48).save("../Imgs/plotnine/arima2.png", width=6, height=4/2.7, dpi=700)
+plot_forecast(data = atenciones_guardia, forecast = resultados_1_arima['pred'], pred_color = '#6BC78A', line_color='black', label = 'ARIMA', ylabel= 'Atenciones', legend_position = 'none', long = 36).save("../Imgs/plotnine/arima2.png", width=6, height=4/2.7, dpi=700)
 
-plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], line_color='black', pred_color = '#5299CB', label = 'ARIMA', long = 48, ylabel= 'Trabajadores (miles)', legend_position = (0.3,0.98)).save("../Imgs/plotnine/arima3.png", width=6, height=4/2.7, dpi=700)
+plot_forecast(data = trabajadores, forecast = resultados_arima['pred_trabajadores_1'], line_color='black', pred_color = '#5299CB', label = 'ARIMA', long = 36, ylabel= 'Trabajadores (miles)', legend_position = (0.3,0.98)).save("../Imgs/plotnine/arima3.png", width=6, height=4/2.7, dpi=700)
 
-plot_forecast(data = tiempo_rosario[['ds','y']], forecast = resultados_arima['pred_temperatura_3'], pred_color = '#E23C47', line_color='black', label = 'ARIMA', long = 48, xlabel='Día', ylabel= 'Atenciones', legend_position = 'none').save("../Imgs/plotnine/arima4.png", width=6, height=4/2.7, dpi=700)
+plot_forecast(data = tiempo_rosario[['ds','y']], forecast = resultados_arima['pred_temperatura_3'], pred_color = '#E23C47', line_color='black', label = 'ARIMA', long = 72, xlabel='Día', ylabel= 'Atenciones', legend_position = 'none').save("../Imgs/plotnine/arima4.png", width=6, height=4/2.7, dpi=700)
 
 ```
 
+
+
+```{python}
+# CALCULO DE MAPES
+
+# Atenciones guardia automatico
+# Horizonte 3
+mape_atenciones_auto_3 = mean_absolute_percentage_error(y_true=(atenciones_guardia.head(len(atenciones_guardia)-9)).tail(3)['y'], y_pred=resultados_1_arima['pred']['pred'].head(3))
+# Horizonte 6
+mape_atenciones_auto_6 = mean_absolute_percentage_error(y_true=(atenciones_guardia.head(len(atenciones_guardia)-6)).tail(6)['y'], y_pred=resultados_1_arima['pred']['pred'].head(6))
+
+# Atenciones guardia modelo 2
+mape_atenciones_2 = mean_absolute_percentage_error(y_true=atenciones_guardia.tail(12)['y'], y_pred=resultados_arima['pred_atenciones_2']['pred'])
+# Horizonte 3
+mape_atenciones_2_3 = mean_absolute_percentage_error(y_true=(atenciones_guardia.head(len(atenciones_guardia)-9)).tail(3)['y'], y_pred=resultados_arima['pred_atenciones_2']['pred'].head(3))
+# Horizonte 6
+mape_atenciones_2_6 = mean_absolute_percentage_error(y_true=(atenciones_guardia.head(len(atenciones_guardia)-6)).tail(6)['y'], y_pred=resultados_arima['pred_atenciones_2']['pred'].head(6))
+
+# Trabajadores modelo 1
+mape_trabajadores_1 = mean_absolute_percentage_error(y_true=trabajadores.tail(12)['y'], y_pred=resultados_arima['pred_trabajadores_1']['pred'])
+# Horizonte 3
+mape_trabajadores_1_3 = mean_absolute_percentage_error(y_true=(trabajadores.head(len(trabajadores)-9)).tail(3)['y'], y_pred=resultados_arima['pred_trabajadores_1']['pred'].head(3))
+# Horizonte 6
+mape_trabajadores_1_6 = mean_absolute_percentage_error(y_true=(trabajadores.head(len(trabajadores)-6)).tail(6)['y'], y_pred=resultados_arima['pred_trabajadores_1']['pred'].head(6))
+
+# Temperatura modelo 3
+mape_temperatura_3 = mean_absolute_percentage_error(y_true=tiempo_rosario.tail(24)['y'], y_pred=resultados_arima['pred_temperatura_3']['pred'])
+# Horizonte 6
+mape_temperatura_3_6 = mean_absolute_percentage_error(y_true=(tiempo_rosario.head(len(tiempo_rosario)-18)).tail(6)['y'], y_pred=resultados_arima['pred_temperatura_3']['pred'].head(6))
+# Horizonte 12
+mape_temperatura_3_12 = mean_absolute_percentage_error(y_true=(tiempo_rosario.head(len(tiempo_rosario)-12)).tail(12)['y'], y_pred=resultados_arima['pred_temperatura_3']['pred'].head(12))
+
+
+# ----------------- CALCULO DE INTERVAL SCORES -----------------------
+# Atenciones automatico
+# Horizonte 3
+is_atenciones_auto_3 = interval_score(obs=(atenciones_guardia.head(len(atenciones_guardia)-9)).tail(3)['y'], lower = resultados_1_arima['pred']['lower'].head(3), upper = resultados_1_arima['pred']['upper'].head(3), alpha = 0.2)
+# Horizonte 6
+is_atenciones_auto_6 = interval_score(obs=(atenciones_guardia.head(len(atenciones_guardia)-6)).tail(6)['y'], lower = resultados_1_arima['pred']['lower'].head(6), upper = resultados_1_arima['pred']['upper'].head(6), alpha = 0.2)
+
+# Atenciones modelo 2
+is_atenciones_2 = interval_score(obs=atenciones_guardia.tail(12)['y'], lower = resultados_arima['pred_atenciones_2']['lower'], upper = resultados_arima['pred_atenciones_2']['upper'], alpha = 0.2)
+# Horizonte 3
+is_atenciones_2_3 = interval_score(obs=(atenciones_guardia.head(len(atenciones_guardia)-9)).tail(3)['y'], lower = resultados_arima['pred_atenciones_2']['lower'].head(3), upper = resultados_arima['pred_atenciones_2']['upper'].head(3), alpha = 0.2)
+# Horizonte 6
+is_atenciones_2_6 = interval_score(obs=(atenciones_guardia.head(len(atenciones_guardia)-6)).tail(6)['y'], lower = resultados_arima['pred_atenciones_2']['lower'].head(6), upper = resultados_arima['pred_atenciones_2']['upper'].head(6), alpha = 0.2)
+
+# Trabajadores
+is_trabajadores_1 = interval_score(obs=trabajadores.tail(12)['y'], lower = resultados_arima['pred_trabajadores_1']['lower'], upper = resultados_arima['pred_trabajadores_1']['upper'], alpha = 0.2)
+# Horizonte 3
+is_trabajadores_1_3 = interval_score(obs=(trabajadores.head(len(trabajadores)-9)).tail(3)['y'], lower = resultados_arima['pred_trabajadores_1']['pred'].head(3), upper = resultados_arima['pred_trabajadores_1']['pred'].head(3), alpha = 0.2)
+# Horizonte 6
+is_trabajadores_1_6 = interval_score(obs=(trabajadores.head(len(trabajadores)-6)).tail(6)['y'], lower = resultados_arima['pred_trabajadores_1']['lower'].head(6), upper = resultados_arima['pred_trabajadores_1']['upper'].head(6), alpha = 0.2)
+
+# Temperatura
+is_temperatura_3 = interval_score(obs=tiempo_rosario.tail(24)['y'], lower = resultados_arima['pred_temperatura_3']['lower'], upper = resultados_arima['pred_temperatura_3']['upper'], alpha = 0.2)
+# Horizonte 6
+is_temperatura_3_6 = interval_score(obs=(tiempo_rosario.head(len(tiempo_rosario)-18)).tail(6)['y'], lower = resultados_arima['pred_temperatura_3']['lower'].head(6), upper = resultados_arima['pred_temperatura_3']['upper'].head(6), alpha = 0.2)
+# Horizonte 12
+is_temperatura_3_12 = interval_score(obs=(tiempo_rosario.head(len(tiempo_rosario)-12)).tail(12)['y'], lower = resultados_arima['pred_temperatura_3']['lower'].head(12), upper = resultados_arima['pred_temperatura_3']['upper'].head(12), alpha = 0.2)
+```
 
 ::: {#fig-pronarima1 layout-nrow=2}
 
@@ -956,56 +1125,49 @@ plot_forecast(data = tiempo_rosario[['ds','y']], forecast = resultados_arima['pr
 
 ![](../Imgs/plotnine/arima2.png)
 
-Pronostico de atenciones con ARIMA
-:::
-
-::: {#fig-pronarima2 layout-nrow=2}
-
-![](../Imgs/plotnine/arima3.png)
-
-![](../Imgs/plotnine/arima4.png)
-
-Pronostico de trabajadores y temperatura con ARIMA
+Pronóstico de atenciones en guardia con ARIMA.
 :::
 
 
-Uno de los problemas de pronosticar con ARIMA es que para trabajar con variables exógenas se debe conocer los valores futuros de estas. Para este caso se asume que los valores de humedad y presión atmosférica son conocidos para el día 21, sin embargo, para el resto de aplicaciones esto no será así y se considera esto como una desventaja de este modelo de pronóstico.
+| Modelo                      | Horizonte | MAPE    | *Interval Score* |
+|-----------------------------|-----------|---------|------------------|
+|                             | 3         | `{python} round(mape_atenciones_2_3, 4)` | `{python} round(is_atenciones_2_3, 4)`          |
+| $SARIMA(0,1,0)(0,1,1)_{12}$ | 6         | `{python} round(mape_atenciones_2_6, 4)` | `{python} round(is_atenciones_2_6, 4)`          |
+|                             | 12        | `{python} round(mape_atenciones_2, 4)` | `{python} round(is_atenciones_2, 4)`          |
+|    | |  | |
+|                             | 3         | `{python} round(mape_atenciones_auto_3, 4)` | `{python} round(is_atenciones_auto_3, 4)`          |
+| $SARIMA(0,1,0)(1,0,0)_{12}$ | 6         | `{python} round(mape_atenciones_auto_6, 4)` | `{python} round(is_atenciones_auto_6, 4)`          |
+|                             | 12        | `{python} round(resultados_1_arima['mape'], 4)` | `{python} round(resultados_1_arima['score'], 4)` |
+: Métricas de evaluación para la serie de atenciones por guardia con modelos ARIMA. {#tbl-arimaAtenciones}
 
-Otro problema que se encuentra es que el intervalo de confianza para las atenciones por guardia toma valores negativos, algo claramente ilógico. Esto se puede resolver ajustando modelos sobre el logaritmo de la variable, y luego transformando los valores pronosticados a la escala original. Esta solución queda propuesta para un futuro trabajo y se usan los resultados como exposición de los problemas para pronosticar usando la familia de modelos ARIMA.
 
-```{python}
-# CALCULO DE MAPES
-mape_atenciones_2 = mean_absolute_percentage_error(y_true=atenciones_guardia.tail(12)['y'], y_pred=resultados_arima['pred_atenciones_2']['pred'])
+Se puede observar en la tabla @tbl-arimaAtenciones que para la serie de atenciones en guardia por patologías respiratorias el modelo automático parece pronosticar mejor en los primeros 6 meses. Sin embargo, este no capta el aumento de casos en invierno, y es por esto que en el pronóstico a 12 meses el segundo modelo manual es mejor.
 
-mape_trabajadores_1 = mean_absolute_percentage_error(y_true=trabajadores.tail(12)['y'], y_pred=resultados_arima['pred_trabajadores_1']['pred'])
-
-mape_temperatura_3 = mean_absolute_percentage_error(y_true=tiempo_rosario.tail(24)['y'], y_pred=resultados_arima['pred_temperatura_3']['pred'])
+![Pronóstico para la serie de trabajadores.](../Imgs/plotnine/arima3.png)
 
 
-# CALCULO DE INTERVAL SCORES
-is_atenciones_2 = interval_score(obs=atenciones_guardia.tail(12)['y'], lower = resultados_arima['pred_atenciones_2']['lower'], upper = resultados_arima['pred_atenciones_2']['upper'], alpha = 0.2)
 
-is_trabajadores_1 = interval_score(obs=trabajadores.tail(12)['y'], lower = resultados_arima['pred_trabajadores_1']['lower'], upper = resultados_arima['pred_trabajadores_1']['upper'], alpha = 0.2)
+| Modelo                      | Horizonte | MAPE    | *Interval Score* |
+|-----------------------------|-----------|---------|------------------|
+|                             | 3         | `{python} round(mape_trabajadores_1_3, 4)` | `{python} round(is_trabajadores_1_3, 4)` |
+| $SARIMA(0,1,1)(1,1,0)_{12}$ | 6         | `{python} round(mape_trabajadores_1_6, 4)` | `{python} round(is_trabajadores_1_6, 4)` |
+|                             | 12        | `{python} round(mape_trabajadores_1, 4)`   | `{python} round(is_trabajadores_1, 4)`   |
+: Métricas de evaluación para la serie de trabajadores registrados con modelos ARIMA {#tbl-arimaTrabajadores}
 
-is_temperatura_3 = interval_score(obs=tiempo_rosario.tail(24)['y'], lower = resultados_arima['pred_temperatura_3']['lower'], upper = resultados_arima['pred_temperatura_3']['upper'], alpha = 0.2)
-```
+El modelo ARIMA elegido para la serie de trabajadores registrados en el sector privado de enseñanza logra captar muy bien el patrón de datos y el pronóstico es muy cercano a lo valores reales.
 
-\begin{table}[H]
-\centering
-\caption{Métricas de evaluación de los modelos ARIMA.}
-\begin{tabular}{|clc|}
-\hline
-\multicolumn{1}{|c|}{\multirow{2}{*}{Modelo}}     & \multicolumn{1}{c|}{\multirow{2}{*}{MAPE}} & \multirow{2}{*}{\textit{Interval Score}} \\
-\multicolumn{1}{|c|}{}                            & \multicolumn{1}{c|}{}                      &                                   \\ \hline
-\multicolumn{3}{|c|}{Atenciones en guardia}                                                                                        \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(0,1,0)(0,1,1)_{12}$} & \multicolumn{1}{l|}{`{python} round(mape_atenciones_2, 4)`}                  & `{python} round(is_atenciones_2, 4)`                                \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(0,1,0)(1,0,0)_{12}$} & \multicolumn{1}{l|}{`{python} round(resultados_1_arima['mape'], 4)`}                  & `{python} round(resultados_1_arima['score'], 4)`                                \\ \hline
-\multicolumn{3}{|c|}{Trabajadores registrados}                                                                                                 \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(0,1,1)(1,1,0)_{12}$} & \multicolumn{1}{l|}{`{python} round(mape_trabajadores_1, 4)`}                  & `{python} round(is_trabajadores_1, 4)`                                \\ \hline
-\multicolumn{3}{|c|}{Temperatura}                                                                                                  \\ \hline
-\multicolumn{1}{|c|}{$SARIMA(1,1,0)(1,1,0)_{24}$} & \multicolumn{1}{l|}{`{python} round(mape_temperatura_3, 4)`}                  & `{python} round(is_temperatura_3, 4)`                                \\ \hline
-\end{tabular}
-\end{table}
+![Pronóstico para la serie de temperaturas](../Imgs/plotnine/arima4.png)
+
+| Modelo                      | Horizonte | MAPE    | *Interval Score* |
+|-----------------------------|-----------|---------|------------------|
+|                             | 6         | `{python} round(mape_temperatura_3_6, 4)` | `{python} round(is_temperatura_3_6, 4)` |
+| $SARIMA(1,1,0)(1,1,0)_{24}$ | 12         | `{python} round(mape_temperatura_3_12, 4)` | `{python} round(is_temperatura_3_12, 4)` |
+|                             | 24        | `{python} round(mape_temperatura_3, 4)`   | `{python} round(is_temperatura_3, 4)`   |
+: Métricas de evaluación para la serie de temperaturas con modelos ARIMA. {#tbl-arimaTemperatura}
+
+El pronóstico de la temperatura es muy bueno en las primeras 6 horas, pero empeora ligeramente en horizontes más largos, sin embargo, los intervalos de confianza incluyen casi constantemente a los valores reales y se adapta bien a los cambios estacionales.
+
+Un problema que se encuentra es que el intervalo de confianza para las atenciones por guardia toma valores negativos, algo claramente ilógico. Esto se puede resolver ajustando modelos sobre el logaritmo de la variable, y luego transformando los valores pronosticados a la escala original. Esta solución queda propuesta para un futuro trabajo.
 
 
 ### 4.2.2 Modelos de aprendizaje automático
@@ -1026,9 +1188,9 @@ Tanto para XGBoost como para LightGBM las características elegidas para todas l
 
 - El valor del rezago estacional
 
-Con el objetivo de seleccionar los mejores hiperparámetros, se elaboró una grilla con diferentes combinaciones de valores para cada parámetro. Se ajustaron modelos cumpliendo cada combinación en la grilla sobre un conjunto de validación.
+Con el objetivo de seleccionar los mejores hiperparámetros, se elaboró una grilla con diferentes combinaciones de valores para cada parámetro. Se ajustaron modelos con cada combinación en la grilla y se evaluaron sobre un conjunto de validación.
 
-XGBoost y Lightgbm permiten parametrizar los modelos de varias formas, los que se eligieron ajustar en este trabajo son los siguientes:
+XGBoost y Lightgbm permiten parametrizar los modelos de varias formas, los parámetros que se decidieron probar en este trabajo son los siguientes:
 
 - Número de árboles que se contruyen paralelamente en cada iteración ($A$). Opciones: 20, 50, 100, 150.
 
@@ -1042,11 +1204,20 @@ XGBoost y Lightgbm permiten parametrizar los modelos de varias formas, los que s
 
 En las tablas @tbl-resultadosxgb y @tbl-resultadoslgbm se muestran para cada serie que combinación de parámetros, de las 384 posibles, fue la que menor MAPE produjo sobre el conjunto de validación aplicando XGBoost o LightGBM respectivamente. Además, se presenta el MAPE e *Interval Score* que devuelve el modelo entrenado con todos los datos de entrenamiento y evaluado sobre el conjunto de prueba.
 
-|           Serie          |   $A$  |   $P$  |   $H$  | $\eta$ |   $C$  |    MAPE    | Interval Score |
-|:------------------------:|:------:|:------:|:------:|:------:|:------:|:----------:|:--------------:|
-|   Atenciones en guardia  | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb['mape'], 4)` | `{python} round(resultados_1_xgb['score'], 4)` |
-| Trabajadores registrados | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb['mape'], 4)` | `{python} round(resultados_2_xgb['score'], 4)` |
-|        Temperatura       | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb['mape'], 4)` | `{python} round(resultados_3_xgb['score'], 4)` |
+
+| Serie                    | Hor. | $A$ | $P$ | $H$ | $\eta$  | $C$ | MAPE  | Interval Score |
+|--------------------------|------|-----|-----|-----|-----|-----|-------|----------------|
+|                          | 3    | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb3['mape'], 4)` | `{python} round(resultados_1_xgb3['score'], 4)` |
+| Atenciones    | 6    | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb6['mape'], 4)` | `{python} round(resultados_1_xgb6['score'], 4)` |
+|                          | 12   | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb['mape'], 4)` | `{python} round(resultados_1_xgb['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 3    | `{python} resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`  | `{python} resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb3['mape'], 4)` | `{python} round(resultados_2_xgb3['score'], 4)` |
+| Trabajadores | 6    | `{python} resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb6['mape'], 4)` | `{python} round(resultados_2_xgb6['score'], 4)` |
+|                          | 12   | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb['mape'], 4)` | `{python} round(resultados_2_xgb['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 6    | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb6['mape'], 4)` | `{python} round(resultados_3_xgb6['score'], 4)` |
+| Temperatura              | 12   | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb12['mape'], 4)` | `{python} round(resultados_3_xgb12['score'], 4)` |
+|                          | 24   | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb['mape'], 4)` | `{python} round(resultados_3_xgb['score'], 4)` |
 : Modelos XGBoost seleccionados y métricas de evaluación. {#tbl-resultadosxgb}
 
 ```{python}
@@ -1056,7 +1227,7 @@ plot_forecast(data = atenciones_guardia, forecast = resultados_1_xgb['pred'], pr
 plot_forecast(data = trabajadores, forecast = resultados_2_xgb['pred'], pred_color = '#5299CB', line_color='black', label = 'XGBoost', long = 36, ylabel= 'Trabajadores', legend_position='none'
 ).save("../Imgs/plotnine/xgboost2.png", width=6, height=4/3.1, dpi=700)
 
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_color = '#E44E58', line_color='black', label = 'XGBoost', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_color = '#E44E58', line_color='black', label = 'XGBoost', long = 72, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
 ).save("../Imgs/plotnine/xgboost3.png", width=6, height=4/3.1, dpi=700)
 
 ```
@@ -1069,15 +1240,26 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_c
 
 ![](../Imgs/plotnine/xgboost3.png)
 
-Pronósticos con XGBoost
+Pronósticos con XGBoost.
 
 :::
 
-|           Serie          |   $A$  |   $P$  |   $H$  | $\eta$ |   $C$  |    MAPE    | Interval Score |
-|:------------------------:|:------:|:------:|:------:|:------:|:------:|:----------:|:--------------:|
-|   Atenciones en guardia  | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm['mape'], 4)` | `{python} round(resultados_1_lgbm['score'], 4)` |
-| Trabajadores registrados | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm['mape'], 4)` | `{python} round(resultados_2_lgbm['score'], 4)` |
-|        Temperatura       | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm['mape'], 4)` | `{python} round(resultados_3_lgbm['score'], 4)` | 
+Los pronósticos con XGBoost fueron muy buenos sobre las 3 series. Si algo se puede remarcar es que en la serie de atenciones el modelo no capta del todo el pico de atenciones en invierno. 
+
+
+| Serie                    | Hor. | $A$ | $P$ | $H$ | $\eta$  | $C$ | MAPE  | Interval Score |
+|--------------------------|------|-----|-----|-----|-----|-----|-------|----------------|
+|                          | 3    | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm3['mape'], 4)` | `{python} round(resultados_1_lgbm3['score'], 4)` |
+| Atenciones    | 6    | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm6['mape'], 4)` | `{python} round(resultados_1_lgbm6['score'], 4)` |
+|                          | 12   | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm['mape'], 4)` | `{python} round(resultados_1_lgbm['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 3    | `{python} resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`  | `{python} resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm3['mape'], 4)` | `{python} round(resultados_2_lgbm3['score'], 4)` |
+| Trabajadores | 6    | `{python} resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm6['mape'], 4)` | `{python} round(resultados_2_lgbm6['score'], 4)` |
+|                          | 12   | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm['mape'], 4)` | `{python} round(resultados_2_lgbm['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 6    | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm6['mape'], 4)` | `{python} round(resultados_3_lgbm6['score'], 4)` |
+| Temperatura              | 12   | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm12['mape'], 4)` | `{python} round(resultados_3_lgbm12['score'], 4)` |
+|                          | 24   | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm['mape'], 4)` | `{python} round(resultados_3_lgbm['score'], 4)` |
 : Modelos LightGBM seleccionados y métricas de evaluación. {#tbl-resultadoslgbm}
 
 ```{python}
@@ -1087,7 +1269,7 @@ plot_forecast(data = atenciones_guardia, forecast = resultados_1_lgbm['pred'], p
 plot_forecast(data = trabajadores, forecast = resultados_2_lgbm['pred'], pred_color = '#5299CB', line_color='black', label = 'LightGBM', long = 36, ylabel= 'Trabajadores', legend_position='none'
 ).save("../Imgs/plotnine/lgbm2.png", width=6, height=4/3.1, dpi=700)
 
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_color = '#E44E58', line_color='black', label = 'LightGBM', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_color = '#E44E58', line_color='black', label = 'LightGBM', long = 72, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
 ).save("../Imgs/plotnine/lgbm3.png", width=6, height=4/3.1, dpi=700)
 
 ```
@@ -1100,38 +1282,44 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_
 
 ![](../Imgs/plotnine/lgbm3.png)
 
-Pronósticos con LightGBM
+Pronósticos con LightGBM.
 
 :::
 
+Los pronósticos con LightGBM son ligeramente peores a los conseguidos con XGBoost en todos los casos. Esta diferencia es especialmente importante en la serie de temperaturas, ya que en el pronóstico a 24 horas los intervalos de confianza en las primeras 6 horas no suelen cubrir a las observaciones. Este modelo tampoco pudo identificar el pico de atenciones en guardia en los meses invernales.
+
+Algo interesante de notar sobre los modelos a partir de las tablas @tbl-resultadosxgb y @tbl-resultadoslgbm es que XGBoost suele elegir bosques más sencillos, con menos árboles, que a su vez son menos profundos y tienen menos hojas. También se evidenció la tendencia de LightGBM a expandir los árboles por las hojas. Otro aspecto importante de mencionar es que los modelos optaron en general por elegir una tasa de aprendizaje y una proporción de características utilizadas altas, elecciones que podrían llevar a un sobreajuste. Aún así, esto no se vio evidenciado en los resultados.
+
 ### 4.2.3 Redes neuronales (LSTM)
 
-Los modelos basados en aprendizaje profundo se encargan de definir las características más relevantes y los parámetros más adecuados de forma automática. En las redes neuronales, como es el caso de LSTM, solo se tendrá que elegir la forma del modelo, es decir, las capas y la cantidad de iteraciones. 
+Los modelos basados en aprendizaje profundo se encargan de definir las características más relevantes y los parámetros más adecuados de forma automática. En las redes neuronales, como es el caso de LSTM, solo se tendrá que elegir la forma del modelo. 
 
-Para evitar el sobreajuste en redes neuronales existen numerosas alternativas. Entre estas se puede optar por frenar el entrenamiento antes de completar todas las iteraciones si es que no se ve mejora en la función de pérdida, esto se conoce como *early stop*. Otra opción es "ignorar" una cierta proporción de neuronas en cada iteración, que es equivalente a entrenar distintas redes neuronales. Esta última técnica es denominada *dropout*.
+Para evitar el sobreajuste en redes neuronales existen numerosas alternativas. Entre estas se puede optar por frenar el entrenamiento antes de completar todas las iteraciones si es que no se ve mejora en la función de pérdida, esto se conoce como *early stopping*. Otra opción es "ignorar" una cierta proporción de neuronas en cada iteración, que es equivalente a entrenar distintas redes neuronales. Esta última técnica es denominada *dropout*.
 
-- Número de iteraciones ($N$). Opciones: 50, 100, 200, 500.
+Para cada serie se entrenaron modelos LSTM con 300 iteraciones y una tasa de aprendizaje de 0.001. Se adoptó una paciencia para el *early stopping* de 10, esto quiere decir que si la función de pérdida no muestra mejoras en 10 iteraciones seguidas se deteniene el entrenamiento. Además, se probaron las siguientes características para el modelo:
 
-- Número de capas del codificador ($C$). Opciones: 1, 2, 3.
+- Capas y neuronas en el modelo ($N$). Opciones: [32], [12, 24], [24, 42].
 
-- Número de capas del decodificador ($D$). Opciones: 1, 2, 3.
+- Rezagos con los que se entrena el modelo ($R$). Opciones: 1, 12, 24.
 
-- Tasa de aprendizaje ($\eta$). Opciones: 0.001, 0.1, 0.2.
+- *Dropout* en cada capa ($D$). Opciones: 0.1, 0.3.
 
-- Paciencia para el *early stop* ($P$). Opciones: 5, 10, $\infty$.
-
-- *Dropout* ($O$). Opciones: 0, 0.1, 0.3.
-
-Cada 10 iteraciones se evalúa la función de perdida. Que la paciencia sea igual a 5 lleva a que si la función de pérdida no mejora en las últimas 5 evaluaciones se detenga el entrenamiento. A su vez, que el *dropout* sea 0.1 lleva a que cada neurona tenga una probabilidad de 0.1 de que se apague en cada iteración.
-
-Codificador hace referencia al modelo LSTM, mientras que decodificador a un modelo perceptrón multicapa simple que garantiza eficiencia y estabilidad.
+- Función de activación ($A$). Opciones: ReLu, Tangente Hiperbólica (tanh).
 
 
-|           Serie          |   $N$  |   $C$  |   $D$  | $\eta$ |   $P$  |   $O$  |    MAPE    | _Interval Score_ |
-|:------------------------:|:------:|:------:|:------:|:------:|:------:|:------:|:----------:|:----------------:|
-|   Atenciones en guardia  | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['max_steps'].values[0]` | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['encoder_n_layers'].values[0]` | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['decoder_layers'].values[0]` | `{python} float(resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['early_stop_patience_steps'].values[0])` | `{python} float(resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['encoder_dropout'].values[0])` | `{python} round(resultados_1_lstm['mape'], 4)` | `{python} round(resultados_1_lstm['score'], 4)` |
-| Trabajadores registrados | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['max_steps'].values[0]` | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['encoder_n_layers'].values[0]` | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['decoder_layers'].values[0]` | `{python} float(resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['early_stop_patience_steps'].values[0])` | `{python} float(resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['encoder_dropout'].values[0])` | `{python} round(resultados_2_lstm['mape'], 4)` | `{python} round(resultados_2_lstm['score'], 4)` |
-|        Temperatura       | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['max_steps'].values[0]` | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['encoder_n_layers'].values[0]` | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['decoder_layers'].values[0]` | `{python} float(resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['early_stop_patience_steps'].values[0])` | `{python} float(resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['encoder_dropout'].values[0])`  | `{python} round(resultados_3_lstm['mape'], 4)` | `{python} round(resultados_3_lstm['score'], 4)` |
+| Serie                    | Hor. | $N$ | $R$ | $D$ | $A$ | MAPE  | _Interval Score_ |
+|--------------------------|------|--------|-----|-----|-----|-------|------------------|
+|              | 3    | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`       | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`               | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`          | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`       | `{python} round(resultados_1_lstm3['mape'], 4)`  | `{python} round(resultados_1_lstm3['score'], 4)`  |
+| Atenciones   | 6    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_1_lstm6['mape'], 4)`  | `{python} round(resultados_1_lstm6['score'], 4)`  |
+|              | 12   | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_1_lstm['mape'], 4)`   | `{python} round(resultados_1_lstm['score'], 4)`   |
+|              |      |                                                                                                                                |                                                                                                                                       |                                                                                                                                     |                                                                                                                                     |                                                  |                                                   |
+|              | 3    | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_2_lstm3['mape'], 4)`  | `{python} round(resultados_2_lstm3['score'], 4)`  |
+| Trabajadores | 6    | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_2_lstm6['mape'], 4)`  | `{python} round(resultados_2_lstm6['score'], 4)`  |
+|              | 12   | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_2_lstm['mape'], 4)`   | `{python} round(resultados_2_lstm['score'], 4)`   |
+|              |      |                                                                                                                                |                                                                                                                                       |                                                                                                                                     |                                                                                                                                     |                                                  |                                                   |
+|              | 6    | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_3_lstm6['mape'], 4)`  | `{python} round(resultados_3_lstm6['score'], 4)`  |
+| Temperatura  | 12   | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['units'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]` | `{python} round(resultados_3_lstm12['mape'], 4)` | `{python} round(resultados_3_lstm12['score'], 4)` |
+|              | 24   | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_3_lstm['mape'], 4)`   | `{python} round(resultados_3_lstm['score'], 4)`   |
 : Modelos LSTM seleccionados y métricas de evaluación. {#tbl-resultadoslstm}
 
 
@@ -1142,7 +1330,7 @@ plot_forecast(data = atenciones_guardia, forecast = resultados_1_lstm['pred'], p
 plot_forecast(data = trabajadores, forecast = resultados_2_lstm['pred'], pred_color = '#5299CB', line_color='black', label = 'LSTM', long = 36, ylabel= 'Trabajadores', legend_position='none'
 ).save("../Imgs/plotnine/lstm2.png", width=6, height=4/3.1, dpi=700)
 
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_color = '#E44E58', line_color='black', label = 'LSTM', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_color = '#E44E58', line_color='black', label = 'LSTM', long = 72, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
 ).save("../Imgs/plotnine/lstm3.png", width=6, height=4/3.1, dpi=700)
 
 ```
@@ -1155,11 +1343,11 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_
 
 ![](../Imgs/plotnine/lstm3.png)
 
-Pronósticos con LSTM
+Pronósticos con LSTM.
 
 :::
 
-
+Estos intervalos de confianza también fueron obtenidos gracias a *conformal predictions* pero se realizaron con funciones ya integradas en la librería `scalecast`.
 
 ### 4.2.4 Modelos fundacionales (TimeGPT y Chronos)
 
@@ -1175,7 +1363,7 @@ plot_forecast(data = atenciones_guardia, forecast = resultados_1_gpt['pred'], pr
 plot_forecast(data = trabajadores, forecast = resultados_2_gpt['pred'], pred_color = '#5299CB', line_color='black', label = 'TimeGPT', long = 36, ylabel= 'Trabajadores', legend_position='none'
 ).save("../Imgs/plotnine/gpt2.png", width=6, height=4/3.1, dpi=700)
 
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_gpt['pred'], pred_color = '#E44E58', line_color='black', label = 'TimeGPT', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_gpt['pred'], pred_color = '#E44E58', line_color='black', label = 'TimeGPT', long = 72, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
 ).save("../Imgs/plotnine/gpt3.png", width=6, height=4/3.1, dpi=700)
 
 ```
@@ -1188,9 +1376,28 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_gpt['pred'], pred_c
 
 ![](../Imgs/plotnine/gpt3.png)
 
-Pronósticos con TimeGPT
+Pronósticos con TimeGPT.
 
 :::
+
+| Serie                    | Hor. | MAPE  | _Interval Score_ |
+|--------------------------|------|-------|------------------|
+|                          |3     |`{python} round(resultados_1_gpt3['mape'], 4)`|`{python} round(resultados_1_gpt3['score'], 4)`|
+|Atenciones                |6     |`{python} round(resultados_1_gpt6['mape'], 4)`|`{python} round(resultados_1_gpt6['score'], 4)`|
+|                          |12    |`{python} round(resultados_1_gpt['mape'], 4)`|`{python} round(resultados_1_gpt['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_2_gpt3['mape'], 4)`|`{python} round(resultados_2_gpt3['score'], 4)`|
+|Trabajadores                |6     |`{python} round(resultados_2_gpt6['mape'], 4)`|`{python} round(resultados_2_gpt6['score'], 4)`|
+|                          |12    |`{python} round(resultados_2_gpt['mape'], 4)`|`{python} round(resultados_2_gpt['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_3_gpt6['mape'], 4)`|`{python} round(resultados_3_gpt6['score'], 4)`|
+|Temperatura                |6     |`{python} round(resultados_3_gpt12['mape'], 4)`|`{python} round(resultados_3_gpt12['score'], 4)`|
+|                          |12    |`{python} round(resultados_3_gpt['mape'], 4)`|`{python} round(resultados_3_gpt['score'], 4)`|
+: Métricas de evaluación para los ajustes con TimeGPT. {#tbl-metricasTimegpt}
+
+Los pronósticos con TimeGPT sobre las series de temperatura y atenciones fueron regulares, en ninguno de los 2 casos pudo detectar los patrones estacionales de las series. Por otro lado, si pudo pronosticar correctamente las observaciones futuras en la serie de trabajadores registrados. Los problemas de pronóstico de TimeGPT parecen estar en el corto y largo plazo, ya que en la tabla @tbl-metricasTimegpt se puede ver como para los pronósticos a medio plazo las métricas de evaluación son menores que para corto y largo plazo.
+
+Chronos al ser ser una familia de modelos cuenta con múltiples opciones para realizar pronósticos *zero-shot*. En esta tesina se utilizó el modelo `bolt-small`, el cual cuenta con 48 millones de parámetros.
 
 ```{python}
 plot_forecast(data = atenciones_guardia, forecast = resultados_1_chronos['pred'], pred_color = '#6BC78A', line_color='black', label = 'Chronos', long = 36, ylabel= 'Atenciones', legend_position = (0.3,0.98)
@@ -1199,7 +1406,7 @@ plot_forecast(data = atenciones_guardia, forecast = resultados_1_chronos['pred']
 plot_forecast(data = trabajadores, forecast = resultados_2_chronos['pred'], pred_color = '#5299CB', line_color='black', label = 'Chronos', long = 36, ylabel= 'Trabajadores', legend_position='none'
 ).save("../Imgs/plotnine/chronos2.png", width=6, height=4/3.1, dpi=700)
 
-plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pred_color = '#E44E58', line_color='black', label = 'Chronos', long = 48, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
+plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pred_color = '#E44E58', line_color='black', label = 'Chronos', long = 72, xlabel='Día', ylabel= 'Temperatura', legend_position='none'
 ).save("../Imgs/plotnine/chronos3.png", width=6, height=4/3.1, dpi=700)
 
 ```
@@ -1212,13 +1419,31 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pr
 
 ![](../Imgs/plotnine/chronos3.png)
 
-Pronósticos con Chronos
+Pronósticos con Chronos.
 
 :::
 
+
+| Serie                    | Hor. | MAPE  | _Interval Score_ |
+|--------------------------|------|-------|------------------|
+|                          |3     |`{python} round(resultados_1_chronos3['mape'], 4)`|`{python} round(resultados_1_chronos3['score'], 4)`|
+|Atenciones                |6     |`{python} round(resultados_1_chronos6['mape'], 4)`|`{python} round(resultados_1_chronos6['score'], 4)`|
+|                          |12    |`{python} round(resultados_1_chronos['mape'], 4)`|`{python} round(resultados_1_chronos['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_2_chronos3['mape'], 4)`|`{python} round(resultados_2_chronos3['score'], 4)`|
+|Trabajadores                |6     |`{python} round(resultados_2_chronos6['mape'], 4)`|`{python} round(resultados_2_chronos6['score'], 4)`|
+|                          |12    |`{python} round(resultados_2_chronos['mape'], 4)`|`{python} round(resultados_2_chronos['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_3_chronos6['mape'], 4)`|`{python} round(resultados_3_chronos6['score'], 4)`|
+|Temperatura                |6     |`{python} round(resultados_3_chronos12['mape'], 4)`|`{python} round(resultados_3_chronos12['score'], 4)`|
+|                          |12    |`{python} round(resultados_3_chronos['mape'], 4)`|`{python} round(resultados_3_chronos['score'], 4)`|
+: Métricas de evaluación para los ajustes con Chronos. {#tbl-metricasChronos}
+
+Chronos pudo detectar correctamente los cambios de temperatura en las 24 horas, pero por otro lado, hace un pésimo trabajo intentando pronosticar la serie de atenciones. En las dos series Chronos tiene un comportamiento inverso, mientras que en la serie de atenciones a medida que se incrementa el horizonte las métricas empeoran, para la serie de temperaturas mejoran. También se puede ver como el pronóstico sobre la serie de trabajadores es peor que con otros modelos.
+
 ## 4.3 Comparación de resultados y análisis final
 
-
+Para las comparaciones en la primera serie se utiliza el modelo arima que mejor ajusto, este es el 2do modelo manual
 
 **Serie 1**
 
@@ -1242,18 +1467,29 @@ metricas_3
 
 # 5. Conclusiones	
 
-<!-- -  Resume las principales conclusiones del estudio.
--  Destaca las contribuciones del trabajo y su relevancia para el campo de la estadística y el análisis de datos.
-- Fortalezas y limitaciones de TimeGPT en comparación con otros modelos.
-- Proporciona recomendaciones finales y reflexiones sobre posibles direcciones futuras de investigación. -->
-
-Problemas arima: consume mucho tiempo, necesita muchos conocimientos teoricos para problemas especificos (variables de conteo, evitar negativos, variancia no constante), puede que se trabaje hasta llegar a un modelo que luego no cumpla los supuestos, no es util cuando se tienen variables exogenas, porque solo permite variables ya conocidas
+A medida que se avanzó por el documento, las diferencias, las ventajas y desventajas de cada método se fueron evidenciando. Con ARIMA el ajuste fue completamente manual, tomó su requerido tiempo y aplicarlo a otras series implicaría empezar de cero. Luego, en los algoritmos de aprendizaje automático se tuvieron que definir una serie de características para ayudar al modelo a ajustarse automáticamente a los datos, si se deseara pronosticar otra serie, sería prudente cambiar las características a otras más acordes a los datos. Con LSTM simplemente se tuvo que definir la forma del modelo, y tanto con TimeGPT como con Chronos solo fue necesario brindarles los datos y su periocidad. En estos últimos 3 modelos ningún cambio es necesario para pronosticar otra serie.
 
 En este documento se presentan 3 contribuciones claves para el campo de la estadística. En primer lugar y como objetivo principal de esta tesina, la introducción de los modelos transformadores para el pronóstico de series temporales. Además se incluyeron aportes como evaluar el desempeño de los modelos con una nueva medida del error, el *interval score*, el cúal no tiene en cuenta únicamente el pronóstico puntual sino también probabilístico. El último gran aporte es la construcción de intervalos de pronóstico por medio de *conformal predictions*, que no depende de conocer la distribución de los residuos.
 
 \newpage
 
-# 6. Bibliografía
+# 6. Mejoras y extenciones a la investigación
+
+En esta tesina se buscó abordar el tema de la forma más amplia posible sin sacrificar profundidad. Sin embargo, por la amplitud del mismo se dejaron fuera muchos temas interesantes que se podrían tratar en otros trabajos.
+
+En primer lugar, se podrían estudiar numerosas otras series con distintas características y aplicar las respectivas correcciones a aquellas series acotadas, como el caso de la cantidad de atenciones en guardia que no puede ser negativa.
+
+En la selección de los modelos se eligió como mejor aquel que minimizara el MAPE, pero se podría haber hecho la elección en base al *Interval Score* o alguna otra medida de error. También se podría indagar sobre múltiples medidas de error probabilísticas diferentes al *Interval Score*, tales como *Scaled quantile loss*, *Weighted quantile loss* o *Implicit quantile loss*.
+
+*Boosting* y el ensamblaje de modelos no esta limitado únicamente a los árboles de decisión, y se podría explorar como funcionan estas técnicas en otros modelos, como en redes neuronales.
+
+Para obtener pronósticos probabilísticos en los algoritmos de aprendizaje automático se optó por EnbPI, pero queda propuesto probar otros métodos o alternativas, como *Natural Gradient Boosting* (NGBoost).
+
+Otra expansión a la investigación se puede dar en el ajuste de hiperparámetros, y características en el caso de los algoritmos de aprendizaje automatizado. Si bien con la búsqueda de parámetros se intentó explorar múltiples opciones, por cuestiones de tiempo y exigencia computacional es imposible explorarlas todas, es por esto que aún queda un amplio campo de investigación en este aspecto. A su vez, en los modelos fundacionales también es posible indagar sobre el ajuste fino.
+
+\newpage
+
+# 7. Bibliografía
 
 **Alammar, J.** (27 de junio de 2018). *The Illustrated Transformer*. Jay Alammar. [https://jalammar.github.io/illustrated-transformer/](https://jalammar.github.io/illustrated-transformer/)
 
@@ -1286,9 +1522,7 @@ OTexts. [https://otexts.com/fpp3/](https://otexts.com/fpp3/)
 
 **Nielsen, A.** (2019). *Practical Time Series Analysis: Prediction with Statistics and Machine Learning*. O'Reilly Media.
 
-**Nixtla**. (s.f.-a). *About TimeGPT*. Recuperado en diciembre de 2024 de [https://docs.nixtla.io/docs/getting-started-about_timegpt](https://docs.nixtla.io/docs/getting-started-about_timegpt)
-
-**Nixtla**. (s.f.-b). *LSTM*. Recuperado el 9 de abril de 2025 en [https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
+**Nixtla**. (s.f.). *About TimeGPT*. Recuperado en diciembre de 2024 de [https://docs.nixtla.io/docs/getting-started-about_timegpt](https://docs.nixtla.io/docs/getting-started-about_timegpt)
 
 **Parmezan, A., Souza, V., & Batista, G.** (1 de mayo de 2019). *Evaluation of statistical and machine learning models for time series prediction: Identifying the state-of-the-art and the best conditions for the use of each model*. Information Sciences. [https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945](https://www.sciencedirect.com/science/article/abs/pii/S0020025519300945)
 
@@ -1311,9 +1545,9 @@ OTexts. [https://otexts.com/fpp3/](https://otexts.com/fpp3/)
 
 \newpage
 
-# 7. Anexo
+# 8. Anexo
 
-## 7.1 Gráficos estacionales
+## 8.1 Gráficos estacionales
 
 ```{python}
 #| label: fig-atenciones_estacionalidad
@@ -1356,7 +1590,7 @@ temperatura_trunc['Día'] = temperatura_trunc['ds'].dt.day
 )
 ```
 
-## 7.2 Salidas de modelos arima {#salidas_arima}
+## 8.2 Salidas de modelos arima {#salidas_arima}
 
 **Atenciones modelo 1**
 
@@ -1412,7 +1646,7 @@ print(resultados_arima['salida_arima_temperatura_2'])
 print(resultados_arima['salida_arima_temperatura_3'])
 ```
 
-## 7.3 Comprobación de supuestos de modelos arima {#supuestos_arima}
+## 8.3 Comprobación de supuestos de modelos arima {#supuestos_arima}
 
 **Modelo atenciones selección automática**
 
@@ -1493,70 +1727,27 @@ Comprobación de supuestos del tercer modelo arima manual para la serie de tempe
 
 
 # NOTAS
-
-- Series a utilizar: 
-      Estacionalidad y tendencia > trabajadores registrados en educacion en el ambito privado (tmb puede ser aalim/tabaco, servicios de seg/lim/inv, ) (https://www.argentina.gob.ar/trabajo/estadisticas/situacion-y-evolucion-del-trabajo-registrado) ACTUALIZAR HAY DATOS NUEVOS
-      Estacionalidad > Demanda mensual residencial del consumo de luz o algun emae estacional, ENFERMEDADES RESPIRATORIAS
-      variable exogena > Temperatura + humedad + presion atmosferica (https://www.smn.gob.ar/descarga-de-datos)
-      
+   
 - TO DO
       Redactar conclusiones de tablas
+      controlar seleccion de hiperparametros
       Redactar 
       Revisar Arima
+      contar como funcionan las autocorrelaciones y parciales para la seleccion de modelos arima
       revisar transformers
       revisar medidas de evaluacion
+      Eliminar la instalacion de neuralforecast
       Volver a correr toda la aplicacion y verificar resultados
       verificar luego de la aplicacion cuales son las librerias que termino usando
       Verificar, actualizar y completar las descripciones de las funciones
       Actualizar los requirements
 
 
-Agregar fientes a los primeros graficos
-Autocorrelaciones en la descripciones de las series
-Puedo si utilizar los pronosticos de a poco
-
-- Hacer dendograma de importancia de variables para los modelos de machine learning, timegpt (variables exogenas)
-
 - Guardar las versiones de librerias, software y hardwate en la que se corre el codigo
 
 - Hacer equivalencia del documento en GitBook
 
-- leer fpp3 que tiene unas cosas que pueden servir , tambien https://otexts.com/fpppy/nbs/15-foundation-models.html#chronos
-
-
-Tomar el tiempo como el ultimo modelo PERO EXPLICARLO
-
 nomenclatura: 
   - conjunto de observaciones $z_1, ..., z_t, ..., z_n$
   - pronostico $z_{n+1}, ..., z_{n+l}, ...   , z_{n+h}$
-
-
-# Mejoras a la investigacion (en las que no me voy a centrar)
-
-- Hacer que los modelos elijan el mejor ajuste con otras medidas del error en lugar de minimizar el mape, como el interval score
-
-- explorar otras medidas del error
-
-- implementar boosting y ensamblaje con otros metodos
-
-- Explorar otras caracteristicas para los metodos de ensamblaje
-
-- medir el tiempo de ejecucion de los algoritmos de otra manera
-
-- Series con distintas periodicidades (semestrales, trimestrales, etc) y distintas unidades (diarias. anuales, horarias, etc)
-
-- Explorar mas sobre conformal predictions y demas opciones para crear intervalos de confianza
-
-- usar ngboost para obtener pronosticos probabilisticos
-
-- Validacion cruzada temporal para el entrenamiento de los modelos
-
-- finetuning en modelos fundacionales
-
-# Preguntas nanda
-
-- En realidad no es correcto tomar los pronosticos de a poco para comparar al corto y largo plazo porque los modelos se eligen segun que tan bien ajustan a cierto horizonte, si se cambia el horizonte esto podria modificarse
-
-- medir los tiempos de ejecucion como un todo?
-
 
