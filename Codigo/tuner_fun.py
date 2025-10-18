@@ -401,9 +401,9 @@ def fit_pred_xgb(datos, long_pred, alpha, kwargs, caracteristicas, exog, devolve
     })
 
     if devolver_tiempo & devolver_modelo:
-        return forecaster, tiempo, model
+        return forecaster, tiempo, mapie_enbpi
     elif devolver_modelo:
-        return forecaster, model
+        return forecaster, mapie_enbpi
     elif devolver_tiempo:
         return forecaster, tiempo
     else:
@@ -480,9 +480,9 @@ def fit_pred_lightgbm(datos, long_pred, alpha, kwargs, caracteristicas, exog, de
     })
 
     if devolver_tiempo & devolver_modelo:
-        return forecaster, tiempo, model
+        return forecaster, tiempo, mapie_enbpi
     elif devolver_modelo:
-        return forecaster, model
+        return forecaster, mapie_enbpi
     elif devolver_tiempo:
         return forecaster, tiempo
     else:

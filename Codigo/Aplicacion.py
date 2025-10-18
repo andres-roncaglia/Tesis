@@ -7,7 +7,7 @@ import pandas as pd
 from pmdarima.arima import ARIMA
 
 # Cargamos funciones
-from Codigo.Funciones import save_env, load_env
+from Codigo.Funciones import save_env, load_env, summary_to_df
 from Codigo.tuner_fun import Tuner
 
 # Definimos una semilla
@@ -63,29 +63,41 @@ metricas_1.loc[len(metricas_1)] = ['ARIMA', '', resultados_1_arima['mape'], resu
 atenciones_train = atenciones_guardia.head(len(atenciones_guardia)-long_pred).copy()
 ds = atenciones_guardia.tail(long_pred)['ds'].reset_index(drop = True)
 
-# Modelo 1
-arima_atenciones_1 = ARIMA( 
+# Modelo AT-1
+arima_AT1 = ARIMA( 
+    order=(1, 0, 0), 
+    seasonal_order=(0,1,1,12))
+
+arima_AT1 = arima_AT1.fit(atenciones_train['y'])
+
+pred, pred_int = arima_AT1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_AT1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_AT1['pred'] = pred.reset_index(drop = True)
+pred_AT1['ds'] = ds
+
+# Modelo AT-3
+arima_AT3 = ARIMA( 
     order=(0, 1, 1), 
     seasonal_order=(0,1,0,12))
 
-arima_atenciones_1 = arima_atenciones_1.fit(atenciones_train['y'])
+arima_AT3 = arima_AT3.fit(atenciones_train['y'])
 
-pred, pred_int = arima_atenciones_1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
-pred_atenciones_1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_atenciones_1['pred'] = pred.reset_index(drop = True)
-pred_atenciones_1['ds'] = ds
+pred, pred_int = arima_AT3.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_AT3 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_AT3['pred'] = pred.reset_index(drop = True)
+pred_AT3['ds'] = ds
 
-# Modelo 2
-arima_atenciones_2 = ARIMA( 
+# Modelo AT-4
+arima_AT4 = ARIMA( 
     order=(0, 1, 0), 
     seasonal_order=(0,1,1,12))
 
-arima_atenciones_2 = arima_atenciones_2.fit(atenciones_train['y'])
+arima_AT4 = arima_AT4.fit(atenciones_train['y'])
 
-pred, pred_int = arima_atenciones_2.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
-pred_atenciones_2 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_atenciones_2['pred'] = pred.reset_index(drop = True)
-pred_atenciones_2['ds'] = ds
+pred, pred_int = arima_AT4.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_AT4 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_AT4['pred'] = pred.reset_index(drop = True)
+pred_AT4['ds'] = ds
 
 
 # ------------------------------- 1.3 XGBOOST -------------------------------
@@ -113,7 +125,6 @@ caracteristicas_atenciones = pd.DataFrame({
     "lag_2" : atenciones_guardia["y"].shift(2),
     "lag_12" : atenciones_guardia["y"].shift(12),
 })
-
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 3
 long_pred = 3
@@ -271,17 +282,30 @@ metricas_2.loc[len(metricas_2)] = ['ARIMA', long_pred, resultados_2_arima['mape'
 trabajadores_trunc = trabajadores.head(len(trabajadores)-long_pred).copy()
 ds = trabajadores.tail(long_pred)['ds'].reset_index(drop = True)
 
-# Modelo 1
-arima_trabajadores_1 = ARIMA( 
-    order=(0,1,1), 
-    seasonal_order=(1,1,0,12))
+# Modelo TR-1
+arima_TR1 = ARIMA( 
+    order=(1,1,0), 
+    seasonal_order=(1,0,0,12))
 
-arima_trabajadores_1 = arima_trabajadores_1.fit(trabajadores_trunc['y'])
+arima_TR1 = arima_TR1.fit(trabajadores_trunc['y'])
 
-pred, pred_int = arima_trabajadores_1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
-pred_trabajadores_1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_trabajadores_1['pred'] = pred.reset_index(drop = True)
-pred_trabajadores_1['ds'] = ds
+pred, pred_int = arima_TR1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_TR1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_TR1['pred'] = pred.reset_index(drop = True)
+pred_TR1['ds'] = ds
+
+# Modelo TR-2
+arima_TR2 = ARIMA( 
+    order=(1,1,0), 
+    seasonal_order=(1,0,1,12))
+
+arima_TR2 = arima_TR2.fit(trabajadores_trunc['y'])
+
+pred, pred_int = arima_TR2.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
+pred_TR2 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_TR2['pred'] = pred.reset_index(drop = True)
+pred_TR2['ds'] = ds
+
 
 # ------------------------------- 2.3 XGBOOST -------------------------------
 
@@ -467,32 +491,32 @@ metricas_3.loc[len(metricas_3)] = ['ARIMA', long_pred, resultados_3_arima['mape'
 temperatura_trunc = tiempo_rosario.head(len(tiempo_rosario)-long_pred).copy()
 ds = tiempo_rosario.tail(long_pred)['ds'].reset_index(drop = True)
 
-# Modelo 1
-arima_temperatura_1 = ARIMA( 
+# Modelo TE-2
+arima_TE2 = ARIMA( 
     order=(1,1,1), 
     seasonal_order=(1,0,1,24)
     )
 
-arima_temperatura_1 = arima_temperatura_1.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
+arima_TE2 = arima_TE2.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
 
-# Modelo 2
-arima_temperatura_2 = ARIMA( 
+# Modelo TE-3
+arima_TE3 = ARIMA( 
     order=(1,1,0), 
     seasonal_order=(2,0,1,24))
 
-arima_temperatura_2 = arima_temperatura_2.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
+arima_TE3 = arima_TE3.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
 
-# Modelo 3
-arima_temperatura_3 = ARIMA( 
+# Modelo TE-4
+arima_TE4 = ARIMA( 
     order=(1,1,0), 
-    seasonal_order=(1,1,0,24))
+    seasonal_order=(1,0,1,24))
 
-arima_temperatura_3 = arima_temperatura_3.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
+arima_TE4 = arima_TE4.fit(temperatura_trunc['y'], temperatura_trunc[['HUM', 'PNM']])
 
-pred, pred_int = arima_temperatura_3.predict(n_periods = long_pred, X= tiempo_rosario.tail(long_pred)[['HUM', 'PNM']], alpha = alpha, return_conf_int=True)
-pred_temperatura_3 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_temperatura_3['pred'] = pred.reset_index(drop = True)
-pred_temperatura_3['ds'] = ds
+pred, pred_int = arima_TE4.predict(n_periods = long_pred, X= tiempo_rosario.tail(long_pred)[['HUM', 'PNM']], alpha = alpha, return_conf_int=True)
+pred_TE4 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
+pred_TE4['pred'] = pred.reset_index(drop = True)
+pred_TE4['ds'] = ds
 
 # ------------------------------- 3.3 XGBOOST -------------------------------
 
@@ -625,32 +649,38 @@ metricas_3.loc[len(metricas_3)] = ['TimeGPT', 24, resultados_3_gpt['mape'], resu
 
 resultados_arima = {
     # Residuos
-    'resid_arima_atenciones_1' : arima_atenciones_1.resid(),
-    'resid_arima_atenciones_2' : arima_atenciones_2.resid(),
-    'resid_arima_trabajadores_1' : arima_trabajadores_1.resid(),
-    'resid_arima_temperatura_1' : arima_temperatura_1.resid(),
-    'resid_arima_temperatura_2' : arima_temperatura_2.resid(),
-    'resid_arima_temperatura_3' : arima_temperatura_3.resid(),
+    'resid_arima_AT1' : arima_AT1.resid(),
+    'resid_arima_AT3' : arima_AT3.resid(),
+    'resid_arima_AT4' : arima_AT4.resid(),
+    'resid_arima_TR1' : arima_TR1.resid(),
+    'resid_arima_TR2' : arima_TR2.resid(),
+    'resid_arima_TE2' : arima_TE2.resid(),
+    'resid_arima_TE3' : arima_TE3.resid(),
+    'resid_arima_TE4' : arima_TE4.resid(),
     'resid_arima_atenciones_auto' : resultados_1_arima['modelo'].resid(),
     'resid_arima_trabajadores_auto' : resultados_2_arima['modelo'].resid(),
     'resid_arima_temperatura_auto' : resultados_3_arima['modelo'].resid(),
     # Pronosticos
-    'pred_atenciones_1': pred_atenciones_1,
-    'pred_atenciones_2': pred_atenciones_2,
-    'pred_trabajadores_1': pred_trabajadores_1,
-    'pred_temperatura_3': pred_temperatura_3,
+    'pred_AT1': pred_AT1,
+    'pred_AT3': pred_AT3,
+    'pred_AT4': pred_AT4,
+    'pred_TR1': pred_TR1,
+    'pred_TR2': pred_TR2,
+    'pred_TE4': pred_TE4,
     # Salidas
-    'salida_arima_atenciones_1' : arima_atenciones_1.summary(),
-    'salida_arima_atenciones_2' : arima_atenciones_2.summary(),
-    'salida_arima_trabajadores_1' : arima_trabajadores_1.summary(),
-    'salida_arima_temperatura_1' : arima_temperatura_1.summary(),
-    'salida_arima_temperatura_2' : arima_temperatura_2.summary(),
-    'salida_arima_temperatura_3' : arima_temperatura_3.summary(),
-    'salida_arima_atenciones_auto' : resultados_1_arima['modelo'].summary(),
-    'salida_arima_trabajadores_auto' : resultados_2_arima['modelo'].summary(),
-    'salida_arima_temperatura_auto' : resultados_3_arima['modelo'].summary(),
+    'salida_arima_AT1' : summary_to_df(arima_AT1),
+    'salida_arima_AT3' : summary_to_df(arima_AT3),
+    'salida_arima_AT4' : summary_to_df(arima_AT4),
+    'salida_arima_TR1' : summary_to_df(arima_TR1),
+    'salida_arima_TR2' : summary_to_df(arima_TR2),
+    'salida_arima_TE2' : summary_to_df(arima_TE2),
+    'salida_arima_TE3' : summary_to_df(arima_TE3),
+    'salida_arima_TE4' : summary_to_df(arima_TE4),
+    'salida_arima_atenciones_auto' : summary_to_df(resultados_1_arima['modelo']),
+    'salida_arima_trabajadores_auto' : summary_to_df(resultados_2_arima['modelo']),
+    'salida_arima_temperatura_auto' : summary_to_df(resultados_3_arima['modelo']),
 }
-
+ 
 # Guardamos el ambiente
 
 save_env(env_dict= {
@@ -706,21 +736,22 @@ save_env(env_dict= {
     "modelo_1_xgb" : resultados_1_xgb['modelo'],
     "modelo_1_lgbm" : resultados_1_lgbm['modelo'],
     "modelo_1_lstm" : resultados_1_lstm['modelo'],
-    'arima_trabajadores_auto':resultados_2_arima['modelo'],
+    'arima_trabajadores_auto': resultados_2_arima['modelo'],
     "modelo_2_xgb" : resultados_2_xgb['modelo'],
     "modelo_2_lgbm" : resultados_2_lgbm['modelo'],
     "modelo_2_lstm" : resultados_2_lstm['modelo'],
-    'arima_temperatura_auto':resultados_3_arima['modelo'],
+    'arima_temperatura_auto': resultados_3_arima['modelo'],
     "modelo_3_xgb" : resultados_3_xgb['modelo'],
     "modelo_3_lgbm" : resultados_3_lgbm['modelo'],
     "modelo_3_lstm" : resultados_3_lstm['modelo'],
 
-    'arima_atenciones_1': arima_atenciones_1,
-    'arima_atenciones_2': arima_atenciones_2,
-    'arima_trabajadores_1': arima_trabajadores_1,
-    'arima_temperatura_1': arima_temperatura_1,
-    'arima_temperatura_2': arima_temperatura_2,
-    'arima_temperatura_3': arima_temperatura_3,
+    'arima_AT1': arima_AT1,
+    'arima_AT3': arima_AT3,
+    'arima_AT4': arima_AT4,
+    'arima_TR1': arima_TR1,
+    'arima_TR2': arima_TR2,
+    'arima_TE2': arima_TE2,
+    'arima_TE3': arima_TE3,
+    'arima_TE4': arima_TE4,
 }, filename="Codigo/Ambiente/modelos_aplicacion.pkl")
-
 

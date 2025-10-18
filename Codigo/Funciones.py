@@ -4,6 +4,9 @@
 import pandas as pd
 import numpy as np
 
+# Para matematicas
+from math import floor, ceil
+
 # Para guardar y cargar los modelos
 import pickle
 
@@ -23,6 +26,9 @@ import statsmodels.api as sm
 
 # Para la transformacion de box y cox y el test de normalidad
 from scipy import stats
+
+# Para crear tablas
+from great_tables import GT, from_column, style, loc
 
 # ---------------------------------------- FUNCIONES ------------------------------------
 
@@ -96,6 +102,11 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
     elif xlabel == 'Día':
       date_labels = "%d"
       date_breaks = "1 day"
+
+    # Cambio los breaks del eje x
+    min_a = floor(data_plt[['y', 'lower', 'upper']].min().min())
+    max_a = ceil(data_plt[['y', 'lower', 'upper']].max().max())
+    breaks = [round(v) for v in np.linspace(min_a-(min_a%5), max_a+(5-max_a%5), 6)]
     
     return (
       ggplot(data_plt) +  
@@ -125,7 +136,7 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
       
       scale_x_date(date_labels = date_labels, date_breaks = date_breaks) +
 
-      scale_y_continuous(breaks = [round(v) for v in np.linspace(data_plt[['y', 'lower', 'upper']].min().min(), data_plt[['y', 'lower', 'upper']].max().max(), 5)]) +
+      scale_y_continuous(breaks = breaks) +
 
       labs(x = xlabel, y = ylabel, fill=label, color = label) +
       theme(
@@ -235,7 +246,7 @@ def autocorr_plot(data, lags, atype = 'acf'):
     geom_point(color = "#8ED081", size = 0.7) +
     geom_point(aes(x = 'lag', y = atype), color = col, size = 0.7) +
     scale_y_continuous(limits = (-1,1)) +
-    scale_x_continuous(breaks = list(range(0,max(autocorrelaciones['lag']), 2)), limits = (0,max(autocorrelaciones['lag']))) +
+    scale_x_continuous(breaks = list(range(0,max(autocorrelaciones['lag'])+1, 2)), limits = (0,max(autocorrelaciones['lag']))) +
     labs(x = "Rezago (k)", y = ylab)
     )
 
@@ -246,7 +257,7 @@ def autocorr_plot(data, lags, atype = 'acf'):
 # Funcion resid_chek()
 # Grafica la comprobacion de supuestos para los modelos arima
 
-def resid_check(residuos_sin_estandarizar, ds, name, time='%Y'):
+def resid_check(residuos_sin_estandarizar, ds, name, arima_df, time='%Y'):
 
     residuos = (residuos_sin_estandarizar - np.mean(residuos_sin_estandarizar))/ np.std(residuos_sin_estandarizar)
         
@@ -263,7 +274,7 @@ def resid_check(residuos_sin_estandarizar, ds, name, time='%Y'):
       geom_histogram(aes(y = after_stat('density')), color = "black", fill = "#B0D1E8", bins = 25) +
       labs(x = "Residuos", y = "Densidad") +
       annotate(geom = "label", 
-              label = f'P-value test de\nnormalidad K-S: {ks}',
+              label = f'Test de K-S\nP-value: {ks}',
               x = 2.5, y = 0.6, fill = "#D0E3F1", size = 6) +
       scale_x_continuous(limits = (-4,4)) +
       theme(
@@ -294,12 +305,16 @@ def resid_check(residuos_sin_estandarizar, ds, name, time='%Y'):
       )).save(f"../Imgs/plotnine/{name}_2.png", width=6/2.1, height=4/2.1, dpi=500)
 
     # Test de Ljung-box
-    p_value = sm.stats.acorr_ljungbox(residuos, lags= range(1,20) , return_df=True)['lb_pvalue'].min()
+    p_value = sm.stats.acorr_ljungbox(residuos, lags= 30, model_df=arima_df , return_df=True)['lb_pvalue'].min()
+    if p_value < 0.0001:
+        p_value = '< 0.0001'
+    else:
+        p_value = round(p_value, 4)
 
     # Autocorrelaciones
     (autocorr_plot(residuos, lags=30) +
       annotate(geom = "label", 
-           label = f'Test de Ljung-Box\nMenor p-value: {round(p_value,4)}',
+           label = f'Test de Ljung-Box\nMenor p-value: {p_value}',
            x = 15, y = -0.85, fill = "#D2EEDB", size = 6) +
       theme(
         axis_title=element_text(size = 7),
@@ -315,3 +330,99 @@ def resid_check(residuos_sin_estandarizar, ds, name, time='%Y'):
         legend_title=element_text(size = 6),
         legend_text= element_text(size = 4)
       )).save(f"../Imgs/plotnine/{name}_4.png", width=6/2.1, height=4/2.1, dpi=500)
+
+
+
+
+# ------------------------------------------------------------------------------------
+# Funcion summary_to_latex()
+# Hace que un pandas dataframe se convierta a formato latex para luego imprimirlo
+
+def summary_to_latex(df):
+    fila_footnote = pd.DataFrame([{
+        'Componente': r'\midrule Modelo',
+        'Coeficiente': df['Modelo'].iloc[0],
+        'IC(0.025)': '',
+        'IC(0.975)': 'AIC',
+        'p-value': df['AIC'].iloc[0]
+    }])
+
+    tabla_markdown = pd.concat(
+        [df[['Componente','Coeficiente','IC(0.025)','IC(0.975)','p-value']], fila_footnote],
+        ignore_index=True).to_latex(index=False, position="H")
+
+    print(tabla_markdown)
+
+
+# ------------------------------------------------------------------------------------
+# Funcion summary_to_df()
+# A partir de un modelo arima guarda la informacion del summary en un dataframe
+
+def summary_to_df(model):
+    df = pd.DataFrame({
+      'Componente': model.params().index,
+      'Coeficiente':round(model.params(), 4),
+      'IC(0.025)':round(model.conf_int()[0], 4),
+      'IC(0.975)':round(model.conf_int()[1], 4),
+      'p-value':round(model.pvalues(), 4),
+      'AIC':round(model.aic(), 4),
+      'Modelo':f'SARIMA{model.get_params()['order']}{model.get_params()['seasonal_order']}',
+      })
+    
+    return df
+
+
+# ------------------------------------------------------------------------------------
+# Funcion tabla_resumen()
+# Resume las metricas de los pronosticos con distintos modelos
+
+def tabla_resumen(metricas, path):
+
+  metricas = metricas.drop(columns = 'Tiempo')
+
+  t = metricas.pivot_table(
+    index='Modelo',
+    columns = 'Horizonte',
+    values = ['MAPE', 'Interval Score']
+  )
+  t.columns = ['Interval_Score_3', 'Interval_Score_6', 'Interval_Score_12', 'MAPE_3', 'MAPE_6', 'MAPE_12']
+  t = t[['Interval_Score_3', 'Interval_Score_6', 'Interval_Score_12', 'MAPE_3', 'MAPE_6', 'MAPE_12']]
+  t['Modelo'] = t.index
+  t = t.loc[metricas['Modelo'].drop_duplicates()]
+
+  gt = (
+      GT(t)
+      .tab_stub(rowname_col="Modelo")
+      .tab_stubhead(label="Modelo")
+      .tab_spanner(
+          label=f"Horizonte {int(metricas['Horizonte'].drop_duplicates()[0])}",
+          columns=['MAPE_3', 'Interval_Score_3']
+      )
+      .tab_spanner(
+          label=f"Horizonte {int(metricas['Horizonte'].drop_duplicates()[1])}",
+          columns=['MAPE_6', 'Interval_Score_6']
+      )
+      .tab_spanner(
+          label=f"Horizonte {int(metricas['Horizonte'].drop_duplicates()[2])}",
+          columns=['MAPE_12', 'Interval_Score_12']
+      )
+      .fmt_number(decimals=4, sep_mark='')
+      .cols_label(
+        Interval_Score_3 = 'Interval Score',
+        Interval_Score_6 = 'Interval Score',
+        Interval_Score_12 = 'Interval Score',
+        MAPE_3 = 'MAPE',
+        MAPE_6 = 'MAPE',
+        MAPE_12 = 'MAPE',
+      )
+      .opt_table_font(font=["Source Sans Pro", 'sans-serif'])
+  )
+  for col in t.columns:
+      if col != "Modelo":
+          fila = t[t[col] == t[col].min()].index.values[0]
+          gt = gt.tab_style(
+              style=style.fill(color="#B5E3C3"),
+              locations=loc.body(columns=col, rows=[fila])
+          )
+
+  gt.save(path)

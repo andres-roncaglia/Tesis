@@ -1,0 +1,185 @@
+---
+format: 
+    revealjs:
+        width: 1050
+        height: 700
+        margin: 0.01
+        self-contained: True 
+        theme: [default, presentations_theme.scss]
+        slide-number: true
+---
+
+## {background-image="../Imgs/plotnine/autocorrAtencionesDiff1.png" background-size="cover" background-position="center"}
+<!-- PORTADA -->
+
+## Resumen {.smaller}
+
+::: {.fragment .fade-in-then-semi-out}
+1. Presentación de objetivos
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+2. Breve introducción a series de tiempo
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+3. Presentación de las series analizadas
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+4. Métricas de evaluación, selección de parámetros y validación del modelo
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+5. Metodología y aplicación de los modelos
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+6. Comparación de resultados
+:::
+
+::: {.fragment .fade-in}
+7. Conclusión
+:::
+
+
+# 1. OBJETIVOS {.center style="text-align: center;"}
+
+## 1. Objetivos {.smaller}
+
+- Comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo
+
+    - ARIMA
+
+    - XGBoost y LightGBM
+
+    - LSTM
+
+    - TimeGPT y Chronos
+
+::: {.fragment .fade-in}
+- Definir y aplicar métricas de evaluación
+
+    - MAPE
+
+    - *Interval score*
+:::
+
+::: {.fragment .fade-in}
+- Reflexionar sobre los criterios de selección de modelos
+:::
+
+# 2. Breve introducción a series de tiempo {.center style="text-align: center;"}
+
+## 2. Introducción a series de tiempo {.smaller}
+
+Serie de tiempo: 
+
+Conjunto de observaciones $\{z_1, z_2, ..., z_t, ..., z_n\}$ cuantitativas ordenadas en el tiempo.
+
+. . .
+
+Componentes de una serie:
+
+- Estacionalidad
+
+- Tendencia
+
+- Residuos
+
+::: {.notes}
+usualmente de forma equidistante, sobre una variable de interés. 
+
+El análisis de series de tiempo tiene como objetivo sintetizar y extraer información estadística relevante, tanto para interpretar el comportamiento histórico de la variable como para generar pronósticos
+:::
+
+# 3. Presentación de las series analizadas {.center style="text-align: center;"}
+
+## 3. Presentación de las series analizadas
+
+- Atenciones de guardia mensuales por patologías respiratorias en un hospital de la ciudad de Rosario.
+
+- Número mensual de personas registradas con empleo asalariado en el sector educativo privado de Argentina.
+
+- Temperatura horaria en la ciudad de Rosario.
+
+## 3. Atenciones en guardia {.smaller}
+
+Número mensual de atenciones en guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario.
+
+<!-- ![](/Imgs/plotnine/atenciones) -->
+
+::: footer
+Información provista por la Dirección General de Estadística de la Municipalidad de Rosario.
+:::
+
+## 3. Trabajadores asalariados {.smaller}
+
+Cantidad mensual de personas con empleo asalariado en el área de enseñanza, registradas en el sector privado en Argentina.
+
+<!-- ![](/Imgs/plotnine/trabajadores) -->
+
+::: footer
+Datos extraídos del informe Situación y evolución del Trabajo Registrado de la Secretaría de Trabajo, Empleo y Seguridad Social
+:::
+
+## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="1.5"}
+
+Temperaturas (Cº) horarias en Rosario correspondientes a los primeros días de marzo de 2025
+
+::: {layout-nrow=3}
+
+![](../Imgs/plotnine/temperatura1.png){width="50%"}
+
+![](../Imgs/plotnine/temperatura2.png){width="50%"}
+
+![](../Imgs/plotnine/temperatura3.png){width="50%"}
+
+:::
+
+::: footer
+Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
+:::
+
+## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+\
+
+::: {layout-nrow=1}
+
+![](../Imgs/plotnine/temperatura1.png){width="100%"}
+
+:::
+
+## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+Temperaturas (Cº) horarias en Rosario correspondientes a los primeros días de marzo de 2025
+
+::: {layout-nrow=3}
+
+![](../Imgs/plotnine/temperatura1.png){width="50%"}
+
+![](../Imgs/plotnine/temperatura2.png){width="50%"}
+
+![](../Imgs/plotnine/temperatura3.png){width="50%"}
+
+:::
+
+::: footer
+Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
+:::
+
+## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+::: {layout-nrow=2}
+
+![](../Imgs/plotnine/temperatura2.png){width="100%"}
+
+![](../Imgs/plotnine/temperatura3.png){width="100%"}
+
+:::
+
+# 4. Métricas de evaluación, selección de parámetros y validación del modelo {.center style="text-align: center;"}
+
+## 4. Métricas de evaluación, selección de parámetros y validación del modelo {.smaller}
+
