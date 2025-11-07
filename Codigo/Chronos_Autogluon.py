@@ -15,6 +15,9 @@ from Funciones import interval_score, save_env, load_env
 # Para Chronos
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 
+# Para copiar diccionarios
+import copy
+import numpy as np
 
 # Definimos una semilla
 seed = 11072001
@@ -43,6 +46,28 @@ atenciones_guardia.columns = ['timestamp', 'target']
 # Agrego una columna identificadora necesaria para Chronos
 atenciones_guardia['item_id'] = 0
 
+
+# Creamos un dataset con la variable transformada por la falta de constancia en la variabilidad
+atenciones_guardia_log = atenciones_guardia.copy()
+atenciones_guardia_log['target'] = np.log(atenciones_guardia['target'])
+
+# Para tener los resultados en la escala original creo una funcion que aplica la transformacion inversa
+def des_log(resultados):
+
+    resultados_copia = copy.deepcopy(resultados)
+
+    # Obtengo el desvio del intervalo
+    desvio = (resultados_copia['upper']-resultados_copia['lower'])/(2*1.28)
+    var = desvio**2
+
+    # Primero transformo los pronosticos
+    resultados_copia[['pred', 'lower', 'upper']] = np.exp(resultados[['pred', 'lower', 'upper']])
+    
+    # Ajusto los pronosticos por el sesgo, el el pronostico del logaritmo devolveria la mediana, para obtener la media es necesaria una transformacion
+    resultados_copia['pred'] *= (1+var/2)
+
+    return resultados_copia
+
 # Definicion del nivel de significacion
 alpha = 0.2
 
@@ -55,7 +80,7 @@ q_upper = 1-alpha/2
 long_pred = 12
 
 # Divido en conjunto entrenamiento y prueba
-atenciones_guardia_train = atenciones_guardia.head(atenciones_guardia.shape[0]-long_pred)
+atenciones_guardia_train = atenciones_guardia_log.head(atenciones_guardia_log.shape[0]-long_pred)
 atenciones_guardia_test = atenciones_guardia.tail(long_pred)
 
 # Transformo el dataset a formato TimeSeriesDataFrame
@@ -81,6 +106,9 @@ modelo_1 = TimeSeriesPredictor(
 # Realizamos las predicciones
 predictions = modelo_1.predict(atenciones_guardia_train)
 predictions.columns = ['pred', 'lower', 'upper']
+
+# Transformamos a la escala original
+predictions = des_log(predictions)
 
 # Calculamos MAPE e Interval Score
 mape = mean_absolute_percentage_error(atenciones_guardia_test['target'], predictions['pred'])
@@ -115,7 +143,7 @@ resultados_1_chronos = {'pred': pred_chronos, 'Horizonte': long_pred, 'mape': ma
 long_pred = 3
 
 # Divido en conjunto entrenamiento y prueba
-atenciones_guardia_train = atenciones_guardia.head(atenciones_guardia.shape[0]-12)
+atenciones_guardia_train = atenciones_guardia_log.head(atenciones_guardia_log.shape[0]-12)
 atenciones_guardia_test = (atenciones_guardia.head(atenciones_guardia.shape[0]-(12-long_pred))).tail(long_pred)
 
 # Transformo el dataset a formato TimeSeriesDataFrame
@@ -141,6 +169,9 @@ modelo_1_3 = TimeSeriesPredictor(
 # Realizamos las predicciones
 predictions = modelo_1_3.predict(atenciones_guardia_train)
 predictions.columns = ['pred', 'lower', 'upper']
+
+# Transformamos a la escala original
+predictions = des_log(predictions)
 
 # Calculamos MAPE e Interval Score
 mape = mean_absolute_percentage_error(atenciones_guardia_test['target'], predictions['pred'])
@@ -175,7 +206,7 @@ resultados_1_chronos3 = {'pred': pred_chronos, 'Horizonte': long_pred, 'mape': m
 long_pred = 6
 
 # Divido en conjunto entrenamiento y prueba
-atenciones_guardia_train = atenciones_guardia.head(atenciones_guardia.shape[0]-12)
+atenciones_guardia_train = atenciones_guardia_log.head(atenciones_guardia_log.shape[0]-12)
 atenciones_guardia_test = (atenciones_guardia.head(atenciones_guardia.shape[0]-(12-long_pred))).tail(long_pred)
 
 # Transformo el dataset a formato TimeSeriesDataFrame
@@ -201,6 +232,10 @@ modelo_1_6 = TimeSeriesPredictor(
 # Realizamos las predicciones
 predictions = modelo_1_6.predict(atenciones_guardia_train)
 predictions.columns = ['pred', 'lower', 'upper']
+
+# Transformamos a la escala original
+predictions = des_log(predictions)
+
 
 # Calculamos MAPE e Interval Score
 mape = mean_absolute_percentage_error(atenciones_guardia_test['target'], predictions['pred'])

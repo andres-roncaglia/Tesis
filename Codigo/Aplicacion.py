@@ -1,13 +1,21 @@
 # ------------------------------- CARGA DE LIBRERIAS -------------------------------
 
 # Para el manejo de estructuras de datos
+from networkx import forest_str
 import pandas as pd
+import numpy as np
 
 # Para ajustar los modelos arima manualmente
 from pmdarima.arima import ARIMA
 
+# Para calcular mape
+from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
+
+# Para copiar diccionarios
+import copy
+
 # Cargamos funciones
-from Codigo.Funciones import save_env, load_env, summary_to_df
+from Codigo.Funciones import plot_forecast, save_env, load_env, summary_to_df, interval_score
 from Codigo.tuner_fun import Tuner
 
 # Definimos una semilla
@@ -33,6 +41,33 @@ atenciones_guardia['fec'] = pd.to_datetime(atenciones_guardia['fec'], format='%Y
 atenciones_guardia = atenciones_guardia[['fec', 'frec']]
 atenciones_guardia.columns = ['ds','y']
 
+# Creamos un dataset con la variable transformada por la falta de constancia en la variabilidad
+atenciones_guardia_log = atenciones_guardia.copy()
+atenciones_guardia_log['y'] = np.log(atenciones_guardia['y'])
+
+# Para tener los resultados en la escala original creo una funcion que aplica la transformacion inversa
+def des_log(resultados, y_true, alpha):
+
+    resultados_copia = copy.deepcopy({k: resultados[k] for k in ['pred', 'mape', 'score']})
+
+    # Obtengo el desvio del intervalo
+    desvio = (resultados_copia['pred']['upper']-resultados_copia['pred']['lower'])/(2*1.28)
+    var = desvio**2
+
+    # Primero transformo los pronosticos
+    resultados_copia['pred'][['pred', 'lower', 'upper']] = np.exp(resultados['pred'][['pred', 'lower', 'upper']])
+    
+    # Ajusto los pronosticos por el sesgo, el el pronostico del logaritmo devolveria la mediana, para obtener la media es necesaria una transformacion
+    resultados_copia['pred']['pred'] *= (1+var/2)
+
+    # Modifico el MAPE
+    resultados_copia['mape'] = mean_absolute_percentage_error(y_true=y_true, y_pred=resultados_copia['pred']['pred'])
+
+    # Modifico el Interval Score
+    resultados_copia['score'] = interval_score(obs=y_true, lower=resultados_copia['pred']['lower'], upper=resultados_copia['pred']['upper'], alpha=alpha)
+    
+    return [resultados_copia[k] for k in ['pred', 'mape', 'score']]
+
 # Definicion del nivel de significacion y el largo del pronostico
 alpha = 0.2
 long_pred = 12
@@ -54,51 +89,27 @@ params = {
 }
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_1_arima = Tuner(forecaster_fun= 'ARIMA', datos=atenciones_guardia, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_1_arima = Tuner(forecaster_fun= 'ARIMA', datos=atenciones_guardia_log, parametros=params, alpha= alpha, long_pred = long_pred)
+resultados_1_arima['pred'], resultados_1_arima['mape'], resultados_1_arima['score'] = des_log(resultados_1_arima, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-long_pred:], alpha=alpha)
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['ARIMA', '', resultados_1_arima['mape'], resultados_1_arima['score'], resultados_1_arima['tiempo']]
 
 # Modelos manuales
-atenciones_train = atenciones_guardia.head(len(atenciones_guardia)-long_pred).copy()
-ds = atenciones_guardia.tail(long_pred)['ds'].reset_index(drop = True)
+atenciones_train = atenciones_guardia_log.head(len(atenciones_guardia_log)-long_pred).copy()
+ds = atenciones_guardia_log.tail(long_pred)['ds'].reset_index(drop = True)
 
 # Modelo AT-1
 arima_AT1 = ARIMA( 
-    order=(1, 0, 0), 
+    order=(0, 1, 0), 
     seasonal_order=(0,1,1,12))
 
 arima_AT1 = arima_AT1.fit(atenciones_train['y'])
 
 pred, pred_int = arima_AT1.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
-pred_AT1 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_AT1['pred'] = pred.reset_index(drop = True)
+pred_AT1 = pd.DataFrame(np.exp(pred_int), columns=['lower', 'upper'])
+pred_AT1['pred'] = np.exp(pred).reset_index(drop = True)
 pred_AT1['ds'] = ds
-
-# Modelo AT-3
-arima_AT3 = ARIMA( 
-    order=(0, 1, 1), 
-    seasonal_order=(0,1,0,12))
-
-arima_AT3 = arima_AT3.fit(atenciones_train['y'])
-
-pred, pred_int = arima_AT3.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
-pred_AT3 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_AT3['pred'] = pred.reset_index(drop = True)
-pred_AT3['ds'] = ds
-
-# Modelo AT-4
-arima_AT4 = ARIMA( 
-    order=(0, 1, 0), 
-    seasonal_order=(0,1,1,12))
-
-arima_AT4 = arima_AT4.fit(atenciones_train['y'])
-
-pred, pred_int = arima_AT4.predict(n_periods = long_pred, alpha = alpha, return_conf_int=True)
-pred_AT4 = pd.DataFrame(pred_int, columns=['lower', 'upper'])
-pred_AT4['pred'] = pred.reset_index(drop = True)
-pred_AT4['ds'] = ds
-
 
 # ------------------------------- 1.3 XGBOOST -------------------------------
 
@@ -117,30 +128,33 @@ params = {
 
 # Calculamos las características a usar
 caracteristicas_atenciones = pd.DataFrame({
-    'month' : atenciones_guardia['ds'].dt.month,
-    'year' : atenciones_guardia['ds'].dt.year,
-    "promedio_3_meses" : atenciones_guardia["y"].shift(1).rolling(window=3).mean(),
-    "desvio_3_meses" : atenciones_guardia["y"].shift(1).rolling(window=3).std(),
-    "lag_1" : atenciones_guardia["y"].shift(1),
-    "lag_2" : atenciones_guardia["y"].shift(2),
-    "lag_12" : atenciones_guardia["y"].shift(12),
+    'month' : atenciones_guardia_log['ds'].dt.month,
+    'year' : atenciones_guardia_log['ds'].dt.year,
+    "promedio_3_meses" : atenciones_guardia_log["y"].shift(1).rolling(window=3).mean(),
+    "desvio_3_meses" : atenciones_guardia_log["y"].shift(1).rolling(window=3).std(),
+    "lag_1" : atenciones_guardia_log["y"].shift(1),
+    "lag_2" : atenciones_guardia_log["y"].shift(2),
+    "lag_12" : atenciones_guardia_log["y"].shift(12),
 })
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 3
 long_pred = 3
-resultados_1_xgb3 = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia.head(len(atenciones_guardia)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_xgb3 = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia_log.head(len(atenciones_guardia_log)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia_log)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_xgb3['pred'], resultados_1_xgb3['mape'], resultados_1_xgb3['score'] = des_log(resultados_1_xgb3, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-9], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['XGBoost', long_pred, resultados_1_xgb3['mape'], resultados_1_xgb3['score'], resultados_1_xgb3['tiempo']]
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 6
 long_pred = 6
-resultados_1_xgb6 = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia.head(len(atenciones_guardia)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_xgb6 = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia_log.head(len(atenciones_guardia_log)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia_log)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_xgb6['pred'], resultados_1_xgb6['mape'], resultados_1_xgb6['score'] = des_log(resultados_1_xgb6, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-6], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['XGBoost', long_pred, resultados_1_xgb6['mape'], resultados_1_xgb6['score'], resultados_1_xgb6['tiempo']]
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 12
 long_pred = 12
-resultados_1_xgb = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia, parametros=params, caracteristicas=caracteristicas_atenciones, alpha= alpha, long_pred = long_pred)
+resultados_1_xgb = Tuner(forecaster_fun= 'XGBoost', datos=atenciones_guardia_log, parametros=params, caracteristicas=caracteristicas_atenciones, alpha= alpha, long_pred = long_pred)
+resultados_1_xgb['pred'], resultados_1_xgb['mape'], resultados_1_xgb['score'] = des_log(resultados_1_xgb, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['XGBoost', long_pred, resultados_1_xgb['mape'], resultados_1_xgb['score'], resultados_1_xgb['tiempo']]
 
@@ -160,19 +174,22 @@ params = {
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 3
 long_pred = 3
-resultados_1_lgbm3 = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia.head(len(atenciones_guardia)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm3 = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia_log.head(len(atenciones_guardia_log)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia_log)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm3['pred'], resultados_1_lgbm3['mape'], resultados_1_lgbm3['score'] = des_log(resultados_1_lgbm3, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-9], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LightGBM', long_pred, resultados_1_lgbm3['mape'], resultados_1_lgbm3['score'], resultados_1_lgbm3['tiempo']]
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 6
 long_pred = 6
-resultados_1_lgbm6 = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia.head(len(atenciones_guardia)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm6 = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia_log.head(len(atenciones_guardia_log)-(12-long_pred)), parametros=params, caracteristicas=caracteristicas_atenciones.head(len(atenciones_guardia_log)-(12-long_pred)), alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm6['pred'], resultados_1_lgbm6['mape'], resultados_1_lgbm6['score'] = des_log(resultados_1_lgbm6, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-6], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LightGBM', long_pred, resultados_1_lgbm6['mape'], resultados_1_lgbm6['score'], resultados_1_lgbm6['tiempo']]
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 12
 long_pred = 12
-resultados_1_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia, parametros=params, caracteristicas=caracteristicas_atenciones, alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm = Tuner(forecaster_fun= 'LightGBM', datos=atenciones_guardia_log, parametros=params, caracteristicas=caracteristicas_atenciones, alpha= alpha, long_pred = long_pred)
+resultados_1_lgbm['pred'], resultados_1_lgbm['mape'], resultados_1_lgbm['score'] = des_log(resultados_1_lgbm, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LightGBM', long_pred, resultados_1_lgbm['mape'], resultados_1_lgbm['score'], resultados_1_lgbm['tiempo']]
 
@@ -192,28 +209,36 @@ parametros = {
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 3
 long_pred = 3
-resultados_1_lstm3 = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia.head(len(atenciones_guardia)-(12-long_pred)), parametros=parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_lstm3 = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia_log.head(len(atenciones_guardia_log)-(12-long_pred)), parametros=parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_lstm3['pred'], resultados_1_lstm3['mape'], resultados_1_lstm3['score'] = des_log(resultados_1_lstm3, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-9], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LSTM', long_pred, resultados_1_lstm3['mape'], resultados_1_lstm3['score'], resultados_1_lstm3['tiempo']]
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 6
 long_pred = 6
-resultados_1_lstm6 = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia.head(len(atenciones_guardia)-(12-long_pred)), parametros=parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_lstm6 = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia_log.head(len(atenciones_guardia_log)-(12-long_pred)), parametros=parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_lstm6['pred'], resultados_1_lstm6['mape'], resultados_1_lstm6['score'] = des_log(resultados_1_lstm6, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-6], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LSTM', long_pred, resultados_1_lstm6['mape'], resultados_1_lstm6['score'], resultados_1_lstm6['tiempo']]
 
 # Tuneamos los parametros y ajustamos el modelo con horizonte 12
 long_pred = 12
-resultados_1_lstm = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia, parametros= parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_lstm = Tuner(forecaster_fun= 'LSTM', datos=atenciones_guardia_log, parametros= parametros, alpha= alpha, long_pred = long_pred)
+resultados_1_lstm['pred'], resultados_1_lstm['mape'], resultados_1_lstm['score'] = des_log(resultados_1_lstm, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:], alpha=alpha)
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['LSTM', long_pred, resultados_1_lstm['mape'], resultados_1_lstm['score'], resultados_1_lstm['tiempo']]
 
 # ------------------------------- 1.6 TIMEGPT -------------------------------
 
 # Tuneamos los parametros y ajustamos el modelo
-resultados_1_gpt3 = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, alpha= alpha, long_pred = 3)
-resultados_1_gpt6 = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, alpha= alpha, long_pred = 6)
-resultados_1_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia, alpha= alpha, long_pred = 12)
+resultados_1_gpt3 = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia_log, alpha= alpha, long_pred = 3)
+resultados_1_gpt3['pred'], resultados_1_gpt3['mape'], resultados_1_gpt3['score'] = des_log(resultados_1_gpt3, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-9], alpha=alpha)
+
+resultados_1_gpt6 = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia_log, alpha= alpha, long_pred = 6)
+resultados_1_gpt6['pred'], resultados_1_gpt6['mape'], resultados_1_gpt6['score'] = des_log(resultados_1_gpt6, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:len(atenciones_guardia)-6], alpha=alpha)
+
+resultados_1_gpt = Tuner(forecaster_fun= 'TimeGPT', datos=atenciones_guardia_log, alpha= alpha, long_pred = 12)
+resultados_1_gpt['pred'], resultados_1_gpt['mape'], resultados_1_gpt['score'] = des_log(resultados_1_gpt, y_true=atenciones_guardia['y'].iloc[len(atenciones_guardia)-12:], alpha=alpha)
 
 # Guardamos las metricas
 metricas_1.loc[len(metricas_1)] = ['TimeGPT', 3, resultados_1_gpt3['mape'], resultados_1_gpt3['score'], resultados_1_gpt3['tiempo']]
@@ -650,8 +675,6 @@ metricas_3.loc[len(metricas_3)] = ['TimeGPT', 24, resultados_3_gpt['mape'], resu
 resultados_arima = {
     # Residuos
     'resid_arima_AT1' : arima_AT1.resid(),
-    'resid_arima_AT3' : arima_AT3.resid(),
-    'resid_arima_AT4' : arima_AT4.resid(),
     'resid_arima_TR1' : arima_TR1.resid(),
     'resid_arima_TR2' : arima_TR2.resid(),
     'resid_arima_TE2' : arima_TE2.resid(),
@@ -662,15 +685,11 @@ resultados_arima = {
     'resid_arima_temperatura_auto' : resultados_3_arima['modelo'].resid(),
     # Pronosticos
     'pred_AT1': pred_AT1,
-    'pred_AT3': pred_AT3,
-    'pred_AT4': pred_AT4,
     'pred_TR1': pred_TR1,
     'pred_TR2': pred_TR2,
     'pred_TE4': pred_TE4,
     # Salidas
     'salida_arima_AT1' : summary_to_df(arima_AT1),
-    'salida_arima_AT3' : summary_to_df(arima_AT3),
-    'salida_arima_AT4' : summary_to_df(arima_AT4),
     'salida_arima_TR1' : summary_to_df(arima_TR1),
     'salida_arima_TR2' : summary_to_df(arima_TR2),
     'salida_arima_TE2' : summary_to_df(arima_TE2),
@@ -746,8 +765,6 @@ save_env(env_dict= {
     "modelo_3_lstm" : resultados_3_lstm['modelo'],
 
     'arima_AT1': arima_AT1,
-    'arima_AT3': arima_AT3,
-    'arima_AT4': arima_AT4,
     'arima_TR1': arima_TR1,
     'arima_TR2': arima_TR2,
     'arima_TE2': arima_TE2,

@@ -13,7 +13,7 @@ import pickle
 # Para graficos
 import matplotlib.pyplot as plt
 import seaborn as sns
-from plotnine import ggplot, aes, geom_line, geom_ribbon, geom_histogram, geom_rect, geom_segment, geom_hline, geom_point, scale_x_continuous, scale_x_date, theme, theme_bw, element_blank, labs, scale_color_manual, scale_fill_manual, scale_y_continuous, element_text, theme_set, annotate, after_stat
+from plotnine import ggplot, aes, geom_line, geom_ribbon, geom_histogram, geom_rect, geom_segment, geom_hline, geom_point, scale_x_continuous, scale_x_date, theme, theme_bw, element_blank, labs, scale_color_manual, scale_fill_manual, scale_y_continuous, element_text, theme_set, annotate, after_stat, facet_wrap
 
 
 theme_set(theme_bw()+theme(plot_margin=0))
@@ -118,13 +118,13 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
       geom_ribbon(
         aes(ymin = 'lower', ymax = 'upper', x = 'ds'),
         fill = pred_color,
-        alpha = 0.2,
+        alpha = 0.15,
         data=data_plt[data_plt['lower'].notna()]
         ) +
       
       geom_ribbon(
         aes(ymin = 'lower', ymax = 'upper', x = 'ds', fill = 'fill'),
-        alpha = 0.2,
+        alpha = 0.15,
         data=data_plt[data_plt['lower'].notna()]
         ) +
       
@@ -259,6 +259,8 @@ def autocorr_plot(data, lags, atype = 'acf'):
 
 def resid_check(residuos_sin_estandarizar, ds, name, arima_df, time='%Y'):
 
+    residuos_sin_estandarizar = residuos_sin_estandarizar.dropna()
+
     residuos = (residuos_sin_estandarizar - np.mean(residuos_sin_estandarizar))/ np.std(residuos_sin_estandarizar)
         
     # Histograma
@@ -272,7 +274,7 @@ def resid_check(residuos_sin_estandarizar, ds, name, arima_df, time='%Y'):
     (ggplot() +
       aes(x = residuos) +
       geom_histogram(aes(y = after_stat('density')), color = "black", fill = "#B0D1E8", bins = 25) +
-      labs(x = "Residuos", y = "Densidad") +
+      labs(x = "Residuos estandarizados", y = "Densidad") +
       annotate(geom = "label", 
               label = f'Test de K-S\nP-value: {ks}',
               x = 2.5, y = 0.6, fill = "#D0E3F1", size = 6) +
@@ -312,7 +314,9 @@ def resid_check(residuos_sin_estandarizar, ds, name, arima_df, time='%Y'):
         p_value = round(p_value, 4)
 
     # Autocorrelaciones
-    (autocorr_plot(residuos, lags=30) +
+    lags = min(floor(residuos.dropna().shape[0]*0.49), 30)
+
+    (autocorr_plot(residuos, lags=lags) +
       annotate(geom = "label", 
            label = f'Test de Ljung-Box\nMenor p-value: {p_value}',
            x = 15, y = -0.85, fill = "#D2EEDB", size = 6) +
@@ -323,7 +327,7 @@ def resid_check(residuos_sin_estandarizar, ds, name, arima_df, time='%Y'):
         legend_text= element_text(size = 4)
       )).save(f"../Imgs/plotnine/{name}_3.png", width=6/2.1, height=4/2.1, dpi=500)
 
-    (autocorr_plot(residuos, lags=30, atype='pacf') +
+    (autocorr_plot(residuos, lags=lags, atype='pacf') +
       theme(
         axis_title=element_text(size = 7),
         axis_text= element_text(size = 5),
@@ -338,7 +342,7 @@ def resid_check(residuos_sin_estandarizar, ds, name, arima_df, time='%Y'):
 # Funcion summary_to_latex()
 # Hace que un pandas dataframe se convierta a formato latex para luego imprimirlo
 
-def summary_to_latex(df):
+def summary_to_latex(df, label = ''):
     fila_footnote = pd.DataFrame([{
         'Componente': r'\midrule Modelo',
         'Coeficiente': df['Modelo'].iloc[0],
@@ -349,7 +353,7 @@ def summary_to_latex(df):
 
     tabla_markdown = pd.concat(
         [df[['Componente','Coeficiente','IC(0.025)','IC(0.975)','p-value']], fila_footnote],
-        ignore_index=True).to_latex(index=False, position="H")
+        ignore_index=True).to_latex(index=False, position="H", label=label)
 
     print(tabla_markdown)
 
@@ -426,3 +430,87 @@ def tabla_resumen(metricas, path):
           )
 
   gt.save(path)
+
+
+# ------------------------------------------------------------------------------------
+
+# Funcion plot_forecast_compare()
+# Grafica todos los pronosticos y los compara
+
+def plot_forecast_compare(data, pronosticos, nombres_modelos, pred_color = 'red', line_color = 'black', xlabel = 'Año', ylabel = 'Y') :
+    
+  data_fin = pd.DataFrame(columns = ['ds', 'y', 'pred', 'lower', 'upper', 'fill', 'modelo'])
+
+  for i in range(0,len(pronosticos)):
+
+    # Unimos los datasets
+    data_plt = pd.merge(data,pronosticos[i], on = 'ds', how='inner')
+    data_plt['fill'] = 'IC 80%'
+    data_plt['modelo'] = nombres_modelos[i]
+
+    data_fin = pd.concat([data_fin, data_plt])
+
+  # Corrijo los tipos de datos
+  data_plt = data_fin
+  data_plt['ds'] = pd.to_datetime(data_plt['ds'])
+  data_plt['y'] = pd.to_numeric(data_plt['y'])
+  data_plt['pred'] = pd.to_numeric(data_plt['pred'])
+  data_plt['lower'] = pd.to_numeric(data_plt['lower'])
+  data_plt['upper'] = pd.to_numeric(data_plt['upper'])
+
+  # Agrego orden a los modelos
+  cat_type = pd.CategoricalDtype(
+    categories=nombres_modelos,
+    ordered=True
+  )
+  data_plt['modelo'] = data_plt['modelo'].astype(cat_type)
+
+  # Segun el nmbre del eje X voy a cambiar la frecuencia de este mismo
+  if xlabel == 'Mes':
+    date_labels = "%Y-%m"
+    date_breaks = "3 month"
+  elif xlabel == 'Hora':
+    date_labels = "%m-%d, %HH"
+    date_breaks = "6 hour"
+
+  return(ggplot(data_plt) +  
+
+    geom_line(aes(x = 'ds', y = "y"), color = line_color) +
+
+    geom_line(aes(x = 'ds', y = "pred"), color = pred_color) +
+
+    geom_ribbon(
+      aes(ymin = 'lower', ymax = 'upper', x = 'ds'),
+      fill = pred_color,
+      alpha = 0.15,
+      data=data_plt[data_plt['lower'].notna()]
+      ) +
+
+    geom_ribbon(
+      aes(ymin = 'lower', ymax = 'upper', x = 'ds', fill = 'fill'),
+      alpha = 0.15,
+      data=data_plt[data_plt['lower'].notna()]
+      ) +
+
+    scale_fill_manual(breaks= ['IC 80%'], values = [pred_color]) +
+
+    geom_line(aes(x = 'ds', y = "pred", color = 'fill'), alpha = 1) +
+
+    scale_color_manual(breaks= ['IC 80%'], values = [pred_color]) +
+    
+    facet_wrap('modelo') +
+
+    scale_x_date(date_labels = date_labels, date_breaks = date_breaks) +
+
+    labs(x = xlabel, y = ylabel, fill='Pronóstico', color='Pronóstico') +
+
+    # labs(x = xlabel, y = ylabel) +
+    theme(
+      panel_grid_minor= element_blank(),
+      axis_title=element_text(size = 8),
+      axis_text= element_text(size = 7),
+      legend_title=element_text(size = 8),
+      legend_text= element_text(size = 6),
+      axis_text_x= element_text(angle = 60)
+      )
+  )

@@ -7,15 +7,18 @@ format:
         self-contained: True 
         theme: [default, presentations_theme.scss]
         slide-number: true
+        embed-resources: true
+        auto-stretch: false
+        fig-align: center
 ---
 
-## {background-image="../Imgs/plotnine/autocorrAtencionesDiff1.png" background-size="cover" background-position="center"}
+## 
 <!-- PORTADA -->
 
-## Resumen {.smaller}
+## RESUMEN {.theme-slideSimple}
 
-::: {.fragment .fade-in-then-semi-out}
-1. Presentación de objetivos
+::: {.fragment .fade-semi-out}
+1. Presentación del contexto y objetivos
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -43,10 +46,44 @@ format:
 :::
 
 
-# 1. OBJETIVOS {.center style="text-align: center;"}
+# 1. MOTIVACIÓN Y OBJETIVOS {.center .theme-slideTitle style="font-size:1.1em !important;"}
 
-## 1. Objetivos {.smaller}
+## 1. MOTIVACIÓN {.theme-slideBoxLeft}
 
+:::{.nofragment}
+
+- El pronóstico de series de tiempo es clave en múltiples ámbitos
+
+- Crecimiento exponencial en la cantidad de datos disponibles
+
+- Los métodos actuales de pronóstico requieren amplios conocimientos, son difíciles de automatizar y/o son demandantes computacionalmente
+
+:::
+
+## 1. MOTIVACIÓN {.theme-slideBoxRightPic}
+
+### Modelos fundacionales preentrenados
+
+- Capaces de seleccionar de forma automática el mejor ajuste
+
+- No requieren entrenamiento previo ni conocimientos especializados 
+
+- Basados en arquitecturas *transformer*
+
+::: {.fragment}
+::: {.callout-tip title=""}
+
+¿Qué tan bien se desempeñan?
+
+:::
+
+:::
+
+![](../Imgs/modelo_timegpt.png){.img_style}
+
+## 1. OBJETIVOS {.theme-slideBoxLeft}
+
+::: {.nofragment}
 - Comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo
 
     - ARIMA
@@ -56,6 +93,7 @@ format:
     - LSTM
 
     - TimeGPT y Chronos
+:::
 
 ::: {.fragment .fade-in}
 - Definir y aplicar métricas de evaluación
@@ -69,99 +107,200 @@ format:
 - Reflexionar sobre los criterios de selección de modelos
 :::
 
-# 2. Breve introducción a series de tiempo {.center style="text-align: center;"}
+# 2. BREVE INTRODUCCIÓN A SERIES DE TIEMPO {.center style="text-align: center;"}
 
-## 2. Introducción a series de tiempo {.smaller}
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple}
 
-Serie de tiempo: 
-
+::: {.callout-note}
+## Serie de tiempo
 Conjunto de observaciones $\{z_1, z_2, ..., z_t, ..., z_n\}$ cuantitativas ordenadas en el tiempo.
-
-. . .
-
-Componentes de una serie:
-
-- Estacionalidad
-
-- Tendencia
-
-- Residuos
-
-::: {.notes}
-usualmente de forma equidistante, sobre una variable de interés. 
-
-El análisis de series de tiempo tiene como objetivo sintetizar y extraer información estadística relevante, tanto para interpretar el comportamiento histórico de la variable como para generar pronósticos
 :::
 
-# 3. Presentación de las series analizadas {.center style="text-align: center;"}
+![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style}
 
-## 3. Presentación de las series analizadas
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true"}
 
-- Atenciones de guardia mensuales por patologías respiratorias en un hospital de la ciudad de Rosario.
+\
 
-- Número mensual de personas registradas con empleo asalariado en el sector educativo privado de Argentina.
+:::{style="text-align:center; font-size: 1em; font-family: 'Verdana', sans-serif; font-weight: 800;"}
+Componentes de una serie
+:::
 
-- Temperatura horaria en la ciudad de Rosario.
+\
 
-## 3. Atenciones en guardia {.smaller}
+::: {.r-hstack}
+::: {data-id="box1" auto-animate-delay="0.2" style="background: #93CAF1; width: 300px; height: 300px;  text-align: center;"}
 
-Número mensual de atenciones en guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario.
+Tendencia
 
-<!-- ![](/Imgs/plotnine/atenciones) -->
+![](../Imgs/tendencia.png){fig-align="center" .img_style}
 
-::: footer
+:::
+
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #D9E0E8; width: 300px; height: 300px;text-align: center;"}
+
+Estacionalidad
+
+![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style}
+
+:::
+
+::: {data-id="box3" auto-animate-delay="0" style="background: #93CAF1; width: 300px; height: 300px; text-align: center;"}
+
+Residuos
+
+![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style}
+:::
+:::
+
+
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
+
+::: {style="position:relative; width:100%; height:100%;"} 
+
+::: {data-id="box1" auto-animate-delay="0.2" style="background:#93CAF1; width:800px; height:550px; margin:0 auto; text-align:center; position:relative; top:20px;"}
+
+:::{style="text-align:center; font-size: 1em; font-family: 'Verdana', sans-serif; font-weight: 800;"}
+Tendencia
+:::
+
+![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style width="80%"}
+:::
+
+::: {data-id="box2" auto-animate-delay="0.1" style="background:#D9E0E8; width:125px; height:550px; position:absolute; left:925px; top:20px; text-align:center;"}
+:::
+
+:::
+
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
+
+::: {style="position:relative; width:100%; height:100%;"} 
+
+::: {data-id="box1" auto-animate-delay="0.1" style="background:#93CAF1; width:125px; height:550px; position:absolute; left:0px; top:20px; text-align:center;"}
+:::
+
+::: {data-id="box2" auto-animate-delay="0.2" style="background:#D9E0E8; width:800px; height:550px; margin:0 auto; text-align:center; position:relative; top:20px;"}
+
+:::{style="text-align:center; font-size: 1em; font-family: 'Verdana', sans-serif; font-weight: 800;"}
+Estacionalidad
+:::
+
+![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style width="80%"}
+:::
+
+::: {data-id="box3" auto-animate-delay="0.1" style="background:#93CAF1; width:125px; height:550px; position:absolute; left:925px; top:20px; text-align:center;"}
+:::
+
+:::
+
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
+
+::: {style="position:relative; width:100%; height:100%;"} 
+
+::: {data-id="box2" auto-animate-delay="0.1" style="background:#D9E0E8; width:125px; height:550px; position:absolute; left:0px; top:20px; text-align:center;"}
+:::
+
+::: {data-id="box3" auto-animate-delay="0.2" style="background:#93CAF1; width:800px; height:550px; margin:0 auto; text-align:center;position:relative; top:20px;"}
+
+:::{style="text-align:center; font-size: 1em; font-family: 'Verdana', sans-serif; font-weight: 800;"}
+Residuos
+:::
+
+![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style width="80%"}
+:::
+
+:::
+
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideBoxRightPic}
+
+### Estacionariedad
+
+- Media constante en el tiempo
+
+- Variancia constante en el tiempo
+
+- Correlación entre observaciones dependiente únicamente de la distancia en el tiempo
+
+# 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.center style="text-align: center;"}
+
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS
+
+- Número de atenciones en guardia por patologías respiratorias en el hospital en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario.
+
+- Número trabajadores asalariados en el rubro de la enseñanza privada en Argentina.
+
+- Temperatura (Cº) por hora en la ciudad de Rosario.
+
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple}
+
+### Atenciones en guardia
+
+![](../Imgs/plotnine/atenciones.png){fig-align="center" .img_style}
+
+::: {.footer}
 Información provista por la Dirección General de Estadística de la Municipalidad de Rosario.
 :::
 
-## 3. Trabajadores asalariados {.smaller}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple}
 
-Cantidad mensual de personas con empleo asalariado en el área de enseñanza, registradas en el sector privado en Argentina.
+### Trabajadores asalariados
 
-<!-- ![](/Imgs/plotnine/trabajadores) -->
+![](../Imgs/plotnine/trabajadores.png){fig-align="center" .img_style}
 
 ::: footer
 Datos extraídos del informe Situación y evolución del Trabajo Registrado de la Secretaría de Trabajo, Empleo y Seguridad Social
 :::
 
-## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="1.5"}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
 
-Temperaturas (Cº) horarias en Rosario correspondientes a los primeros días de marzo de 2025
+### Temperaturas
 
-::: {layout-nrow=3}
+::: {r.vstack}
 
-![](../Imgs/plotnine/temperatura1.png){width="50%"}
+<style>
+.quarto-figure {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+</style>
 
-![](../Imgs/plotnine/temperatura2.png){width="50%"}
+![](../Imgs/plotnine/temperatura1.png){width="70%" fig-align="center" data-id="temp1" .img_style}
 
-![](../Imgs/plotnine/temperatura3.png){width="50%"}
+![](../Imgs/plotnine/temperatura2.png){width="70%" fig-align="center" .img_style}
+
+![](../Imgs/plotnine/temperatura3.png){width="70%" fig-align="center" .img_style}
 
 :::
+
 
 ::: footer
 Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 :::
 
-## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
 
 \
 
-::: {layout-nrow=1}
+\
 
-![](../Imgs/plotnine/temperatura1.png){width="100%"}
+![](../Imgs/plotnine/temperatura1.png){width="100%" fig-align="center" .img_style data-id="temp1" style="text-align: center;"}
 
-:::
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
 
-## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+::: {r.vstack}
 
-Temperaturas (Cº) horarias en Rosario correspondientes a los primeros días de marzo de 2025
+<style>
+.quarto-figure {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+</style>
 
-::: {layout-nrow=3}
+![](../Imgs/plotnine/temperatura1.png){width="70%" fig-align="center" data-id="temp1" .img_style}
 
-![](../Imgs/plotnine/temperatura1.png){width="50%"}
+![](../Imgs/plotnine/temperatura2.png){width="70%" fig-align="center" .img_style}
 
-![](../Imgs/plotnine/temperatura2.png){width="50%"}
-
-![](../Imgs/plotnine/temperatura3.png){width="50%"}
+![](../Imgs/plotnine/temperatura3.png){width="70%" fig-align="center" .img_style}
 
 :::
 
@@ -169,17 +308,8 @@ Temperaturas (Cº) horarias en Rosario correspondientes a los primeros días de 
 Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 :::
 
-## 3. Temperaturas {.smaller auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
 
-::: {layout-nrow=2}
+# 4. MÉTRICAS DE EVALUACIÓN, SELECCIÓN DE PARÁMETROS Y VALIDACIÓN DEL MODELO {.center style="text-align: center;"}
 
-![](../Imgs/plotnine/temperatura2.png){width="100%"}
-
-![](../Imgs/plotnine/temperatura3.png){width="100%"}
-
-:::
-
-# 4. Métricas de evaluación, selección de parámetros y validación del modelo {.center style="text-align: center;"}
-
-## 4. Métricas de evaluación, selección de parámetros y validación del modelo {.smaller}
+## 4. MÉTRICAS DE EVALUACIÓN, SELECCIÓN DE PARÁMETROS Y VALIDACIÓN DEL MODELO
 

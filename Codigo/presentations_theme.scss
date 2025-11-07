@@ -1,11 +1,282 @@
 
-// COLOR DE TITULOS
 /*-- scss:defaults --*/
-$presentation-heading-color: #f9f9f9 !default;
+// Definicion de colores
+$theme-white:#f5f7f9;
+$theme-blue:#93CAF1;
 
+
+// Color de titulos
+$presentation-heading-color: #000000 !default;
+
+// Tamaño de titulo
+$presentation-h2-font-size: 1.3em;
+$presentation-h3-font-size: 1em;
+$presentation-h4-font-size: 0.8em;
+
+// Fuentes
+$presentation-heading-font: "Verdana", sans-serif;
+$presentation-heading-font-weight: 800;
+$presentation-font-size-root: 30px;
+
+// Color de fondo
+$body-bg: $theme-white !default;
+
+// Mayusculas en todos los titulos
+
+h1, h2 {
+	text-transform: uppercase;
+}
+
+
+/*-- scss:rules --*/
+
+// Numero de diapo arriba derecha
 .slide-number, .reveal.has-logo .slide-number {
   bottom: unset !important;
   right: 10px !important;
   top: 10px !important;
   color: #464646 !important;
+}
+
+//Estilo de imagenes
+.img_style {
+  position: relative;
+  border-radius: 10px;
+  border: 10px solid #ffffff;
+//   background-color: #ffffff;
+  width: 70%;
+  text-align: center;
+}
+
+//Efecto de texto, visible al principio y despues desaparece
+.reveal .slides section .fragment.fade-semi-out {
+	opacity: unset;
+	visibility: unset;
+
+	&.visible {
+		opacity: 0.5;
+		visibility: inherit;
+	}
+
+	&.current-fragment {
+		opacity: 1;
+		visibility: inherit;
+	}
+}
+
+// Tipos de slides ------------------------------------------------------------
+
+@mixin background-full {
+    background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+// SLIDE PARA TITULOS ----------------------------------------------------
+.theme-slideTitle {
+	position: relative;
+
+	&::before {
+		  content: "";
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  background-color: $theme-blue;   
+		  z-index: 0;           
+	  }
+	
+	text-align: center;
+	
+	h1, h2, h3, h4, h5 {
+		position: relative;
+    	z-index: 1;
+	}
+
+}
+
+// SLIDE CAJA A LA IZQUIERDA ---------------------------------------------------------
+
+// Workaround para cuando tengo fragmentos y textos en una misma slide
+.nofragment {
+
+}
+
+.theme-slideBoxLeft {
+	
+	background-color: $theme-white;
+	
+	position: relative;
+
+	h2 {
+		top: 100px;
+		left: 10px; // left + width = 420 = 1050*0.4
+		width: 320px;
+		position: relative;
+    	z-index: 0;
+		text-align: center;
+
+		&::before {
+			content: "";
+			position: absolute;
+			top: -2000px;      
+			left: -10px;   
+			right: -10px;   
+			bottom: -2000px;  
+			background: linear-gradient(
+			to right,
+			$theme-blue 0%,
+			$theme-blue 100%
+			);
+			z-index: -1;
+		}
+
+	}
+
+	h3, h4, h5 {
+		top: 150px;
+		left: 50px; // left + width = 420 = 1050*0.4
+		width: 320px;
+		position: relative;
+    	z-index: 1;
+	}
+
+	.fragment {
+		ul, ol { 
+			position: relative;
+			margin-left: 40px !important;
+			z-index: 1; 
+			p {margin-left: 0px !important;}
+		}
+		position: relative;
+		margin-left: 360px; 
+		width: 600px; 
+		z-index: 1;
+	}
+
+	p {
+		position: relative;
+		margin-left: 400px; 
+		width: 600px;
+		z-index: 1; 
+	}
+
+	ul, ol { 
+		position: relative;
+		margin-left: 400px; 
+		width: 600px;
+		z-index: 1; 
+		p {margin-left: 0px !important;}
+	}
+
+
+}
+
+
+// SLIDE CAJA ARRIBA
+
+.theme-slideSimple {
+	
+	background-color: $theme-white;
+	
+	position: relative;
+
+	h2 {
+		top: 0px;
+		left: 20px; // left + width = 420 = 1050*0.4
+		width: 1030px;
+		position: relative;
+    	z-index: 0;
+
+		&::before {
+			content: "";
+			position: absolute;
+			top: -2000px;      
+			left: -20px;   
+			right: 0px;   
+			bottom: -10px;  
+			background: linear-gradient(
+			to right,
+			$theme-blue 0%,
+			$theme-blue 60%
+			);
+			z-index: -1;
+		}
+
+	}
+
+}
+
+
+// SLIDE CAJA A LA DERECHA CON FOTO
+
+.theme-slideBoxRightPic {
+	
+	background-color: $theme-white;
+	
+	position: relative;
+
+	h2 {
+		background-color: $theme-white;
+		display:inline-block;
+		padding-right: 10px;
+		padding-bottom: 10px;
+		padding-top: 10px;
+
+		&::before {
+			content: "";
+			position: absolute;
+			top: -2000px;      
+			left: 10px;   
+			right: 0px;   
+			bottom: -2000px;  
+			background: linear-gradient(
+			to right,
+			$theme-white 0%,
+			$theme-white 60%,
+			$theme-blue 50%,
+			$theme-blue 100%,
+			);
+			z-index: -1;
+		}
+	}
+
+	h3, h4, h5 {
+		margin-top: 70px;
+		left: 20px;
+		width: 450px;
+		position: relative;
+    	z-index: 1;
+	}
+
+	.nofragment, .fragment, ul, ol {
+		left: 20px;
+		width: 450px;
+		position: relative;
+    	z-index: 1;
+		p {left: 0px !important;}
+	}
+
+	p {
+		left: 20px;
+		width: 450px;
+		position: relative;
+    	z-index: 1;
+	}
+
+	p:has(.img_style) {
+		position: absolute;
+		top: 150px; 
+		
+		.img_style {
+			position: relative;
+			margin-left: 500px !important;
+			width: 500px;
+			z-index: 1; 
+			border-radius: 10px;
+			border: 10px solid #ffffff;
+		}
+		}
 }
