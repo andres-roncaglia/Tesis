@@ -1,3 +1,9 @@
+// SLIDES
+// .theme-slideBoxRightPic
+// .theme-slideBoxLeft
+// .theme-slideSimple
+// .theme-slideTitle
+
 
 /*-- scss:defaults --*/
 // Definicion de colores
@@ -9,7 +15,7 @@ $theme-blue:#93CAF1;
 $presentation-heading-color: #000000 !default;
 
 // Tamaño de titulo
-$presentation-h2-font-size: 1.3em;
+$presentation-h2-font-size: 1.2em;
 $presentation-h3-font-size: 1em;
 $presentation-h4-font-size: 0.8em;
 
@@ -46,6 +52,23 @@ h1, h2 {
 //   background-color: #ffffff;
   width: 70%;
   text-align: center;
+  box-shadow: 0px 20px 25px -10px lightslategrey;
+}
+
+.quarto-figure {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+// Bloques callout
+.callout-title {
+	height: 30px;
+	p{margin-top: 0.2em !important; margin-bottom: 0.1em !important; font-size: larger;}
+}
+
+.callout-content{
+	padding-left: 1.9em !important;
+	p{margin-top: 0.7em !important; margin-bottom: 0px !important;}
 }
 
 //Efecto de texto, visible al principio y despues desaparece
@@ -111,10 +134,10 @@ h1, h2 {
 	position: relative;
 
 	h2 {
-		top: 100px;
+		top: 50px;
 		left: 10px; // left + width = 420 = 1050*0.4
 		width: 320px;
-		position: relative;
+		position: absolute;
     	z-index: 0;
 		text-align: center;
 
@@ -130,31 +153,19 @@ h1, h2 {
 			$theme-blue 0%,
 			$theme-blue 100%
 			);
+			box-shadow: 15px 0px 35px -30px gray;
 			z-index: -1;
 		}
 
 	}
 
 	h3, h4, h5 {
-		top: 150px;
 		left: 50px; // left + width = 420 = 1050*0.4
 		width: 320px;
 		position: relative;
     	z-index: 1;
 	}
 
-	.fragment {
-		ul, ol { 
-			position: relative;
-			margin-left: 40px !important;
-			z-index: 1; 
-			p {margin-left: 0px !important;}
-		}
-		position: relative;
-		margin-left: 360px; 
-		width: 600px; 
-		z-index: 1;
-	}
 
 	p {
 		position: relative;
@@ -202,6 +213,9 @@ h1, h2 {
 			$theme-blue 0%,
 			$theme-blue 60%
 			);
+			box-shadow: 0px 0px 60px -25px gray;
+			border-bottom-left-radius: 10px;
+			border-bottom-right-radius: 10px;
 			z-index: -1;
 		}
 
@@ -224,6 +238,7 @@ h1, h2 {
 		padding-right: 10px;
 		padding-bottom: 10px;
 		padding-top: 10px;
+		border-radius: 5px;
 
 		&::before {
 			content: "";
@@ -279,4 +294,19 @@ h1, h2 {
 			border: 10px solid #ffffff;
 		}
 		}
+}
+
+
+// SLIDE SIMPLE CON BORDES
+
+.theme-slideBorders {
+	
+	background-color: $theme-white;
+	
+	position: relative;
+
+	.nofragment{
+		border: solid $theme-blue;
+		border-radius: 30px;
+	}
 }

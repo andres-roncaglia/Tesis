@@ -317,7 +317,7 @@ Existen múltiples opciones para probar la normalidad de una distribución. En e
 
 ## 3.3 Modelos de aprendizaje automático
 
-El aprendizaje automático (machine learning) es una rama de la inteligencia artificial que permite a las computadoras aprender de los datos y realizar tareas de forma autónoma. Aunque los métodos presentados no fueron diseñados específicamente para datos temporales, han demostrado ser útiles en múltiples contextos mediante diversas pruebas empíricas.
+El aprendizaje automático (*machine learning*) es una rama de la inteligencia artificial que permite a las computadoras aprender de los datos y realizar tareas de forma autónoma. Aunque los métodos presentados no fueron diseñados específicamente para datos temporales, han demostrado ser útiles en múltiples contextos mediante diversas pruebas empíricas.
 
 Los métodos de *machine learning*, a diferencia de los modelos tradicionales, se enfocan principalmente en identificar los patrones que describen el comportamiento del proceso que sean relevantes para pronosticar la variable de interés, y no se componen de reglas ni supuestos que tengan que seguir. Para la identificación de patrones, estos modelos requieren la generación de características. 
 
@@ -483,7 +483,7 @@ Las 3 puertas son logísticas para que sea sencillo aplicar la retropropagación
 
 ### 3.4.3 Modelos transformadores
 
-Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cuales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs; gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. Esots mecanismos capturan dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
+Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cuales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs; gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. Estos mecanismos capturan dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
 
 Los modelos transformadores fueron creados originalmente con el propósito de generar texto. Sin embargo, tanto TimeGPT como Chronos explotan esta tecnología para el pronóstico de series de tiempo. Ambos modelos son preentrenados, lo cual significa que la optimización de parámetros y pesos fue realizada antes de usarse el modelo. Esto se logra entrenando y generalizando el modelo en un conjunto de datos extenso, por lo general de fuentes públicas. El preentrenamiento permite que el modelo adquiera conocimientos generales sobre la estructura y los patrones de los datos, los cuales luego pueden ser reutilizados en tareas concretas mediante técnicas como *fine-tuning* (ajuste fino). Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
 
@@ -800,7 +800,7 @@ unit_root_atenciones = adfuller(atenciones_ajust['y'])
 kpss_atenciones = kpss(atenciones_ajust['y'], regression='c')
 ```
 
-El diagrama de cajas (figura @fig-boxplot1) muestra grandes diferencias en la variabilidad de atenciones y una tendencia decreciente en la media. Estos patrones indican que la serie no es estacionaria, y una transformación es necesaria para lograr estacionariedad en varianza. La función `boxcox` de la librería `stats` propone una valor de $\lambda$ igual a cero para la transformación de Box-Cox (ecuación @eq-boxcox), por lo que se trabaja con la serie del logaritmo del número de atenciones en guardia por enfermedades respiratorias, presentada en la figura @fig-logAtenciones.
+El diagrama de cajas (figura @fig-boxplot1) muestra grandes diferencias en la variabilidad de atenciones por año y una tendencia decreciente en la media. Estos patrones indican que la serie no es estacionaria, y una transformación es necesaria para lograr estacionariedad en varianza. La función `boxcox` de la librería `stats` propone una valor de $\lambda$ igual a cero para la transformación de Box-Cox (ecuación @eq-boxcox). En consecuencia, se trabajó con la serie del logaritmo del número de atenciones en guardia por enfermedades respiratorias, presentada en la figura @fig-logAtenciones, y los pronósticos se transformaron posteriormente a la escala original.
 
 ```{python}
 (
@@ -857,7 +857,6 @@ autocorr_plot(atenciones_trunc['y'], lags=36, atype='pacf').save("../Imgs/plotni
 
 ![Logaritmo del número de atenciones en guardia por enfermedades respiratorias en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario.](../Imgs/plotnine/atencionesLog.png){#fig-logAtenciones}
 
-La transformación logaritmo es especialmente beneficiosa en variables de conteo, ya que, al reconvertir los pronósticos a la escala original, se garantiza que los valores no sean negativos.
 
 **Serie 2. Trabajadores asalariados del sector educativo privado**
 
@@ -890,7 +889,7 @@ La segunda serie corresponde al número mensual de trabajadores asalariados en e
 
 ```{python}
 #| label: fig-trabajadores_estacionalidad
-#| fig-cap: Distribución del número de trabajadores asalariados en el rubro de la enseñanza privada en Argentina por año.
+#| fig-cap: Número de trabajadores asalariados en el rubro de la enseñanza privada en Argentina por año.
 #| fig-height: 2
 
 trabajadores_trunc['mes'] = trabajadores_trunc['ds'].dt.month
@@ -1025,7 +1024,6 @@ metricas_3.loc[len(metricas_3)] = ['Chronos', 24, resultados_3_chronos['mape'], 
 
 ### 4.2.1 Modelización con ARIMA y SARIMAX
 
-Los modelos de la familia ARIMA realizan el supuesto de normalidad de los residuos. Esto implica que para que el ajuste de un modelo sea satisfactorio, sus residuos deben ser independientes y distribuírse de forma aproximadamente normal con media y varianza constantes.
 
 **Serie 1. Atenciones en guardia por patologías respiratorias – Hospital de Niños Víctor J. Vilela (HNVV)**
 
@@ -1318,7 +1316,7 @@ Los pronósticos puntuales del modelo seleccionado sobre el número de trabajado
 
 **Serie 3. Temperaturas horarias en la ciudad de Rosario**
 
-Debido a la complejidad que implica modelar series de alta frecuencia con variables exógenas mediante ARIMA, el modelo para la serie de temperaturas fue obtenido mediante selección automática usando la función `auto_arima` de la librería `pmdarima`. El modelo propuesto por este método es el $SARIMAX(1,1,1)(2,0,1)_{24}$, sin embargo, habiendo analizado los coeficientes, presentes en la tabla \ref{tab:salidaTE1} del anexo 8.1, se concluye que el modelo no goza de estacionariedad en parte estacional. Como corrección, se propone el modelo $SARIMAX(1,1,0)(1,0,1)_{24}$, que sí goza de las propiedades mencionadas.
+Debido a la complejidad que implica modelar series de alta frecuencia con variables exógenas mediante ARIMA, el modelo para la serie de temperaturas fue obtenido mediante selección automática usando la función `auto_arima` de la librería `pmdarima`. El modelo propuesto por este método es el $SARIMAX(1,1,1)(2,0,1)_{24}$, sin embargo, habiendo analizado los coeficientes presentes en la tabla \ref{tab:salidaTE1} del anexo 8.1, se concluye que el modelo no goza de estacionariedad en parte estacional. Como corrección, se propone el modelo $SARIMAX(1,1,0)(1,0,1)_{24}$, que sí goza de las propiedades mencionadas.
 
 
 ```{python}
@@ -1338,7 +1336,7 @@ resid_check(resultados_arima['resid_arima_TE4'], ds = temperatura_trunc['ds'], a
 Comprobación de supuestos del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$ para la serie de temperaturas en la ciudad de Rosario.
 :::
 
-La figura @fig-residTemp4 muestra ausencia de patrones sistemáticos e incorrelación en los residuos estandarizados del modelo, y si bien la normalidad no se cumple, esto puede deberse a un valor atípico.
+La figura @fig-residTemp4 muestra ausencia de patrones sistemáticos e incorrelación en los residuos estandarizados del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$. Si bien la normalidad no se cumple, esto afecta únicamente a los pronósticos probabilísticos y de manera poco significativa.
 
 
 ```{python}

@@ -10,7 +10,41 @@ format:
         embed-resources: true
         auto-stretch: false
         fig-align: center
+        callout-appearance: simple        
 ---
+
+```{python}
+
+def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset", position_left="unset", extra=""):
+  img_width = 1050*(img_size/100)
+  img_height = img_width/(15.85/10.15)
+  
+  code_block = "```"
+
+  img_w_zoom = f"""
+  <style>
+  .{zoom_name} {{
+    overflow: hidden !important;
+    width: {img_width}px;
+    height: {img_height}px;
+    margin: 0 auto;
+    background: white;
+    {extra}
+  }}
+
+  .{zoom_name} p {{margin:0 auto; height: {img_height}px}}
+  </style>
+
+:::{{.{zoom_name} .img_style}}
+  ![]({img_path}){{data-id='{zoom_name}' style='position: relative; top: {position_top}; left:{position_left}; width: {zoom}%; height: {zoom}%; max-width: none !important; max-height: none !important;  margin: 0 auto;'}}
+:::
+  
+  """
+
+  print(img_w_zoom)
+
+```
+
 
 ## 
 <!-- PORTADA -->
@@ -30,7 +64,7 @@ format:
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-4. Métricas de evaluación, selección de parámetros y validación del modelo
+4. Modelos
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -46,9 +80,9 @@ format:
 :::
 
 
-# 1. MOTIVACIÓN Y OBJETIVOS {.center .theme-slideTitle style="font-size:1.1em !important;"}
+# 1. MOTIVACIÓN Y OBJETIVOS {.center .theme-slideTitle}
 
-## 1. MOTIVACIÓN {.theme-slideBoxLeft}
+## 1. MOTIVACIÓN {.theme-slideBoxLeft style="font-size:1.1em !important;"}
 
 :::{.nofragment}
 
@@ -86,13 +120,13 @@ format:
 ::: {.nofragment}
 - Comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo
 
-    - ARIMA
+    - Modelos estadísticos tradicionales
 
-    - XGBoost y LightGBM
+    - Modelos de aprendizaje automatizado
 
-    - LSTM
+    - Modelos de aprendizaje profundo
 
-    - TimeGPT y Chronos
+    - Modelos fundacionales preentrenados
 :::
 
 ::: {.fragment .fade-in}
@@ -107,7 +141,7 @@ format:
 - Reflexionar sobre los criterios de selección de modelos
 :::
 
-# 2. BREVE INTRODUCCIÓN A SERIES DE TIEMPO {.center style="text-align: center;"}
+# 2. BREVE INTRODUCCIÓN A SERIES DE TIEMPO {.center .theme-slideTitle}
 
 ## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple}
 
@@ -137,11 +171,11 @@ Tendencia
 
 :::
 
-::: {data-id="box2" auto-animate-delay="0.1" style="background: #D9E0E8; width: 300px; height: 300px;text-align: center;"}
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #F0F8FE; width: 300px; height: 300px;text-align: center;"}
 
 Estacionalidad
 
-![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style}
+![](../Imgs/Estacionalidad.png){fig-align="center" .img_style}
 
 :::
 
@@ -149,7 +183,7 @@ Estacionalidad
 
 Residuos
 
-![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style}
+![](../Imgs/residuos.png){fig-align="center" .img_style}
 :::
 :::
 
@@ -164,10 +198,10 @@ Residuos
 Tendencia
 :::
 
-![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style width="80%"}
+![](../Imgs/tendencia.png){fig-align="center" .img_style width="80%"}
 :::
 
-::: {data-id="box2" auto-animate-delay="0.1" style="background:#D9E0E8; width:125px; height:550px; position:absolute; left:925px; top:20px; text-align:center;"}
+::: {data-id="box2" auto-animate-delay="0.1" style="background:#F0F8FE; width:125px; height:550px; position:absolute; left:925px; top:20px; text-align:center;"}
 :::
 
 :::
@@ -179,13 +213,13 @@ Tendencia
 ::: {data-id="box1" auto-animate-delay="0.1" style="background:#93CAF1; width:125px; height:550px; position:absolute; left:0px; top:20px; text-align:center;"}
 :::
 
-::: {data-id="box2" auto-animate-delay="0.2" style="background:#D9E0E8; width:800px; height:550px; margin:0 auto; text-align:center; position:relative; top:20px;"}
+::: {data-id="box2" auto-animate-delay="0.2" style="background:#F0F8FE; width:800px; height:550px; margin:0 auto; text-align:center; position:relative; top:20px;"}
 
 :::{style="text-align:center; font-size: 1em; font-family: 'Verdana', sans-serif; font-weight: 800;"}
 Estacionalidad
 :::
 
-![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style width="80%"}
+![](../Imgs/Estacionalidad.png){fig-align="center" .img_style width="80%"}
 :::
 
 ::: {data-id="box3" auto-animate-delay="0.1" style="background:#93CAF1; width:125px; height:550px; position:absolute; left:925px; top:20px; text-align:center;"}
@@ -197,7 +231,7 @@ Estacionalidad
 
 ::: {style="position:relative; width:100%; height:100%;"} 
 
-::: {data-id="box2" auto-animate-delay="0.1" style="background:#D9E0E8; width:125px; height:550px; position:absolute; left:0px; top:20px; text-align:center;"}
+::: {data-id="box2" auto-animate-delay="0.1" style="background:#F0F8FE; width:125px; height:550px; position:absolute; left:0px; top:20px; text-align:center;"}
 :::
 
 ::: {data-id="box3" auto-animate-delay="0.2" style="background:#93CAF1; width:800px; height:550px; margin:0 auto; text-align:center;position:relative; top:20px;"}
@@ -206,10 +240,20 @@ Estacionalidad
 Residuos
 :::
 
-![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style width="80%"}
+![](../Imgs/residuos.png){fig-align="center" .img_style width="80%"}
 :::
 
 :::
+
+## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideBoxRightPic}
+
+### Estacionariedad débil
+
+- Media constante en el tiempo
+
+- Variancia constante en el tiempo
+
+- Correlación entre observaciones dependiente únicamente de la distancia en el tiempo
 
 ## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideBoxRightPic}
 
@@ -221,9 +265,9 @@ Residuos
 
 - Correlación entre observaciones dependiente únicamente de la distancia en el tiempo
 
-# 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.center style="text-align: center;"}
+# 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.center .theme-slideTitle}
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS{.theme-slideBoxLeft}
 
 - Número de atenciones en guardia por patologías respiratorias en el hospital en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario.
 
@@ -231,7 +275,7 @@ Residuos
 
 - Temperatura (Cº) por hora en la ciudad de Rosario.
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple}
 
 ### Atenciones en guardia
 
@@ -241,7 +285,7 @@ Residuos
 Información provista por la Dirección General de Estadística de la Municipalidad de Rosario.
 :::
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple}
 
 ### Trabajadores asalariados
 
@@ -251,7 +295,7 @@ Información provista por la Dirección General de Estadística de la Municipali
 Datos extraídos del informe Situación y evolución del Trabajo Registrado de la Secretaría de Trabajo, Empleo y Seguridad Social
 :::
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
 
 ### Temperaturas
 
@@ -264,11 +308,11 @@ Datos extraídos del informe Situación y evolución del Trabajo Registrado de l
 }
 </style>
 
-![](../Imgs/plotnine/temperatura1.png){width="70%" fig-align="center" data-id="temp1" .img_style}
+![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
 
-![](../Imgs/plotnine/temperatura2.png){width="70%" fig-align="center" .img_style}
+![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
 
-![](../Imgs/plotnine/temperatura3.png){width="70%" fig-align="center" .img_style}
+![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
 
 :::
 
@@ -277,7 +321,7 @@ Datos extraídos del informe Situación y evolución del Trabajo Registrado de l
 Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 :::
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
 
 \
 
@@ -285,7 +329,10 @@ Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 
 ![](../Imgs/plotnine/temperatura1.png){width="100%" fig-align="center" .img_style data-id="temp1" style="text-align: center;"}
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideBoxSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+
+### Temperaturas
 
 ::: {r.vstack}
 
@@ -296,20 +343,464 @@ Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 }
 </style>
 
-![](../Imgs/plotnine/temperatura1.png){width="70%" fig-align="center" data-id="temp1" .img_style}
+![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
 
-![](../Imgs/plotnine/temperatura2.png){width="70%" fig-align="center" .img_style}
+![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
 
-![](../Imgs/plotnine/temperatura3.png){width="70%" fig-align="center" .img_style}
+![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
 
 :::
+
 
 ::: footer
 Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 :::
 
 
-# 4. MÉTRICAS DE EVALUACIÓN, SELECCIÓN DE PARÁMETROS Y VALIDACIÓN DEL MODELO {.center style="text-align: center;"}
+# 4.1 MODELOS: Modelos estadísticos tradicionales {.center .theme-slideTitle}
 
-## 4. MÉTRICAS DE EVALUACIÓN, SELECCIÓN DE PARÁMETROS Y VALIDACIÓN DEL MODELO
+## 4.1 Modelos estadísticos tradicionales {auto-animate="true"}
 
+[A]{data-id="ar1"}[R]{data-id="ar"}[I]{data-id="i"}[M]{data-id="ma1"}[A]{data-id="ma"}(p,d,q)
+
+$$
+\psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
+$$
+
+
+## 4.1 Modelos estadísticos tradicionales {auto-animate="true" auto-animate-duration="1.2"}
+
+[*A*]{data-id="ar1" style="color: red; font-weight: bold;"}*uto*[*R*]{data-id="ar" style="color: red; font-weight: bold;"}*egressive* [*I*]{data-id="i" style="color: red; font-weight: bold;"}*ntegrated* [*M*]{data-id="ma1" style="color: red; font-weight: bold;"}*oving* [*A*]{data-id="ma" style="color: red; font-weight: bold;"}*verage*
+
+$$
+\psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
+$$
+
+:::{.fragment}
+
+:::{.callout-note title="Invertibilidad"}
+
+Una serie es invertible si se puede escribir cada observación como una función de las observaciones pasadas más un error aleatorio.
+
+:::
+
+:::
+
+## 4.1 Modelos estadísticos tradicionales
+
+Funciones de autocorrelación y autocorrelación parcial
+
+:::: {.columns .fragment}
+
+::: {.column width="50%"}
+Ejemplo proceso AR(1)
+
+![](../Imgs/plotnine/ejemplo_ar_1.png){fig-align="center" .img_style width="98%"}
+
+![](../Imgs/plotnine/ejemplo_ar_2.png){fig-align="center" .img_style  width="98%"}
+:::
+
+::: {.column width="50%"}
+Ejemplo proceso MA(1)
+
+![](../Imgs/plotnine/ejemplo_ma_1.png){fig-align="center" .img_style width="98%"}
+
+![](../Imgs/plotnine/ejemplo_ma_2.png){fig-align="center" .img_style width="98%"}
+:::
+
+::::
+
+
+## 4.1 Modelos estadísticos tradicionales
+
+::::{.center}
+
+::: {.callout-important title="Limitaciones"}
+Los modelos ARIMA no tienen en cuenta los posibles patrones estacionales de una serie
+:::
+
+::: {.fragment}
+Modelo $SARIMA(p,d,q)(P,D,Q)_s$
+:::
+
+::::
+
+## 4.1 Modelos estadísticos tradicionales
+
+Propiedades de un buen modelo $SARIMA$:
+
+- Los residuos del modelo se comportan como ruido blanco
+
+::: {.fragment}
+    - Incorrelacionados
+
+    - Distribuídos aproximadamente de forma normal
+
+    - Variancia y media constantes
+:::
+
+::: {.fragment}
+- Es admisible
+:::
+
+::: {.fragment}
+- Es parsimonioso
+:::
+
+# 4.2 MODELOS: Modelos de aprendizaje automático {.center .theme-slideTitle}
+
+## 4.2 Modelos de aprendizaje automático
+
+::: {.callout-note title="Aprendizaje automatizado (*machine learning*)"}
+Rama de la inteligencia artificial que permite a las computadoras aprender de los datos y realizar tareas de forma autónoma.
+:::
+
+::: {.fragment}
+![](../Imgs/arbol_decision.png){fig-align="center" .img_style width="65%"}
+:::
+
+## 4.2 Modelos de aprendizaje automático
+
+::: {.callout-tip title="Métodos de ensamblaje"}
+Buscan mejorar la robustez y precisión de las predicciones combinando los resultados de varios estimadores base.
+:::
+
+::: {.fragment}
+![](../Imgs/Ensamblaje.png){fig-align="center" .img_style width="65%"}
+:::
+
+## 4.2 Modelos de aprendizaje automático
+
+Diferencias entre *eXtreme Gradient Boosting* (XGBoost) y *Light Gradient-Boosting Machine* (LightGBM)
+
+|                                                | XGBoost   | LightGBM  |
+|------------------------------------------------|-----------|-----------|
+| Método de partición                            | Exacto    | GOSS      |
+| Crecimiento del árbol                          | Por nivel | Por hojas |
+| Tratamiento de características correlacionadas | Ninguno   | EFB       |
+
+## 4.2 Modelos de aprendizaje automático
+
+::: {.callout-important title="Problemas"}
+No generan pronósticos probabilísticos de forma directa
+:::
+
+:::{.fragment}
+
+*Ensemble Batch Prediction Intervals* (EnbPI)
+
+1. Seleccionar un modelo por ensamblado.
+
+2. Generar B muestras *bootstrap* por bloques.
+
+3. Ajustar un modelo sobre cada una de las B muestras.
+
+4. Calcular el residuo de cada observación utilizando aquellos modelos que no la incluyeron.
+
+5. Obtener las predicciones puntuales promediando los resultados de los B modelos.
+
+6. Construir los intervalos de predicción usando los cuantiles empíricos de los residuos.
+
+:::
+
+# 4.3 MODELOS: Modelos de aprendizaje profundo {.center .theme-slideTitle}
+
+## 4.3 Modelos de aprendizaje profundo
+
+::: {.callout-tip title="Aprendizaje profundo (*deep learning*)"}
+Conjunto de algoritmos que modelan niveles altos de abstracción usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales.
+:::
+
+::: {.fragment}
+
+![](../Imgs/red_conectada.png){fig-align="center" .img_style width="65%"}
+
+:::
+
+## 4.3 Modelos de aprendizaje profundo{.theme-slideBoxRightPic}
+
+Tipos de redes neuronales
+
+- *Feedforward Neural Networks* (FNN)
+
+- *Recurrent Neural Networks* (RNN)
+
+- *Convolutional Neural Networks* (CNN)
+
+- Entre otras...
+
+![](../Imgs/red_recurrente.png){.img_style}
+
+## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+
+::: {.callout-important title="Limitaciones de las RNNs"}
+Tienen dificultades para capturar dependencias de largo plazo. Causas: Desvanecimiento o explosión del gradiente.
+:::
+
+:::{.fragment}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70)
+```
+
+:::
+
+## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+
+::: {.callout-note title="Puerta de guardado"}
+Se encarga de decidir que proporción de la información a largo plazo mantener en la neurona de memoria en cada iteración.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70, zoom=140, position_top="-186px", position_left="140px")
+```
+
+## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+
+::: {.callout-note title="Puerta de entrada"}
+Controla que información añadir a la neurona de memoria. Propone un nuevo valor para la información a largo plazo y decide que proporción sumar al valor actual.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70, zoom=140, position_top="-186px", position_left="-140px")
+```
+
+
+## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+
+::: {.callout-note title="Puerta de salida"}
+Se encarga de extraer la información más importante del estado actual de la neurona para usar como salida o valor para la próxima iteración de la red.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70, zoom=140, position_top="-186px", position_left="-395px")
+```
+
+# 4.4 MODELOS: Modelos fundacionales preentrenados {.center .theme-slideTitle}
+
+## 4.4 Modelos fundacionales preentrenados
+
+Fundacional: Entrenado en grandes conjuntos de datos
+
+Preentrenado: Los parámetros del modelo fueron previamente calculados
+
+::: {.callout-note title="Modelos basados en arquitecturas *transformer*"}
+
+Originalmente creados con el propósito de generar texto:
+
+- ChatGPT
+
+- BERT
+
+- Claude
+
+:::
+
+:::{.fragment}
+
+Para pronosticar series de tiempo:
+
+- TimeGPT
+
+- Chronos
+
+:::
+
+
+## 4.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
+
+### Modelos fundacionales preentrenados
+
+- Capaces de seleccionar de forma automática el mejor ajuste
+
+- No requieren entrenamiento previo ni conocimientos especializados 
+
+- Basados en arquitecturas *transformer*
+
+::: {.nofragment}
+::: {.callout-tip title=""}
+¿Qué tan bien se desempeñan?
+:::
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=47.62,extra="position:absolute; top: 150px; left: 520px;")
+```
+
+## 4.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
+
+### Modelos fundacionales preentrenados
+
+- Capaces de seleccionar de forma automática el mejor ajuste
+
+- No requieren entrenamiento previo ni conocimientos especializados 
+
+- Basados en arquitecturas *transformer*
+
+::: {.nofragment}
+::: {.callout-tip title=""}
+¿Qué tan bien se desempeñan?
+:::
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=47.62, zoom=250, position_top = "-422px", position_left = '-164px', extra="position:absolute; top: 150px; left: 520px;")
+```
+
+## 4.4 Modelos fundacionales preentrenados
+
+::: {.callout-note title="Atención"}
+
+Mecanismo que captura dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. Presentado en la publicación *Attention is all you need* de Google en 2017.
+
+:::{.fragment}
+
+$$
+\text{Atencion}(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}})V
+$$
+
+:::
+:::
+
+:::{.fragment}
+
+$\vec E$: Vector de entrada
+
+$W_Q$: Matriz de características ($\vec E \times W_Q = \vec Q$)
+
+$W_K$: Matriz de relaciones ($\vec E \times W_K = \vec K$)
+
+$W_V$: Matriz de valores ($\vec E \times W_V = \vec V$)
+:::
+
+:::{.fragment}
+Matrices iniciadas aleatoriamente y ajustadas en el preentrenado
+:::
+
+## 4.4 Modelos fundacionales preentrenados
+
+\
+
+![](../Imgs/gif_attention.gif){fig-align="center" .img_style width="80%"}
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=100)
+```
+
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=180, position_top = "-420px", position_left = '200px')
+```
+
+
+::: {.callout-note title="Representación vectorial y codificación posicional"}
+Se *tokenizan* los datos de entrada ($\vec E$).
+
+Se suma a $\vec E$ un vector con patrones específicos que integran al vector de entrada la información posicional del token.
+:::
+
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=180, position_top = "-420px", position_left = '-80px')
+```
+
+::: {.callout-note title="Suma y normalizado"}
+Las conexiones residuales se añaden sobre el vector de entrada en la salida de cada capa.
+
+La normalización estabiliza el entrenamiento y mejora la convergencia.
+:::
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=180, position_top = "-120px", position_left = '-80px')
+```
+
+::: {.callout-note title="Red neuronal convolucional (CNN)"}
+Utilizada para descubrir dependencias locales y patrones de corto plazo.
+:::
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=110, position_top = "-50px", position_left = '-240px')
+```
+
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=180, position_top = "-400px", position_left = '-740px')
+```
+
+::: {.callout-note title="Representación vectorial (Decodificador)"}
+La entrada del decodificador son los *tokens* desplazados hacia la derecha.
+:::
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=180, position_top = "-400px", position_left = '-450px')
+```
+
+::: {.callout-note title="Enmascaramiento"}
+Antes de la aplicación de softmax se reemplazan todos los valores debajo de la diagonal principal de la matriz $QK$ por $-\infty$.
+:::
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=160, position_top = "0px", position_left = '-340px')
+```
+
+::: {.callout-note title="Atención multicabezal"}
+
+Se usan las matrices $K$ y $V$ que da como salida el codificador. $Q$ es la salida de la capa de atención multicabezal enmascarada.
+
+:::
+
+## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", img_size=65, zoom=180, position_top = "0px", position_left = '-750px')
+```
+
+::: {.callout-note title="Conexión lineal"}
+*Feed Forward Network* completamente conectada que traduce las representaciones de atributos aprendidos en predicciones.
+:::
