@@ -29,8 +29,9 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
     height: {img_height}px;
     margin: 0 auto;
     background: white;
-    {extra}
   }}
+  
+  {extra}
 
   .{zoom_name} p {{margin:0 auto; height: {img_height}px}}
   </style>
@@ -47,11 +48,12 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 
 
 ## 
-<!-- PORTADA -->
 
-## RESUMEN {.theme-slideSimple}
+![](../Imgs/Portada_presentacion.png){fig-align="center" width="100%"}
 
-::: {.fragment .fade-semi-out}
+## Resumen {.theme-slideSimple}
+
+::: {.fragment .fade-in-then-semi-out}
 1. Presentación del contexto y objetivos
 :::
 
@@ -60,15 +62,15 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-3. Presentación de las series analizadas
+3. Metodología de los modelos
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-4. Modelos
+4. Evaluación, validación e intervalos de predicción de los modelos
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-5. Metodología y aplicación de los modelos
+5. Aplicación
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -80,9 +82,9 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 :::
 
 
-# 1. MOTIVACIÓN Y OBJETIVOS {.center .theme-slideTitle}
+# 1. Motivación y objetivos {.center .theme-slideTitle}
 
-## 1. MOTIVACIÓN {.theme-slideBoxLeft style="font-size:1.1em !important;"}
+## 1. Motivación {.theme-slideBoxLeft style="font-size:1.1em !important;"}
 
 :::{.nofragment}
 
@@ -94,7 +96,7 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 
 :::
 
-## 1. MOTIVACIÓN {.theme-slideBoxRightPic}
+## 1. Motivación {.theme-slideBoxRightPic}
 
 ### Modelos fundacionales preentrenados
 
@@ -115,10 +117,10 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 
 ![](../Imgs/modelo_timegpt.png){.img_style}
 
-## 1. OBJETIVOS {.theme-slideBoxLeft}
+## 1. Objetivos {.theme-slideBoxLeft}
 
 ::: {.nofragment}
-- Comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo
+- Comparar la precisión, eficiencia y facilidad de pronosticar series de tiempo con:
 
     - Modelos estadísticos tradicionales
 
@@ -141,9 +143,9 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 - Reflexionar sobre los criterios de selección de modelos
 :::
 
-# 2. BREVE INTRODUCCIÓN A SERIES DE TIEMPO {.center .theme-slideTitle}
+# 2. Breve introducción a series de tiempo {.center .theme-slideTitle}
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple}
+## 2. Introducción a series de tiempo {.theme-slideSimple}
 
 ::: {.callout-note}
 ## Serie de tiempo
@@ -152,7 +154,7 @@ Conjunto de observaciones $\{z_1, z_2, ..., z_t, ..., z_n\}$ cuantitativas orden
 
 ![](../Imgs/serie_de_tiempo.png){fig-align="center" .img_style}
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true"}
+## 2. Introducción a series de tiempo {.theme-slideSimple auto-animate="true"}
 
 \
 
@@ -188,7 +190,7 @@ Residuos
 :::
 
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
+## 2. Introducción a series de tiempo {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
 
 ::: {style="position:relative; width:100%; height:100%;"} 
 
@@ -206,7 +208,7 @@ Tendencia
 
 :::
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
+## 2. Introducción a series de tiempo {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
 
 ::: {style="position:relative; width:100%; height:100%;"} 
 
@@ -227,7 +229,7 @@ Estacionalidad
 
 :::
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
+## 2. Introducción a series de tiempo {.theme-slideSimple auto-animate="true" auto-animate-duration="0.7"}
 
 ::: {style="position:relative; width:100%; height:100%;"} 
 
@@ -245,7 +247,7 @@ Residuos
 
 :::
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideBoxRightPic}
+## 2. Introducción a series de tiempo {.theme-slideBoxRightPic}
 
 ### Estacionariedad débil
 
@@ -255,144 +257,81 @@ Residuos
 
 - Correlación entre observaciones dependiente únicamente de la distancia en el tiempo
 
-## 2. INTRODUCCIÓN A SERIES DE TIEMPO {.theme-slideBoxRightPic}
 
-### Estacionariedad
+::::{.fragment}
 
-- Media constante en el tiempo
+::: {.callout-tip title="Pruebas de estacionariedad"}
 
-- Variancia constante en el tiempo
+**Test de Dickey-Fuller:** 
+  
+  $H_0)$ Existe una raiz unitaria
 
-- Correlación entre observaciones dependiente únicamente de la distancia en el tiempo
+**Test de Kwiatkowski-Phillips-Schmidt-Shin:**
 
-# 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.center .theme-slideTitle}
-
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS{.theme-slideBoxLeft}
-
-- Número de atenciones en guardia por patologías respiratorias en el hospital en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario.
-
-- Número trabajadores asalariados en el rubro de la enseñanza privada en Argentina.
-
-- Temperatura (Cº) por hora en la ciudad de Rosario.
-
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple}
-
-### Atenciones en guardia
-
-![](../Imgs/plotnine/atenciones.png){fig-align="center" .img_style}
-
-::: {.footer}
-Información provista por la Dirección General de Estadística de la Municipalidad de Rosario.
-:::
-
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple}
-
-### Trabajadores asalariados
-
-![](../Imgs/plotnine/trabajadores.png){fig-align="center" .img_style}
-
-::: footer
-Datos extraídos del informe Situación y evolución del Trabajo Registrado de la Secretaría de Trabajo, Empleo y Seguridad Social
-:::
-
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
-
-### Temperaturas
-
-::: {r.vstack}
-
-<style>
-.quarto-figure {
-  margin-bottom: 0 !important;
-  margin-top: 0 !important;
-}
-</style>
-
-![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
-
-![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
-
-![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
+  $H_0)$ La serie es estacionaria en media
 
 :::
 
+::::
 
-::: footer
-Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
-:::
+# 3.1 Modelos estadísticos tradicionales {.center .theme-slideTitle}
 
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+## 3.1 Modelos estadísticos tradicionales {.theme-slideBoxLeft}
 
-\
+[*A*]{style="color: red; font-weight: bold;"}*uto*[*R*]{style="color: red; font-weight: bold;"}*egressive* [*I*]{style="color: red; font-weight: bold;"}*ntegrated* [*M*]{style="color: red; font-weight: bold;"}*oving* [*A*]{style="color: red; font-weight: bold;"}*verage*
 
-\
-
-![](../Imgs/plotnine/temperatura1.png){width="100%" fig-align="center" .img_style data-id="temp1" style="text-align: center;"}
-
-## 3. PRESENTACIÓN DE LAS SERIES ANALIZADAS {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
-
-
-### Temperaturas
-
-::: {r.vstack}
-
-<style>
-.quarto-figure {
-  margin-bottom: 0 !important;
-  margin-top: 0 !important;
-}
-</style>
-
-![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
-
-![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
-
-![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
-
-:::
-
-
-::: footer
-Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
-:::
-
-
-# 4.1 MODELOS: Modelos estadísticos tradicionales {.center .theme-slideTitle}
-
-## 4.1 Modelos estadísticos tradicionales {auto-animate="true"}
-
-[A]{data-id="ar1"}[R]{data-id="ar"}[I]{data-id="i"}[M]{data-id="ma1"}[A]{data-id="ma"}(p,d,q)
-
-$$
-\psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
-$$
-
-
-## 4.1 Modelos estadísticos tradicionales {auto-animate="true" auto-animate-duration="1.2"}
-
-[*A*]{data-id="ar1" style="color: red; font-weight: bold;"}*uto*[*R*]{data-id="ar" style="color: red; font-weight: bold;"}*egressive* [*I*]{data-id="i" style="color: red; font-weight: bold;"}*ntegrated* [*M*]{data-id="ma1" style="color: red; font-weight: bold;"}*oving* [*A*]{data-id="ma" style="color: red; font-weight: bold;"}*verage*
+Modelo $ARIMA(p,d,q)$
 
 $$
 \psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
 $$
 
 :::{.fragment}
-
 :::{.callout-note title="Invertibilidad"}
 
 Una serie es invertible si se puede escribir cada observación como una función de las observaciones pasadas más un error aleatorio.
 
 :::
+:::
+
+:::{.fragment}
+
+::: {.callout-important title="Limitaciones"}
+Los modelos ARIMA no tienen en cuenta los posibles patrones estacionales de una serie
+:::
 
 :::
 
-## 4.1 Modelos estadísticos tradicionales
+:::: {.fragment}
+Modelo $SARIMA(p,d,q)(P,D,Q)_s$
 
-Funciones de autocorrelación y autocorrelación parcial
+:::{.mathsmall}
+$$
+\underbrace{\psi_p(B)(1-B)^d}_{\text{Parte regular}} \ \underbrace{\Psi_P(B^s)(1-B^s)^D}_\text{Parte estacional} z_t = \theta_0 + \underbrace{\theta_q(B)}_\text{P. r.} \ \underbrace{\Theta_Q(B^s)}_\text{P. e.}\alpha_t
+$$
+
+:::
+::::
+
+
+## 3.1 Modelos estadísticos tradicionales {.theme-slideSimple}
+
+::: {.callout-tip title="Funciones de autocorrelación y autocorrelación parcial"}
+
+Función de autocorrelación:
+
+$\rho_k = Corr(z_t, z_{t+k}) = \frac{Cov(z_t, z_{t+k})}{\sqrt{Var(z_t) \cdot Var(z_{t+k})}}$
+
+Función de autocorrelación parcial:
+
+$\phi_{kk} = Corr(z_t, z_{t+k}|z_{t+1}, ..., z_{t+k-1})$
+
+:::
+
 
 :::: {.columns .fragment}
 
-::: {.column width="50%"}
+::: {.column width="50%" .centro}
 Ejemplo proceso AR(1)
 
 ![](../Imgs/plotnine/ejemplo_ar_1.png){fig-align="center" .img_style width="98%"}
@@ -400,7 +339,7 @@ Ejemplo proceso AR(1)
 ![](../Imgs/plotnine/ejemplo_ar_2.png){fig-align="center" .img_style  width="98%"}
 :::
 
-::: {.column width="50%"}
+::: {.column width="50%" .centro}
 Ejemplo proceso MA(1)
 
 ![](../Imgs/plotnine/ejemplo_ma_1.png){fig-align="center" .img_style width="98%"}
@@ -410,33 +349,28 @@ Ejemplo proceso MA(1)
 
 ::::
 
-
-## 4.1 Modelos estadísticos tradicionales
-
-::::{.center}
-
-::: {.callout-important title="Limitaciones"}
-Los modelos ARIMA no tienen en cuenta los posibles patrones estacionales de una serie
-:::
-
-::: {.fragment}
-Modelo $SARIMA(p,d,q)(P,D,Q)_s$
-:::
-
-::::
-
-## 4.1 Modelos estadísticos tradicionales
+## 3.1 Modelos estadísticos tradicionales {.theme-slideBoxLeft}
 
 Propiedades de un buen modelo $SARIMA$:
 
 - Los residuos del modelo se comportan como ruido blanco
 
-::: {.fragment}
     - Incorrelacionados
 
     - Distribuídos aproximadamente de forma normal
 
     - Variancia y media constantes
+
+:::{.fragment .wbox}
+**Test de Ljung-Box**
+
+$H_0)$ Los datos no están correlacionados
+
+\
+
+**Test de Kolmogorov-Smirnov**
+
+$H_0)$ Los datos tienen distribución normal
 :::
 
 ::: {.fragment}
@@ -447,29 +381,124 @@ Propiedades de un buen modelo $SARIMA$:
 - Es parsimonioso
 :::
 
-# 4.2 MODELOS: Modelos de aprendizaje automático {.center .theme-slideTitle}
+# 3.2 Modelos de aprendizaje automático {.center .theme-slideTitle}
 
-## 4.2 Modelos de aprendizaje automático
+## Descenso del gradiente{.theme-slideBoxRightPic}
 
-::: {.callout-note title="Aprendizaje automatizado (*machine learning*)"}
+::: {.callout-note title="Descenso del gradiente"}
+Algoritmo iterativo para optimizar los parámetros de un modelo.
+
+$$
+\theta_1 = \theta_0 - \eta \cdot \nabla L(\theta_0)
+$$
+:::
+
+Calcula en cada paso la derivada de la función de costo con respecto a cada parámetro en su valor actual
+
+Se actualizan los valores de los parámetros desplazandolos una pequeña magnitud $\eta$ (tasa de aprendizaje)
+
+![](../Imgs/desc_gradiente.png){.img_style}
+
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple}
+
+::: {.callout-note title="Aprendizaje automático (*machine learning*)"}
 Rama de la inteligencia artificial que permite a las computadoras aprender de los datos y realizar tareas de forma autónoma.
 :::
 
-::: {.fragment}
-![](../Imgs/arbol_decision.png){fig-align="center" .img_style width="65%"}
+::: {.fragment .centro}
+
+**Árbol de decisión**
+
+![](../Imgs/arbol_decision.png){fig-align="center" .img_style width="60%"}
 :::
 
-## 4.2 Modelos de aprendizaje automático
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
 
-::: {.callout-tip title="Métodos de ensamblaje"}
+::: {.callout-tip title="Métodos de ensamble"}
 Buscan mejorar la robustez y precisión de las predicciones combinando los resultados de varios estimadores base.
 :::
 
-::: {.fragment}
-![](../Imgs/Ensamblaje.png){fig-align="center" .img_style width="65%"}
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
 :::
 
-## 4.2 Modelos de aprendizaje automático
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Ensamblaje.png", zoom_name = "ensemble", img_size=65)
+```
+
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Ensamblaje.png", zoom_name = "ensemble", img_size=65, zoom=205, position_top="50px", position_left="-255px")
+```
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Ensamblaje.png", zoom_name = "ensemble", img_size=65, zoom=205, position_top="50px", position_left="-790px")
+```
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Ensamblaje.png", zoom_name = "ensemble", img_size=65, zoom=205, position_top="-250px", position_left="-505px")
+```
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Ensamblaje.png", zoom_name = "ensemble", img_size=65, zoom=205, position_top="-250px", position_left="0px")
+```
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="*Boosting*"}
+Construcción de predictores base de forma secuencial donde cada nuevo predictor busca predecir los residuos del anterior.
+:::
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Ensamblaje.png", zoom_name = "ensemble", img_size=65, zoom=200, position_top="-555px", position_left="-600px")
+```
+
+## 3.2 Modelos de aprendizaje automático {.theme-slideBorders .center}
+
+:::{.body}
 
 Diferencias entre *eXtreme Gradient Boosting* (XGBoost) y *Light Gradient-Boosting Machine* (LightGBM)
 
@@ -479,47 +508,52 @@ Diferencias entre *eXtreme Gradient Boosting* (XGBoost) y *Light Gradient-Boosti
 | Crecimiento del árbol                          | Por nivel | Por hojas |
 | Tratamiento de características correlacionadas | Ninguno   | EFB       |
 
-## 4.2 Modelos de aprendizaje automático
-
-::: {.callout-important title="Problemas"}
-No generan pronósticos probabilísticos de forma directa
 :::
 
-:::{.fragment}
+# 3.3 Modelos de aprendizaje profundo {.center .theme-slideTitle}
 
-*Ensemble Batch Prediction Intervals* (EnbPI)
-
-1. Seleccionar un modelo por ensamblado.
-
-2. Generar B muestras *bootstrap* por bloques.
-
-3. Ajustar un modelo sobre cada una de las B muestras.
-
-4. Calcular el residuo de cada observación utilizando aquellos modelos que no la incluyeron.
-
-5. Obtener las predicciones puntuales promediando los resultados de los B modelos.
-
-6. Construir los intervalos de predicción usando los cuantiles empíricos de los residuos.
-
-:::
-
-# 4.3 MODELOS: Modelos de aprendizaje profundo {.center .theme-slideTitle}
-
-## 4.3 Modelos de aprendizaje profundo
+## 3.3 Modelos de aprendizaje profundo {.theme-slideSimple auto-animate="true"}
 
 ::: {.callout-tip title="Aprendizaje profundo (*deep learning*)"}
 Conjunto de algoritmos que modelan niveles altos de abstracción usando múltiples capas de procesamiento, con complejas estructuras o compuestas de varias transformaciones no lineales.
 :::
 
-::: {.fragment}
+::: {.callout-note title="Red neuronal"}
+Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y conexiones (pesos).
+:::
+
+## 3.3 Modelos de aprendizaje profundo {.theme-slideSimple auto-animate="true"}
+
+::: {.callout-note title="Red neuronal"}
+Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y conexiones (pesos).
+:::
 
 ![](../Imgs/red_conectada.png){fig-align="center" .img_style width="65%"}
 
+## 3.3 Modelos de aprendizaje profundo {.theme-slideSimple}
+
+::: {.callout-note title="Red neuronal"}
+Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y conexiones (pesos).
 :::
 
-## 4.3 Modelos de aprendizaje profundo{.theme-slideBoxRightPic}
+![](../Imgs/conexiones_redneuro.png){fig-align="center" .img_style width="65%"}
 
-Tipos de redes neuronales
+
+## 3.3 Modelos de aprendizaje profundo{.theme-slideBorders .center}
+
+::::{.body}
+
+:::{.centro}
+**Retropropagación**
+:::
+
+![](../Imgs/retropropagacion.gif){.img_style fig-align="center"}
+
+::::
+
+## 3.3 Modelos de aprendizaje profundo{.theme-slideBoxRightPic}
+
+**Tipos de redes neuronales**
 
 - *Feedforward Neural Networks* (FNN)
 
@@ -531,13 +565,21 @@ Tipos de redes neuronales
 
 ![](../Imgs/red_recurrente.png){.img_style}
 
-## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+
+## 3.3 Modelos de aprendizaje profundo{.theme-slideSimple}
 
 ::: {.callout-important title="Limitaciones de las RNNs"}
 Tienen dificultades para capturar dependencias de largo plazo. Causas: Desvanecimiento o explosión del gradiente.
 :::
 
-:::{.fragment}
+![](../Imgs/retropropagacion_rnn.png){.img_style fig-align="center" width="65%"}
+
+
+## 3.3 Modelos de aprendizaje profundo {auto-animate="true" .theme-slideSimple}
+
+::: {.callout-tip title="Redes *Long-Short Term Memory* (LSTM)"}
+Tipo de RNN que almacena información a corto y largo plazo mediante un sistema logístico de 3 'puertas'.
+:::
 
 ```{python}
 #| output: asis
@@ -545,9 +587,7 @@ Tienen dificultades para capturar dependencias de largo plazo. Causas: Desvaneci
 funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70)
 ```
 
-:::
-
-## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+## 3.3 Modelos de aprendizaje profundo {auto-animate="true" .theme-slideSimple}
 
 ::: {.callout-note title="Puerta de guardado"}
 Se encarga de decidir que proporción de la información a largo plazo mantener en la neurona de memoria en cada iteración.
@@ -559,7 +599,7 @@ Se encarga de decidir que proporción de la información a largo plazo mantener 
 funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70, zoom=140, position_top="-186px", position_left="140px")
 ```
 
-## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+## 3.3 Modelos de aprendizaje profundo {auto-animate="true" .theme-slideSimple}
 
 ::: {.callout-note title="Puerta de entrada"}
 Controla que información añadir a la neurona de memoria. Propone un nuevo valor para la información a largo plazo y decide que proporción sumar al valor actual.
@@ -572,7 +612,7 @@ funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70, zoo
 ```
 
 
-## 4.3 Modelos de aprendizaje profundo {auto-animate="true"}
+## 3.3 Modelos de aprendizaje profundo {auto-animate="true" .theme-slideSimple}
 
 ::: {.callout-note title="Puerta de salida"}
 Se encarga de extraer la información más importante del estado actual de la neurona para usar como salida o valor para la próxima iteración de la red.
@@ -584,25 +624,25 @@ Se encarga de extraer la información más importante del estado actual de la ne
 funcion_zoom(img_path = "../Imgs/lstm.png", zoom_name = "zoom", img_size=70, zoom=140, position_top="-186px", position_left="-395px")
 ```
 
-# 4.4 MODELOS: Modelos fundacionales preentrenados {.center .theme-slideTitle}
+# 3.4 Modelos fundacionales preentrenados {.center .theme-slideTitle}
 
-## 4.4 Modelos fundacionales preentrenados
+## 3.4 Modelos fundacionales preentrenados {.theme-slideBoxLeft}
 
-Fundacional: Entrenado en grandes conjuntos de datos
+::: {.callout-tip title="‎ " appearance="default" icon="false"}
 
-Preentrenado: Los parámetros del modelo fueron previamente calculados
+**Fundacional**: Entrenado en grandes conjuntos de datos
 
-::: {.callout-note title="Modelos basados en arquitecturas *transformer*"}
+**Preentrenado**: Los parámetros del modelo fueron previamente calculados
 
-Originalmente creados con el propósito de generar texto:
+:::
+
+Generalmente basados en arquitecturas *transformer*
 
 - ChatGPT
 
 - BERT
 
 - Claude
-
-:::
 
 :::{.fragment}
 
@@ -615,7 +655,7 @@ Para pronosticar series de tiempo:
 :::
 
 
-## 4.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
 
 ### Modelos fundacionales preentrenados
 
@@ -634,10 +674,10 @@ Para pronosticar series de tiempo:
 ```{python}
 #| output: asis
 
-funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=47.62,extra="position:absolute; top: 150px; left: 520px;")
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=44.76,extra=".zoom_attention{position:absolute; top: 150px; left: 545px;} .zoom_attention p{left:0 !important; width:inherit;}")
 ```
 
-## 4.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
 
 ### Modelos fundacionales preentrenados
 
@@ -656,10 +696,10 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attentio
 ```{python}
 #| output: asis
 
-funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=47.62, zoom=250, position_top = "-422px", position_left = '-164px', extra="position:absolute; top: 150px; left: 520px;")
+funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=44.76, zoom=250, position_top = "-422px", position_left = '-164px', extra=".zoom_attention{position:absolute; top: 150px; left: 545px;} .zoom_attention p{left=0 !important; width:inherit;}")
 ```
 
-## 4.4 Modelos fundacionales preentrenados
+## 3.4 Modelos fundacionales preentrenados {.theme-slideSimple}
 
 ::: {.callout-note title="Atención"}
 
@@ -689,13 +729,15 @@ $W_V$: Matriz de valores ($\vec E \times W_V = \vec V$)
 Matrices iniciadas aleatoriamente y ajustadas en el preentrenado
 :::
 
-## 4.4 Modelos fundacionales preentrenados
+## 3.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
 
-\
+:::{.body}
 
-![](../Imgs/gif_attention.gif){fig-align="center" .img_style width="80%"}
+![](../Imgs/gif_attention.gif){fig-align="center"}
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+:::
+
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -704,7 +746,7 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 ```
 
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -714,13 +756,11 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 
 
 ::: {.callout-note title="Representación vectorial y codificación posicional"}
-Se *tokenizan* los datos de entrada ($\vec E$).
-
-Se suma a $\vec E$ un vector con patrones específicos que integran al vector de entrada la información posicional del token.
+Se *tokenizan* los datos de entrada ($\vec E$). Se suma a $\vec E$ un vector con patrones específicos que integran al vector de entrada la información posicional del *token*.
 :::
 
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -734,7 +774,7 @@ Las conexiones residuales se añaden sobre el vector de entrada en la salida de 
 La normalización estabiliza el entrenamiento y mejora la convergencia.
 :::
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -746,7 +786,7 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 Utilizada para descubrir dependencias locales y patrones de corto plazo.
 :::
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -755,7 +795,7 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 ```
 
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -767,7 +807,12 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 La entrada del decodificador son los *tokens* desplazados hacia la derecha.
 :::
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+:::{auto-animate-delay="1"}
+![](../Imgs/desp_derecha.png){data-id="desplazado" .img_style width="400px !important" height="256.15px" style="position:absolute; top:40px; left:50px; box-shadow:0px 30px 70px 20px #789 !important; z-index: 2;  width: 400px !important;"}
+:::
+
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
+
 
 ```{python}
 #| output: asis
@@ -779,7 +824,17 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 Antes de la aplicación de softmax se reemplazan todos los valores debajo de la diagonal principal de la matriz $QK$ por $-\infty$.
 :::
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+
+<style>
+.bug{z-index:2 !important; position:absolute !important; width:100%; height:100%; top:0;}
+.bug p {z-index:2 !important; position:absolute !important; width:100% !important; height:100% !important; line-height:100% !important}
+</style>
+
+::: {.bug auto-animate-delay="1"}
+![](../Imgs/Enmascaramiento.png){data-id="enmascaramiento" .img_style height="256.15px" style="position:absolute; top:40px; left:0px; box-shadow:0px 30px 70px 20px #789 !important; z-index: 2; width: 400px !important;"}
+:::
+
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -793,7 +848,7 @@ Se usan las matrices $K$ y $V$ que da como salida el codificador. $Q$ es la sali
 
 :::
 
-## 4.4 Modelos fundacionales preentrenados {auto-animate="true"}
+## 3.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
 
 ```{python}
 #| output: asis
@@ -804,3 +859,1035 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 ::: {.callout-note title="Conexión lineal"}
 *Feed Forward Network* completamente conectada que traduce las representaciones de atributos aprendidos en predicciones.
 :::
+
+
+## 3.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
+
+:::{.body}
+
+:::{.centro}
+Diferencias entre TimeGPT y Chronos
+:::
+
+|                                   | TimeGPT    | Chronos   |
+|-----------------------------------|------------|-----------|
+| Accesibilidad al código           | Cerrado    | Abierto   |
+| Representación vectorial          | No realiza | Necesaria |
+| Búsqueda de patrones en los datos | CNN        | FNN       |
+| Softmax en los resultados         | No realiza | Necesaria |
+
+:::
+
+# 4. Evaluación, validación e intervalos de predicción del modelo {.center .theme-slideTitle}
+
+## 4. Evaluación {.theme-slideBoxLeft auto-animate="true"}
+
+::: {.callout-note title="Métricas de evaluación"}
+Medidas cuantitativas para medir el ajuste del modelo.
+:::
+
+:::{.fragment}
+:::{.callout-tip title="Predicciones puntuales" data-id="metrica"}
+Porcentaje del error absoluto medio:
+
+$$
+MAPE = (\frac{1}{h}\sum^h_{l=1}|\frac{e_l}{z_{n+l}}|)\cdot 100 \%
+$$
+
+Donde:
+
+$e_l = z_{n+l} - \hat z_n(l)$: Error de la l-ésima predicción
+
+$\hat z_n(l)$: Pronóstico de la observación $z_{n+l}$
+
+:::
+:::
+
+## 4. Evaluación {.theme-slideBoxLeft auto-animate="true"}
+
+::: {.callout-note title="Métricas de evaluación"}
+Medidas cuantitativas para medir el ajuste del modelo.
+:::
+
+
+:::{.callout-tip title="Predicciones probabilísticas" data-id="metrica"}
+*Interval Score*:
+
+$$
+S = \frac{1}{h}\sum_{l=1}^h (W_l + O_l + U_l) 
+$$
+
+Donde:
+
+$W_l = IS_l - II_l \hspace{1, cm}$
+
+$IS_l$: Límite superior del intervalo
+
+$II_l$: Límite inferior del intervalo
+
+$O_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_n(l) - Z_{n+l}) \hspace{10,mm} \text{si } Z_n(l) > Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.$
+
+$U_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_{n+l} - Z_n(l)) \hspace{10,mm} \text{si } Z_n(l) < Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.$
+
+:::
+
+## 4. Validación {.theme-slideSimple}
+
+:::{.callout-note title="Sobreajuste"}
+Los parámetros del modelo se ajustan en exceso a los datos de entrenamiento, comprometiendo la capacidad del modelo de generalizar frente a datos no observados.
+:::
+
+:::{.fragment}
+::: {.callout-note title="Validación *hold-out*"}
+Reservar un una parte del conjunto de entrenamiento como validación.
+
+$$
+\text{Conjunto de entrenamiento total : } \{\underbrace{z_1, ...,  z_c}_{\text{Entrenamiento}}, \underbrace{z_{c+1}, ..., z_n}_{\text{Validación}} \}
+$$
+
+:::
+
+Se entrenan los modelos sobre el conjunto de entrenamiento y se prueban las métricas sobre el de validación.
+
+::: {.callout-important}
+
+El corte debe hacerse respetando el orden temporal de las observaciones. En caso de haber estacionalidad, ambos conjuntos deben cubrir al menos un ciclo.
+
+:::
+:::
+
+
+## 4. Intervalos de predicción {.theme-slideSimple}
+
+::: {.callout-warning title="Limitaciones de modelos modernos"}
+
+No realizan supuestos distribucionales, y por lo tanto, no generan pronósticos probabilísticos de forma directa.
+
+:::
+
+:::{.fragment}
+
+*Ensemble Batch Prediction Intervals* (EnbPI)
+
+1. Generar B muestras *bootstrap* por bloques.
+
+2. Ajustar un modelo sobre cada una de las B muestras.
+
+3. Calcular el residuo de cada observación utilizando aquellos modelos que no la incluyeron.
+
+4. Obtener las predicciones puntuales promediando los resultados de los B modelos.
+
+5. Construir los intervalos de predicción usando los cuantiles empíricos de los residuos.
+
+:::
+
+# 5. Aplicación {.center .theme-slideTitle}
+
+## 5. Aplicación: software y librerías {.theme-slideBoxLeft}
+
+**Lenguaje de programación:**
+
+`Python`
+
+**Librerías utilizadas:**
+
+- ARIMA y SARIMA
+  
+  `pmdarima`
+
+- Algoritmos de aprendizaje automático
+
+  `xgboost`, `lightgbm` y `mapie`
+
+- LSTM
+
+  `scalecast`
+
+- TimeGPT
+
+  `nixtla`
+
+- Chronos
+
+  `autogluon`
+
+## 5. Aplicación: Series analizadas{.theme-slideBorders .center}
+
+:::{.body}
+
+::: {.callout-tip icon="false" appearance="default" title="‎ "} 
+Atenciones mensuales en guardia por patologías respiratorias en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario
+:::
+
+::: {.callout-note icon="false" appearance="default" title="‎ "} 
+Trabajadores mensuales asalariados en el rubro de la educación privada en Argentina
+:::
+
+::: {.callout-important icon="false" appearance="default" title="‎ "} 
+Temperatura horaria en los primeros días de marzo de 2025 en la ciudad de Rosario
+:::
+
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=298, position_top = "0px", position_left = '0px')
+```
+
+::: {.footer}
+Información provista por la Dirección General de Estadística de la Municipalidad de Rosario.
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=290, position_top = "2px", position_left = '-1415px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=290, position_top = "-448px", position_left = '-700px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=303, position_top = "-600px", position_left = '0px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=303, position_top = "-1066px", position_left = '-20px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=320, position_top = "-1023px", position_left = '-836px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+### Atenciones en guardia
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=308, position_top = "-980px", position_left = '-1520px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(0,1,0)(0,1,1)_{12}
+$$
+
+
+::: {.columns}
+::: {.column .alinear width="50%"}
+![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="60%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="60%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column .smargen width="50%"}
+![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="60%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="60%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(0,1,0)(0,1,1)_{12}
+$$
+
+::: {.columns}
+:::{.column width="20%"}
+
+:::
+::: {.column .centro width="60%"}
+![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+:::
+::: {.column width="20%"}
+![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(0,1,0)(0,1,1)_{12}
+$$
+
+::: {.columns}
+:::{.column width="20%"}
+![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+:::
+::: {.column .centro width="60%"}
+![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column width="20%"}
+![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(0,1,0)(0,1,1)_{12}
+$$
+
+::: {.columns}
+:::{.column width="20%"}
+![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column .centro width="80%"}
+![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="47%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="47%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple}
+
+:::{.body}
+
+```{python}
+# Para mostrar los resultados
+from Funciones import load_env, summary_to_html
+
+globals().update(load_env('../Codigo/Ambiente/metricas_arima.pkl'))
+globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion_chronos.pkl'))
+
+```
+
+:::{.centro}
+**Pronóstico**
+:::
+
+![](../Imgs/plotnine/pronAT1.png){.img_style fig-align="center" width="95%"}
+
+| Modelo                       | Horizonte | MAPE   | *Interval Score* |
+|------------------------------|-----------|--------|------------------|
+|                              | 3         | `{python} round(mape_AT1_3, 4)`     | `{python} round(is_AT1_3, 4)`        |
+| $SARIMA(0,1,0)(0,1,1 )_{12}$ | 6         | `{python} round(mape_AT1_6, 4)`     | `{python} round(is_AT1_6, 4)`        |
+|                              | 12        | `{python} round(mape_AT1, 4)` | `{python} round(is_AT1, 4)` |
+
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+### Trabajadores asalariados
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie2.png", zoom_name = "attention", img_size=70, zoom=295, position_top = "0px", position_left = '0px')
+```
+
+::: footer
+Datos extraídos del informe Situación y evolución del Trabajo Registrado de la Secretaría de Trabajo, Empleo y Seguridad Social
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+### Trabajadores asalariados
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie2.png", zoom_name = "attention", img_size=70, zoom=280, position_top = "-9px", position_left = '-1336px')
+```
+
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+### Trabajadores asalariados
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie2.png", zoom_name = "attention", img_size=70, zoom=300, position_top = "-495px", position_left = '-763px')
+```
+
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+### Trabajadores asalariados
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie2.png", zoom_name = "attention", img_size=70, zoom=285, position_top = "-862px", position_left = '8px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+### Trabajadores asalariados
+
+```{python}
+#| output: asis
+
+funcion_zoom(img_path = "../Imgs/Serie2.png", zoom_name = "attention", img_size=70, zoom=290, position_top = "-898px", position_left = '-1430px')
+```
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(1,1,0)(1,0,1)_{12}
+$$
+
+::: {.columns}
+::: {.column .alinear width="50%"}
+![](../Imgs/plotnine/resid_arima_TR2_1.png){.img_style width="60%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_TR2_3.png){.img_style width="60%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column .smargen width="50%"}
+![](../Imgs/plotnine/resid_arima_TR2_2.png){.img_style width="60%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TR2_4.png){.img_style width="60%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(1,1,0)(1,0,1)_{12}
+$$
+
+
+::: {.columns}
+:::{.column width="20%"}
+
+:::
+::: {.column .centro width="60%"}
+![](../Imgs/plotnine/resid_arima_TR2_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+:::
+::: {.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TR2_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+![](../Imgs/plotnine/resid_arima_TR2_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TR2_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(1,1,0)(1,0,1)_{12}
+$$
+
+
+::: {.columns}
+:::{.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TR2_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+:::
+::: {.column .centro width="60%"}
+![](../Imgs/plotnine/resid_arima_TR2_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TR2_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TR2_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo seleccionado**
+:::
+
+$$
+SARIMA(1,1,0)(1,0,1)_{12}
+$$
+
+
+::: {.columns}
+:::{.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TR2_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_TR2_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column .centro width="80%"}
+![](../Imgs/plotnine/resid_arima_TR2_3.png){.img_style width="47%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TR2_4.png){.img_style width="47%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple}
+
+:::{.body}
+
+:::{.centro}
+**Pronóstico**
+:::
+
+![](../Imgs/plotnine/pronTR2.png){.img_style fig-align="center" width="95%"}
+
+| Modelo                       | Horizonte | MAPE   | *Interval Score* |
+|------------------------------|-----------|--------|------------------|
+|                              | 3         | `{python} round(mape_TR2_3, 4)`     | `{python} round(is_TR2_3, 4)`        |
+| $SARIMA(1,1,0)(1,0,1)_{12}$ | 6         | `{python} round(mape_TR2_6, 4)`     | `{python} round(is_TR2_6, 4)`        |
+|                              | 12        | `{python} round(mape_TR2, 4)` | `{python} round(is_TR2, 4)` |
+
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+### Temperaturas
+
+::: {r.vstack}
+
+![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
+
+![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
+
+![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
+
+:::
+
+
+::: footer
+Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+\
+
+\
+
+![](../Imgs/plotnine/temperatura1.png){width="100%" fig-align="center" .img_style data-id="temp1" style="text-align: center;"}
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+
+
+### Temperaturas
+
+::: {r.vstack}
+
+![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
+
+![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
+
+![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
+
+:::
+
+
+::: footer
+Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+Modelo seleccionado de forma automática con `autoarima`
+:::
+
+
+$$SARIMAX(1,1,1)(2,0,1)_{24}$$
+
+
+```{python}
+
+globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion.pkl'))
+```
+
+:::{.tablaLetraChica}
+```{python}
+#| output: asis
+
+summary_to_html(resultados_arima['salida_arima_temperatura_auto'])
+```
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple}
+
+:::{.centro}
+**Modelo propuesto**
+:::
+
+$$SARIMAX(1,1,0)(1,0,1)_{24}$$
+
+
+::: {.columns}
+::: {.column .alinear width="50%"}
+![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="60%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="60%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column .smargen width="50%"}
+![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="60%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="60%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo propuesto**
+:::
+
+$$SARIMAX(1,1,0)(1,0,1)_{24}$$
+
+
+::: {.columns}
+:::{.column width="20%"}
+
+:::
+::: {.column .centro width="60%"}
+![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+:::
+::: {.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo propuesto**
+:::
+
+$$SARIMAX(1,1,0)(1,0,1)_{24}$$
+
+
+::: {.columns}
+:::{.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+:::
+::: {.column .centro width="60%"}
+![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple auto-animate="true"}
+
+:::{.centro}
+**Modelo propuesto**
+:::
+
+$$SARIMAX(1,1,0)(1,0,1)_{24}$$
+
+
+::: {.columns}
+:::{.column width="20%"}
+![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
+:::
+::: {.column .centro width="80%"}
+![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="47%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="47%" style="margin:0;" data-id="sup4"}
+:::
+:::
+
+## 5.1 Aplicación: ARIMA - Serie 3 {.theme-slideSimple}
+
+:::{.body}
+
+:::{.centro}
+**Pronóstico**
+:::
+
+![](../Imgs/plotnine/pronTE4.png){.img_style fig-align="center" width="95%"}
+
+| Modelo                       | Horizonte | MAPE   | *Interval Score* |
+|------------------------------|-----------|--------|------------------|
+|                              | 6         | `{python} round(mape_TE4_6, 4)`     | `{python} round(is_TE4_6, 4)`        |
+| $SARIMA(1,1,0)(1,0,1)_{12}$ | 12         | `{python} round(mape_TE4_12, 4)`     | `{python} round(is_TE4_12, 4)`        |
+|                              | 24        | `{python} round(mape_TE4, 4)` | `{python} round(is_TE4, 4)` |
+
+:::
+
+## 5.2 Aplicación: Modelos de aprendizaje automático {.theme-slideBoxLeft}
+
+**Características elegidas:**
+
+- Identificación temporal
+
+- El promedio de las 3 observaciones anteriores 
+
+- El desvío estándar de las 3 observaciones anteriores
+
+- El valor del primer rezago
+
+- El valor del segundo rezago
+
+- El valor del rezago estacional
+
+## 5.2 Aplicación: Modelos de aprendizaje automático {.theme-slideBoxLeft}
+
+**Hiperparámetros:**
+
+- Número de árboles ($A$). 
+
+  Opciones: 20, 50, 100, 150.
+
+- Profundidad máxima del árbol ($P$). 
+
+  Opciones: 2, 3, 4, 5.
+
+- Número máximo de hojas del árbol ($H$). 
+
+  Opciones: 2, 4, 8, 16.
+
+- Tasa de aprendizaje en el método del gradiente ($\eta$). 
+
+  Opciones: 0.001, 0.1, 0.2.
+
+- Proporción de características que se usa en cada árbol ($C$). 
+
+  Opciones: 0.7, 1.
+
+
+## 5.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Métricas con XGBoost**
+:::
+
+:::{.tablaLetraChica}
+
+| Serie                    | Hor. | $A$ | $P$ | $H$ | $\eta$  | $C$ | MAPE  | Interval Score |
+|--------------------------|------|-----|-----|-----|-----|-----|-------|----------------|
+|                          | 3    | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb3['mape'], 4)` | `{python} round(resultados_1_xgb3['score'], 4)` |
+| Atenciones    | 6    | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb6['mape'], 4)` | `{python} round(resultados_1_xgb6['score'], 4)` |
+|                          | 12   | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb['mape'], 4)` | `{python} round(resultados_1_xgb['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 3    | `{python} resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`  | `{python} resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb3['grilla'][resultados_2_xgb3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb3['mape'], 4)` | `{python} round(resultados_2_xgb3['score'], 4)` |
+| Trabajadores | 6    | `{python} resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb6['grilla'][resultados_2_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb6['mape'], 4)` | `{python} round(resultados_2_xgb6['score'], 4)` |
+|                          | 12   | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_xgb['grilla'][resultados_2_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_xgb['mape'], 4)` | `{python} round(resultados_2_xgb['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 6    | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb6['mape'], 4)` | `{python} round(resultados_3_xgb6['score'], 4)` |
+| Temperatura              | 12   | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb12['mape'], 4)` | `{python} round(resultados_3_xgb12['score'], 4)` |
+|                          | 24   | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb['mape'], 4)` | `{python} round(resultados_3_xgb['score'], 4)` |
+
+:::
+
+## 5.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
+
+::: {.centro}
+**Pronósticos con XGBoost**
+:::
+
+![](../Imgs/plotnine/xgboost1.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/xgboost2.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/xgboost3.png){.img_style fig-align="center" width="65%"}
+
+## 5.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Métricas con LightGBM**
+:::
+
+:::{.tablaLetraChica}
+
+| Serie                    | Hor. | $A$ | $P$ | $H$ | $\eta$  | $C$ | MAPE  | Interval Score |
+|--------------------------|------|-----|-----|-----|-----|-----|-------|----------------|
+|                          | 3    | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm3['mape'], 4)` | `{python} round(resultados_1_lgbm3['score'], 4)` |
+| Atenciones    | 6    | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm6['mape'], 4)` | `{python} round(resultados_1_lgbm6['score'], 4)` |
+|                          | 12   | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm['mape'], 4)` | `{python} round(resultados_1_lgbm['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 3    | `{python} resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`  | `{python} resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm3['grilla'][resultados_2_lgbm3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm3['mape'], 4)` | `{python} round(resultados_2_lgbm3['score'], 4)` |
+| Trabajadores | 6    | `{python} resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm6['grilla'][resultados_2_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm6['mape'], 4)` | `{python} round(resultados_2_lgbm6['score'], 4)` |
+|                          | 12   | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_2_lgbm['grilla'][resultados_2_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_2_lgbm['mape'], 4)` | `{python} round(resultados_2_lgbm['score'], 4)` |
+|                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
+|                          | 6    | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm6['mape'], 4)` | `{python} round(resultados_3_lgbm6['score'], 4)` |
+| Temperatura              | 12   | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm12['mape'], 4)` | `{python} round(resultados_3_lgbm12['score'], 4)` |
+|                          | 24   | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm['mape'], 4)` | `{python} round(resultados_3_lgbm['score'], 4)` |
+
+:::
+
+## 5.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
+
+::: {.centro}
+**Pronósticos con LightGBM**
+:::
+
+![](../Imgs/plotnine/lgbm1.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/lgbm2.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/lgbm3.png){.img_style fig-align="center" width="65%"}
+
+## 5.3 Aplicación: Modelos de aprendizaje profundo {.theme-slideBoxLeft}
+
+::: {.callout-tip title="Técnicas para evitar sobreajuste en redes neuronales"}
+- Detención temprana
+
+- *Dropout*
+:::
+
+:::{style="font-size:.8em;"}
+
+300 iteraciones de entrenamiento, $\eta$ = 0.001 y paciencia = 10.
+
+**Hiperparámetros:**
+
+- Capas y neuronas en el modelo ($N$). 
+
+  Opciones: [32], [12, 24], [24, 42].
+
+- Rezagos con los que se entrena el modelo ($R$). 
+
+  Opciones: 1, 12, 24.
+
+- Proporción de *dropout* en cada capa ($D$). 
+
+  Opciones: 0.1, 0.3.
+
+- Función de activación ($A$). 
+
+  Opciones: ReLu, tangente hiperbólica (tanh).
+
+:::
+
+## 5.3 Aplicación: Modelos de aprendizaje profundo {.theme-slideSimple}
+
+\
+
+
+::: {.centro}
+**Métricas con LSTM**
+:::
+
+:::{.tablaLetraChica}
+
+| Serie                    | Hor. | $N$ | $R$ | $D$ | $A$ | MAPE  | _Interval Score_ |
+|--------------------------|------|--------|-----|-----|-----|-------|------------------|
+|              | 3    | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`       | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`               | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`          | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`       | `{python} round(resultados_1_lstm3['mape'], 4)`  | `{python} round(resultados_1_lstm3['score'], 4)`  |
+| Atenciones   | 6    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_1_lstm6['mape'], 4)`  | `{python} round(resultados_1_lstm6['score'], 4)`  |
+|              | 12   | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_1_lstm['mape'], 4)`   | `{python} round(resultados_1_lstm['score'], 4)`   |
+|              |      |                                                                                                                                |                                                                                                                                       |                                                                                                                                     |                                                                                                                                     |                                                  |                                                   |
+|              | 3    | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_2_lstm3['grilla'][resultados_2_lstm3['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_2_lstm3['mape'], 4)`  | `{python} round(resultados_2_lstm3['score'], 4)`  |
+| Trabajadores | 6    | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_2_lstm6['grilla'][resultados_2_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_2_lstm6['mape'], 4)`  | `{python} round(resultados_2_lstm6['score'], 4)`  |
+|              | 12   | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_2_lstm['grilla'][resultados_2_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_2_lstm['mape'], 4)`   | `{python} round(resultados_2_lstm['score'], 4)`   |
+|              |      |                                                                                                                                |                                                                                                                                       |                                                                                                                                     |                                                                                                                                     |                                                  |                                                   |
+|              | 6    | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_3_lstm6['mape'], 4)`  | `{python} round(resultados_3_lstm6['score'], 4)`  |
+| Temperatura  | 12   | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['units'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]` | `{python} round(resultados_3_lstm12['mape'], 4)` | `{python} round(resultados_3_lstm12['score'], 4)` |
+|              | 24   | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_3_lstm['mape'], 4)`   | `{python} round(resultados_3_lstm['score'], 4)`   |
+
+:::
+
+## 5.3 Aplicación: Modelos de aprendizaje profundo {.theme-slideSimple}
+
+::: {.centro}
+**Pronósticos con LSTM**
+:::
+
+![](../Imgs/plotnine/lstm1.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/lstm2.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/lstm3.png){.img_style fig-align="center" width="65%"}
+
+
+## 5.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
+
+\
+
+
+::: {.centro}
+**Métricas con TimeGPT**
+:::
+
+:::{.tablaLetraChica}
+
+| Serie                    | Hor. | MAPE  | _Interval Score_ |
+|--------------------------|------|-------|------------------|
+|                          |3     |`{python} round(resultados_1_gpt3['mape'], 4)`|`{python} round(resultados_1_gpt3['score'], 4)`|
+|Atenciones                |6     |`{python} round(resultados_1_gpt6['mape'], 4)`|`{python} round(resultados_1_gpt6['score'], 4)`|
+|                          |12    |`{python} round(resultados_1_gpt['mape'], 4)`|`{python} round(resultados_1_gpt['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_2_gpt3['mape'], 4)`|`{python} round(resultados_2_gpt3['score'], 4)`|
+|Trabajadores                |6     |`{python} round(resultados_2_gpt6['mape'], 4)`|`{python} round(resultados_2_gpt6['score'], 4)`|
+|                          |12    |`{python} round(resultados_2_gpt['mape'], 4)`|`{python} round(resultados_2_gpt['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_3_gpt6['mape'], 4)`|`{python} round(resultados_3_gpt6['score'], 4)`|
+|Temperatura                |6     |`{python} round(resultados_3_gpt12['mape'], 4)`|`{python} round(resultados_3_gpt12['score'], 4)`|
+|                          |12    |`{python} round(resultados_3_gpt['mape'], 4)`|`{python} round(resultados_3_gpt['score'], 4)`|
+
+:::
+
+## 5.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
+
+::: {.centro}
+**Pronósticos con TimeGPT**
+:::
+
+![](../Imgs/plotnine/gpt1.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/gpt2.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/gpt3.png){.img_style fig-align="center" width="65%"}
+
+## 5.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
+
+\
+
+
+::: {.centro}
+**Métricas con Chronos**
+:::
+
+:::{.tablaLetraChica}
+
+| Serie                    | Hor. | MAPE  | _Interval Score_ |
+|--------------------------|------|-------|------------------|
+|                          |3     |`{python} round(resultados_1_chronos3['mape'], 4)`|`{python} round(resultados_1_chronos3['score'], 4)`|
+|Atenciones                |6     |`{python} round(resultados_1_chronos6['mape'], 4)`|`{python} round(resultados_1_chronos6['score'], 4)`|
+|                          |12    |`{python} round(resultados_1_chronos['mape'], 4)`|`{python} round(resultados_1_chronos['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_2_chronos3['mape'], 4)`|`{python} round(resultados_2_chronos3['score'], 4)`|
+|Trabajadores                |6     |`{python} round(resultados_2_chronos6['mape'], 4)`|`{python} round(resultados_2_chronos6['score'], 4)`|
+|                          |12    |`{python} round(resultados_2_chronos['mape'], 4)`|`{python} round(resultados_2_chronos['score'], 4)`|
+| |      | | |
+|                          |3     |`{python} round(resultados_3_chronos6['mape'], 4)`|`{python} round(resultados_3_chronos6['score'], 4)`|
+|Temperatura                |6     |`{python} round(resultados_3_chronos12['mape'], 4)`|`{python} round(resultados_3_chronos12['score'], 4)`|
+|                          |12    |`{python} round(resultados_3_chronos['mape'], 4)`|`{python} round(resultados_3_chronos['score'], 4)`|
+
+:::
+
+## 5.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
+
+::: {.centro}
+**Pronósticos con Chronos**
+:::
+
+![](../Imgs/plotnine/chronos1.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/chronos2.png){.img_style fig-align="center" width="65%"}
+
+![](../Imgs/plotnine/chronos3.png){.img_style fig-align="center" width="65%"}
+
+# 6. Comparación de resultados {.center .theme-slideTitle}
+
+## 6.1 Comparación de resultados: Serie 1 {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Atenciones en guardia por patologías respiratorias**
+:::
+
+![](../Imgs/tabla_resumen_1.png){.img_style fig-align="center" width="80%"}
+
+## 6.1 Comparación de resultados: Serie 1 {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Atenciones en guardia por patologías respiratorias**
+:::
+
+![](../Imgs/plotnine/comparativaAtenciones.png){.img_style fig-align="center"}
+
+## 6.2 Comparación de resultados: Serie 2 {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Trabajadores asalariados en el rubro de la enseñanza privada**
+:::
+
+![](../Imgs/tabla_resumen_2.png){.img_style fig-align="center" width="80%"}
+
+## 6.2 Comparación de resultados: Serie 2 {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Trabajadores asalariados en el rubro de la enseñanza privada**
+:::
+
+![](../Imgs/plotnine/comparativaTrabajadores.png){.img_style fig-align="center"}
+
+## 6.3 Comparación de resultados: Serie 3 {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Temperatura (Cº) por hora en los primeros días de marzo 2025**
+:::
+
+![](../Imgs/tabla_resumen_3.png){.img_style fig-align="center" width="80%"}
+
+## 6.3 Comparación de resultados: Serie 3 {.theme-slideSimple}
+
+\
+
+::: {.centro}
+**Temperatura (Cº) por hora en los primeros días de marzo 2025**
+:::
+
+![](../Imgs/plotnine/comparativaTemperaturas.png){.img_style fig-align="center"}
+
+# 7. Conclusión y comentarios finales {.center .theme-slideTitle}
+
+# ¡MUCHAS GRACIAS! 😀 {.center}

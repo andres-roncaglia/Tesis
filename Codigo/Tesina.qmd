@@ -30,7 +30,7 @@ header-includes:
 # LIBRERIAS
 
 # Para mostrar los resultados
-from Funciones import plot_forecast, load_env, autocorr_plot, resid_check, interval_score, summary_to_latex, tabla_resumen, plot_forecast_compare
+from Funciones import plot_forecast, load_env, save_env, autocorr_plot, resid_check, interval_score, summary_to_latex, tabla_resumen, plot_forecast_compare
 
 # Para calcular MAPE
 from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
@@ -187,7 +187,7 @@ Son llamados modelos estadísticos tradicionales a aquellos que surgen antes del
 
 ### 3.2.1 SARIMA {#arima}
 
-Los modelos $ARIMA$ (*AutoRegresive Integrated Moving Average*) son unos de los modelos de pronóstico tradicionales mejor establecidos. Son una generalización de los modelos autoregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además, estos modelos pueden adaptarse a series no estacionarias mediante la aplicación de diferenciaciones de orden $d$, las cuales implican restar a cada observación el valor registrado $d$ periodos anteriores.
+Los modelos $ARIMA$ (*AutoRegressive Integrated Moving Average*) son unos de los modelos de pronóstico tradicionales mejor establecidos. Son una generalización de los modelos autorregresivos (AR), que suponen que las observaciones futuras son función de las observaciones pasadas, y los modelos promedio móvil (MA), que pronostican las observaciones como funciones de los errores de observaciones pasadas. Además, estos modelos pueden adaptarse a series no estacionarias mediante la aplicación de diferenciaciones de orden $d$, las cuales implican restar a cada observación el valor registrado $d$ periodos anteriores.
 
 Formalmente un modelo $ARIMA(p,d,q)$ se define de la siguiente manera:
 
@@ -195,7 +195,7 @@ $$
 \psi_p(B)(1-B)^dz_t = \theta_0 + \theta_q(B)\alpha_t
 $${#eq-1}
 
-Donde $z_t$ es la observación $t$-ésima, $\psi_p(B)$ y $\theta_q(B)$ son funciones de los rezagos ($B$), correspondientes a la parte autoregresiva y promedio móvil respectivamente, $d$ es el grado de diferenciación y $\alpha_t$ es el error de la $t$-ésima observación.
+Donde $z_t$ es la observación $t$-ésima, $\psi_p(B)$ y $\theta_q(B)$ son funciones de los rezagos ($B$), correspondientes a la parte autorregresiva y promedio móvil respectivamente, $d$ es el grado de diferenciación y $\alpha_t$ es el error de la $t$-ésima observación.
 
 Se debe tener en cuenta estos aspectos importantes:
 
@@ -209,7 +209,7 @@ Se debe tener en cuenta estos aspectos importantes:
 
 Sin embargo este tipo de modelos no tienen en cuenta la posible estacionalidad que puede tener una serie, es por esto que se introducen los modelos $SARIMA(p,d,q)(P,D,Q)_s$ que agregan componentes AR, MA y diferenciaciones a la parte estacional de la serie con período $s$.
 
-Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la autocorrelación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas. Estas funciones son necesarias para poder identificar los modelos $SARIMA$ y se definen como:
+Se denomina función de autocorrelación a la función de los rezagos, entendiendo por rezago a la distancia ordinal entre dos observaciones, que grafica la correlación entre pares de observaciones. Es decir que para cada valor $k$ se tiene la correlación entre todos los pares de observaciones a $k$ observaciones de distancia. En su lugar, la función de autocorrelación parcial calcula la correlación condicional de los pares de observaciones, removiendo la dependencia lineal de estas observaciones con las que se encuentran entre estas. Estas funciones son necesarias para poder identificar los modelos $SARIMA$ y se definen como:
 
 $$
 \rho_k = Corr(z_t, z_{t+k}) = \frac{Cov(z_t, z_{t+k})}{\sqrt{Var(z_t) \cdot Var(z_{t+k})}}
@@ -330,14 +330,14 @@ Un árbol puede tener distinta cantidad de divisiones en un mismo nivel, llamada
 ![Ejemplo de árbol de decisión](../Imgs/arbol_decision.png){width=70%}
 
 
-Los métodos de ensamblaje buscan mejorar la robustez y precisión de las predicciones combinando los resultados de varios estimadores base, como los árboles de decisión. Los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamblaje (Bosques aleatorios, XGBoost, LightGBM, CatBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos *eXtreme Gradient Boosting* (XGBoost) y *Light Gradient-Boosting Machine* (LightGBM).
+Los métodos de ensamble buscan mejorar la robustez y precisión de las predicciones combinando los resultados de varios estimadores base, como los árboles de decisión. Los modelos no se construyen infinitamente, sino que se busca minimizar una función de pérdida que incluye una penalización por la complejidad del modelo, limitando así la cantidad de árboles que se producen. Existen múltiples métodos de ensamble (Bosques aleatorios, XGBoost, LightGBM, CatBoost, entre otros) que se diferencian en la forma en la que se construyen los árboles. En esta tesina se usarán los algoritmos *eXtreme Gradient Boosting* (XGBoost) y *Light Gradient-Boosting Machine* (LightGBM).
 
 
 Se denomina *Boosting* a un proceso iterativo, que consiste en la construcción de árboles de forma secuencial donde cada nuevo árbol busca predecir los residuos de los árboles anteriores. Es así entonces que el primer árbol buscará predecir los valores futuros de la serie, mientras que el segundo intentará predecir los valores reales menos los pronosticados por el primer árbol, el tercero tratará de inferir la diferencia entre los valores reales y el valor pronosticado del primer árbol menos los errores del segundo, y así sucesivamente. En cada iteración se pesan los puntos y se corrigen aquellos que tengan un mayor error por medio del descenso del gradiente. 
 
 ![Proceso de ensamblado](../Imgs/Ensamblaje.png){width=80%}
 
-La dirección de máximo crecimiento para una función está determinada por su gradiente, y por consiguiente, la dirección contraria es la dirección de máximo decrecimiento. El descenso del gradiente es un algoritmo iterativo en el que, con el objetivo de minimizar una función de pérdida, se calcula en cada paso la derivada de la función de costo con respecto a cada parámetro en su valor actual. Luego, se actualizan los valores de los parámetros desplazandolos una pequeña magnitud $\eta$, llamada “tasa de aprendizaje”, de forma tal que la función de pérdida decrezca.
+La dirección de máximo crecimiento para una función está determinada por su gradiente, y por consiguiente, la dirección contraria es la dirección de máximo decrecimiento. El descenso del gradiente es un algoritmo iterativo en el que, con el objetivo de minimizar una función de pérdida, se calcula en cada paso la derivada de la función de costo con respecto a cada parámetro en su valor actual. Luego, se actualizan los valores de los parámetros desplazandolos una pequeña magnitud proporcional a $\eta$, llamada “tasa de aprendizaje”, de forma tal que la función de pérdida decrezca.
 
 Sea $L(x)$ una función de pérdida y $\theta_0$ el valor actual de un parámetro del modelo, la actualización de dicho parámetro se realiza de la siguiente manera:
 
@@ -354,13 +354,13 @@ Este procedimiento iterativo se repite hasta lograr la convergencia o se llegue 
 
 Las diferencias entre XGBoost y LightGBM radican en la forma en que cada uno identifica las mejores divisiones dentro de los árboles y de que forma los hacen crecer.
 
-XGBoost utiliza un método exacto en el que se calcula la ganancia de las particiones con cada característica, entendiendo por ganancia a la contribución relativa de una característica en el contexto de un árbol particular. Se elige la mejor partición y repite el proceso. Si bien este método es preciso, es lento computacionalmente. Por otro lado, LightGBM usa un método más eficiente llamado *Gradient-Based One-Side Sample* (GOSS). GOSS calcula los gradientes para cada punto y lo usa para filtrar afuera aquellos puntos que tengan un bajo gradiente. Que un punto tenga un gradiente bajo significaría que está "mejor pronosticado" que el resto, y por lo tanto no es necesario enfocarse tanto en mejorar dicho punto. Además, LightGBM utiliza un procedimiento que acelera el ajuste cuando se tienen muchas características correlacionadas de las cuales elegir, denominado  *Exclusive Feature Bundle* (EFB). 
+XGBoost utiliza un método exacto en el que se calcula la ganancia de las particiones con cada característica, entendiendo por ganancia a la contribución relativa de una característica en el contexto de un árbol particular. Se elige la mejor partición y repite el proceso. Si bien este método es preciso, es lento computacionalmente. Por otro lado, LightGBM usa un método más eficiente llamado *Gradient-Based One-Side Sample* (GOSS). GOSS calcula los gradientes para cada punto y lo usa para filtrar afuera aquellos puntos que tengan un bajo gradiente. Que un punto tenga un gradiente bajo significaría que está "mejor pronosticado" que el resto, y por lo tanto no es necesario enfocarse tanto en mejorar dicho punto. Además, LightGBM utiliza un procedimiento que acelera el ajuste cuando se tienen muchas características correlacionadas entre las cuales elegir, denominado  *Exclusive Feature Bundle* (EFB). 
 
 A la hora de hacer crecer los árboles, XGBoost lo hace nivel a nivel, es decir que primero se crean todas las divisiones de un nivel, y luego se pasa al siguiente, priorizando que el árbol sea simétrico y tenga la misma profundidad en todas sus ramas. LigthGBM, en cambio, se expande a partir de la hoja que más reduce el error, mejorando la precisión y eficiencia en series largas, pero arriesgándose a posibles sobreajustes si no se limita correctamente la profundidad de los árboles.
 
-### 3.3.3 Intervalos de confianza en algoritmos de aprendizaje automático
+### 3.3.3 Intervalos de predicción en algoritmos de aprendizaje automático
 
-Una de las principales ventajas de los modelos de aprendizaje automático respecto de los enfoques estadísticos tradicionales es que no requieren supuestos distribucionales estrictos sobre los errores. Sin embargo, esta flexibilidad también implica que, en general, no generan pronósticos probabilísticos de forma directa, lo que dificulta la construcción de intervalos de confianza.
+Una de las principales ventajas de los modelos de aprendizaje automático respecto de los enfoques estadísticos tradicionales es que no requieren supuestos distribucionales estrictos sobre los errores. Sin embargo, esta flexibilidad también implica que, en general, no generan pronósticos probabilísticos de forma directa, lo que dificulta la construcción de intervalos de predicción.
 
 Para subsanar esta limitación, se han desarrollado diversos métodos que permiten acompañar las predicciones puntuales con medidas de incertidumbre. A continuación, se describen dos de los enfoques más utilizados.
 
@@ -386,7 +386,7 @@ $$
 IC_{Z_{n+l}; 1-\alpha}= Z_{n}(l) \pm Q_{1-\alpha}(e)
 $${#eq-2}
 
-Este método será el utilizado en esta tesina para estimar los intervalos de confianza en los algoritmos de aprendizaje automático y se aplica con la librería `MAPIE`. 
+Este método será el utilizado en esta tesina para estimar los intervalos de predicción en los algoritmos de aprendizaje automático y se aplica con la librería `MAPIE`. 
 
 ## 3.4 Modelos de aprendizaje profundo
 
@@ -396,7 +396,7 @@ Entre estos algoritmos se encuentran las redes neuronales, que imitan el funcion
 
 ### 3.4.1 Introducción a redes neuronales
 
-Una red neuronal esta compuesta en grandes rasgos de 3 capas: entrada, oculta y salida. Dentro de cada capa se pueden encontrar neuronas y conexiones entre estas, donde cada neurona representa una variable y cada conexión un peso, y es por esto que a estas conexiones las llamaremos así en adelante. La suma de los pesos y las neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
+Una red neuronal está compuesta, en grandes rasgos, de 3 capas: entrada, oculta y salida. Dentro de cada capa se pueden encontrar neuronas y conexiones entre estas, donde cada neurona representa una variable y cada conexión un peso, y es por esto que a estas conexiones las llamaremos así en adelante. La suma de la cantidad de pesos y neuronas que no formen parte de la capa de entrada dan el total de parámetros que tiene que ajustar el modelo.
 
 ![Ejemplo de red neuronal completamente conectada](../Imgs/red_conectada.png){#fig-redneuro width=80%}
 
@@ -410,7 +410,7 @@ Existen distintos tipos de redes neuronales según la forma en la que se conecta
 
 ### 3.4.2 *Long Short Term Memory* (LSTM)
 
-Lo que caracterizan a las redes neuronales recurrentes son los bucles de retroalimentación que se presentan en la figura @fig-rnn. Mientras que cada neurona de entrada en una FNN es independiente, en las redes neuronales recurrentes se relacionan entre ellas y se retroalimentan.
+Lo que caracteriza a las redes neuronales recurrentes son los bucles de retroalimentación que se presentan en la figura @fig-rnn. Mientras que cada neurona de entrada en una FNN es independiente, en las redes neuronales recurrentes se relacionan entre ellas y se retroalimentan.
 
 ![Ejemplo de RNN](../Imgs/red_recurrente.png){#fig-rnn width=80%}
 
@@ -462,7 +462,7 @@ $$
 C_t = Old_t + New_t
 $${#eq-ct}
 
-Donde $New_t = I_t \times N_t${#eq-7}
+Donde $New_t = I_t \times N_t$
 
 
 **Puerta de salida**
@@ -483,15 +483,15 @@ Las 3 puertas son logísticas para que sea sencillo aplicar la retropropagación
 
 ### 3.4.3 Modelos transformadores
 
-Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cuales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs; gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. Estos mecanismos capturan dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto a cada observación. 
+Otro tipo de modelo de aprendizaje profundo son los *transformer models* (modelos transformadores), los cuales son significativamente más eficientes al entrenar y realizar inferencias que las RNNs; gracias al uso de mecanismos de atención, presentados en la publicación '[*Attention is all you need*](https://arxiv.org/pdf/1706.03762)' de Google. Estos mecanismos capturan dependencias y relaciones en la secuencias de valores que se alimentan al modelo, logrando poner en contexto cada observación. 
 
 Los modelos transformadores fueron creados originalmente con el propósito de generar texto. Sin embargo, tanto TimeGPT como Chronos explotan esta tecnología para el pronóstico de series de tiempo. Ambos modelos son preentrenados, lo cual significa que la optimización de parámetros y pesos fue realizada antes de usarse el modelo. Esto se logra entrenando y generalizando el modelo en un conjunto de datos extenso, por lo general de fuentes públicas. El preentrenamiento permite que el modelo adquiera conocimientos generales sobre la estructura y los patrones de los datos, los cuales luego pueden ser reutilizados en tareas concretas mediante técnicas como *fine-tuning* (ajuste fino). Los modelos preentrenados constituyen una gran innovación, lo que mejora la accesibilidad, precisión, eficiencia computacional y velocidad del pronóstico.
 
-Dado que los modelos de lenguaje de texto utilizan diccionarios de *tokens*, que son segmentos de caracteres representados vectorialmente según ciertos parámetros, es necesario tokenizar los valores de la serie temporal. El diccionario de *tokens* con el que operan los modelos de lenguaje no es infinito, por lo tanto es necesario proyectar las observaciones a un set finito de *tokens*. Para cumplir esto, Chronos escala y discretiza las observaciones. TimeGTP por su parte usa las mismas observaciones como *tokens*, esto dado que, si bien su arquitectura es la de un modelo transformador, esta no está basada en ningún modelo de lenguaje existente, y en cambio trabaja con un modelo especializado en series de tiempo entrenado para minimizar el error de pronóstico.
+Dado que los modelos de lenguaje de texto utilizan diccionarios de *tokens*, que son segmentos de caracteres representados vectorialmente según ciertos parámetros, es necesario *token*-izar los valores de la serie temporal. El diccionario de *tokens* con el que operan los modelos de lenguaje no es infinito, por lo tanto es necesario proyectar las observaciones a un set finito de *tokens*. Para cumplir esto, Chronos escala y discretiza las observaciones. TimeGTP por su parte usa las mismas observaciones como *tokens*, esto dado que, si bien su arquitectura es la de un modelo transformador, esta no está basada en ningún modelo de lenguaje existente, y en cambio trabaja con un modelo especializado en series de tiempo entrenado para minimizar el error de pronóstico.
 
-Para el escalado se aplica a las observaciones una transformación del tipo $f(x_i) = (x_i-m)/s$. Existen variadas técnicas de escalado eligiendo apropiadamente $m$ y $s$, pero se opta por elegir $m=0$ y $s = \frac{1}{C}\sum^C_{i=i}|x_i|$ debido a que preserva los valores iguales a cero, los cuáles pueden ser importante de destacar en numerosas aplicaciones.
+Para el escalado se aplica a las observaciones una transformación del tipo $f(x_i) = (x_i-m)/s$. Existen variadas técnicas de escalado eligiendo apropiadamente $m$ y $s$, pero se opta por elegir $m=0$ y $s = \frac{1}{C}\sum^C_{i=i}|x_i|$ debido a que preserva los valores iguales a cero, los cuales pueden ser importante de destacar en numerosas aplicaciones.
 
-Sin embargo, estos valores siguen siendo números reales y no pueden ser procesados directamente por un modelo de lenguaje. Es por esto que se discretizan las observaciones. Se seleccionan $B$ centros de intervalos en la recta real, $c_1, c_2, ..., c_B$, y $B-1$ extremos $b_i$ que los separen, $c_i < b_i < c_{i+1}$ para $i \in \{1,...,B-1 \}$. Las funciones de discretización $q:\Re \rightarrow \{1,2,...,B\}$, y de descuantificación $d: \{1,2,...,B\} \rightarrow \Re$ se definen como:
+Sin embargo, estos valores siguen siendo números reales y no pueden ser procesados directamente por un modelo de lenguaje. Es por esto que se discretizan las observaciones. Se seleccionan $B$ centros de intervalos en la recta real, $c_1, c_2, ..., c_B$, y $B-1$ extremos $b_i$ que los separen, $c_i < b_i < c_{i+1}$ para $i \in \{1,...,B-1 \}$. Las funciones de discretización $q:\Re \rightarrow \{1,2,...,B\}$, y de descuantización $d: \{1,2,...,B\} \rightarrow \Re$ se definen como:
 
 $$
 q(x)= \left \{ \begin{matrix} 1 \ \ \ \ \ \ \ \ \text{si} \ \ -\infty \leq x < b_1 \hfill \\ 
@@ -543,7 +543,7 @@ $${#eq-13}
 
   Dado que las redes neuronales profundas sufren de inestabilidad en los pesos al actualizarlos, una normalización al vector estabiliza el entrenamiento y mejora la convergencia. 
 
-5. Red neuronal convolucional (CNN): A diferencia de otros modelos transformadores tradicionales, TimeGPT incorpora *CNN*s para descubrir dependencias locales y patrones de corto plazo, tratando de minimizar una función de costo. *Chronos*, por otro lado, utiliza una *Feed-Forward Network*. 
+5. Red neuronal convolucional (CNN): Se utiliza una red neuronal para capturar patrones en los datos.
 
 **Decodificador**
 
@@ -551,7 +551,7 @@ $${#eq-13}
 
 2. Codificación posicional
 
-3. *Masked multi-head attention* (Atención multicabezal enmascarada): Las predicciones deben realizarse únicamente con los valores previos a cada token. Como consecuencia, antes de aplicar la transformación softmax, se debe reemplazar todos los valores debajo de la diagonal principal de la matriz $QK$ por $-\infty$. Esto evita que los *tokens* sean influenciados por *tokens* anteriores.
+3. *Masked multi-head attention* (Atención multicabezal enmascarada): Las predicciones deben realizarse únicamente con los valores previos a cada token. Como consecuencia, antes de aplicar la transformación softmax, se debe reemplazar todos los valores debajo de la diagonal principal de la matriz $QK$ por $-\infty$. Esto evita que los *tokens* sean influenciados por *tokens* posteriores.
 
 4. *Multi-head attention*: Se usan las matrices de claves y valores que da como salida el codificador, y la matriz de consultas es la salida de la capa de atención multicabezal enmascarada.
 
@@ -599,7 +599,7 @@ $${#eq-16}
 - Porcentaje del error absoluto medio (*Mean Absolute Percentage Error, MAPE*)
 
 $$
-MAPE = (\frac{1}{h}\sum^h_{l=1}|\frac{e_l}{Z_{n+l}}|)\cdot 100 \%
+MAPE = (\frac{1}{h}\sum^h_{l=1}|\frac{e_l}{z_{n+l}}|)\cdot 100 \%
 $${#eq-17}
 
 El problema de estos errores es que solo tienen en cuenta la estimación puntual, y por lo general, es buena idea trabajar con pronósticos probabilísticos para cuantificar la incertidumbre de los valores futuros de la variable. Gneiting y Raftery (2007, JASA) propusieron en [*Strictly Proper Scoring Rules, Prediction, and Estimation*](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf) una nueva medida del error que tiene en cuenta los intervalos probabilísticos de la estimación, llamándola *Interval Score*:
@@ -653,7 +653,7 @@ Se trabajó con series temporales reales, obtenidas de fuentes públicas y confi
 
   - Finalmente, se exploraron dos modelos fundacionales preentrenados: TimeGPT, accedido a través de la API de Nixtla mediante la librería `nixtla`, y Chronos, una familia de modelos preentrenados desarrollada por *Amazon Web Services*, cuya implementación se llevó a cabo con la librería `autogluon`.
 
-Para cada modelo se generaron pronósticos puntuales y probabilísticos, con un nivel de confianza del 80%. Su desempeño se evaluó apartir de dos métricas: el *Mean Absolute Percentage Error* (MAPE) y el *Interval Score*. La elección de la mejor combinación de hiperparámetros se realizó en función del MAPE, con excepción de los modelos ARIMA. Los resultados fueron sintetizados en tablas comparativas y visualizaciones gráficas, acompañadas de un análisis crítico.
+Para cada modelo se generaron pronósticos puntuales y probabilísticos, con una probabilidad de cobertura del 80%. Su desempeño se evaluó apartir de dos métricas: el *Mean Absolute Percentage Error* (MAPE) y el *Interval Score*. La elección de la mejor combinación de hiperparámetros se realizó en función del MAPE, con excepción de los modelos ARIMA. Los resultados fueron sintetizados en tablas comparativas y visualizaciones gráficas, acompañadas de un análisis crítico.
 
 ## 4.1 Series analizadas
 
@@ -739,7 +739,7 @@ Con el propósito de evaluar el desempeño de los distintos modelos bajo condici
 **Serie 1. Atenciones en guardia por patologías respiratorias – Hospital de Niños Víctor J. Vilela (HNVV)**
 
 La primera serie corresponde al número mensual de atenciones en guardia por patologías respiratorias (Códigos CIE10: J09–J18, J21, J22 y J44) registradas en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario. La información fue provista por la Dirección General de Estadística de la Municipalidad de Rosario^[**Dirección General de Estadística**. (s.f.) *Situación epidemiológica de
-problemas de salud priorizados*. Municipalidad de Rosario.]. La serie presenta una marcada estacionalidad, con picos en los meses de invierno y una disminución significativa en el año 2020, atribuida a las medidas sanitarias implementadas en el contexto de la pandemia de COVID-19. Este patrón estacional se aprecia con mayor claridad en el gráfico @fig-atenciones_estacionalidad.
+problemas de salud priorizados*. Municipalidad de Rosario.]. La serie presenta una marcada estacionalidad, con picos en los meses de invierno y una disminución significativa en el año 2020, atribuida a las medidas sanitarias implementadas en el contexto de la pandemia de COVID-19. Este patrón estacional se aprecia con mayor claridad en el gráfico de la figura @fig-atenciones_estacionalidad.
 
 ```{python}
 # Guardo la imagen para poder usarla en la presentación
@@ -1057,7 +1057,7 @@ atenciones_ajust["y_diff"] = atenciones_ajust['y'].diff(12).diff(1)
   geom_point(color = "#6BC78A", size = 0.3) +
   geom_line(color = "#6BC78A") +
   scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
-  labs(x = "Año", y = "Log(Atenciones) sin est./ten.")+
+  labs(x = "Año", y = "Log(Atenciones) diferenciada")+
   theme(plot_margin = 0,
         panel_grid_minor= element_blank(),
         
@@ -1092,7 +1092,7 @@ autocorr_plot(atenciones_ajust["y_diff"], lags=25, atype='pacf').save("../Imgs/p
 Correlograma simple y parcial del logaritmo del número de atenciones en guardia por enfermedades respiratorias en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario con una diferenciación regular y otra estacional.
 :::
 
-La figura @fig-supuestosAtenciones muestra la comprobación de supuestos del modelo. En el gráfico superior izquierdo se presenta la distribución de los residuos estandarizados, acompañada con el *test* de Kolmogorov-Smirnov, que con un *p-value* de 0.0011 se concluye que no existe suficiente evidencia muestral para aceptar la normalidad, sin embargo esto puede deberse a ciertos valores atípicos. El gráfico superior derecho muestra los residuos estandarizados a través del tiempo, con el objetivo de comprobar la ausencia de patrones sistemáticos, esto se cumple para el modelo elegido y se destacan únicamente 2 *outlayers*. En los gráficos inferiores, de izquierda a derecha, se visualizan las funciones de autocorrelación y autocorrelación parcial de los residuos estandarizados, junto al *test* de Ljung-Box. El valor que se muestra en el gráfico es el menor *p-value* registrado, producto de haber realizado el *test* para los 30 primeros rezagos. Con un *p-value* de 0.2562 se concluye que los residuos están incorrelacionados.
+La figura @fig-supuestosAtenciones muestra la comprobación de supuestos del modelo. En el gráfico superior izquierdo se presenta la distribución de los residuos estandarizados, acompañada con el *test* de Kolmogorov-Smirnov, que con un *p-value* de 0.0011 se concluye que no existe suficiente evidencia muestral para aceptar la normalidad, sin embargo esto puede deberse a ciertos valores atípicos. El gráfico superior derecho muestra los residuos estandarizados a través del tiempo, con el objetivo de comprobar la ausencia de patrones sistemáticos, esto se cumple para el modelo elegido y se destacan únicamente 2 *outliers*. En los gráficos inferiores, de izquierda a derecha, se visualizan las funciones de autocorrelación y autocorrelación parcial de los residuos estandarizados, junto al *test* de Ljung-Box. El valor que se muestra en el gráfico es el menor *p-value* registrado, producto de haber realizado el *test* para los 30 primeros rezagos. Con un *p-value* de 0.2562 se concluye que los residuos están incorrelacionados.
 
 ```{python}
 resid_check(resultados_arima['resid_arima_AT1'], ds = atenciones_trunc['ds'], arima_df= resultados_arima['salida_arima_AT1'].shape[0]-2, time='%Y', name='resid_arima_AT1')
@@ -1139,7 +1139,7 @@ metricas_1.loc[1] = ['ARIMA', 6, mape_AT1_6, is_AT1_6, 0]
 metricas_1.loc[2] = ['ARIMA', 12, mape_AT1, is_AT1, 0]
 ```
 
-El modelo $SARIMA(0,1,0)(0,1,1)_{12}$ pronostica correctamente las temporadas bajas. Por otro lado, en los meses de invierno los pronósticos puntuales subestiman por un amplio margen los valores reales, aún así, estos son contemplados en los intervalos de confianza del 80%.
+El modelo $SARIMA(0,1,0)(0,1,1)_{12}$ pronostica correctamente las temporadas bajas. Por otro lado, en los meses de invierno los pronósticos puntuales subestiman por un amplio margen los valores reales, aún así, estos son contemplados en los intervalos de predicción del 80%.
 
 
 ::: {#fig-pronarimaat layout-ncol=1 fig-cap="Pronósticos con el modelo $SARIMA(0,1,0)(0,1,1)_{12}$ sobre el número de atenciones en guardia por patologías respiratorias en el Hospital de Niños Víctor J. Vilela de la ciudad de Rosario."}
@@ -1336,7 +1336,7 @@ resid_check(resultados_arima['resid_arima_TE4'], ds = temperatura_trunc['ds'], a
 Comprobación de supuestos del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$ para la serie de temperaturas en la ciudad de Rosario.
 :::
 
-La figura @fig-residTemp4 muestra ausencia de patrones sistemáticos e incorrelación en los residuos estandarizados del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$. Si bien la normalidad no se cumple, esto afecta únicamente a los pronósticos probabilísticos y de manera poco significativa.
+La figura @fig-residTemp4 muestra ausencia de patrones sistemáticos e incorrelación en los residuos estandarizados del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$. Si bien la normalidad no se cumple, esto afecta únicamente a los pronósticos probabilísticos.
 
 
 ```{python}
@@ -1380,8 +1380,37 @@ metricas_3.loc[2] = ['ARIMA', 24, mape_TE4, is_TE4, 0]
 |                             | 24      | `{python} round(mape_TE4, 4)`   | `{python} round(is_TE4, 4)`   |
 : Métricas de evaluación del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$ sobre la serie de temperatura por hora en la ciudad de Rosario. {#tbl-arimaTemperatura}
 
-La diferencia media absoluta entre los valores reales y los pronosticados es apenas del `{python} round(mape_TE4_6*100, 4)`% en el pronóstico del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$ sobre las temperaturas en las primeras 6 horas. Sin embargo, esta diferencia aumenta en gran medida en los demás horizontes, al igual que la amplitud del intervalo de confianza, generando *Interval Scores* mayores a medida que se aumenta el horizonte.
+La diferencia media absoluta entre los valores reales y los pronosticados es apenas del `{python} round(mape_TE4_6*100, 4)`% en el pronóstico del modelo $SARIMAX(1,1,0)(1,0,1)_{24}$ sobre las temperaturas en las primeras 6 horas. Sin embargo, esta diferencia aumenta en gran medida en los demás horizontes, al igual que la amplitud del intervalo de predicción, generando *Interval Scores* mayores a medida que se aumenta el horizonte.
 
+
+```{python}
+# Guardo las metricas para usarlas en la presentacion
+
+save_env(
+  {
+    'mape_AT1': mape_AT1,
+    'mape_AT1_3': mape_AT1_3,
+    'mape_AT1_6': mape_AT1_6,
+    'is_AT1': is_AT1,
+    'is_AT1_3': is_AT1_3,
+    'is_AT1_6': is_AT1_6,
+
+    'mape_TR2': mape_TR2,
+    'mape_TR2_3': mape_TR2_3,
+    'mape_TR2_6': mape_TR2_6,
+    'is_TR2': is_TR2,
+    'is_TR2_3': is_TR2_3,
+    'is_TR2_6': is_TR2_6,
+    
+    'mape_TE4': mape_TE4,
+    'mape_TE4_6': mape_TE4_6,
+    'mape_TE4_12': mape_TE4_12,
+    'is_TE4': is_TE4,
+    'is_TE4_6': is_TE4_6,
+    'is_TE4_12': is_TE4_12,
+  }, filename="Ambiente/metricas_arima.pkl"
+)
+```
 ### 4.2.2 Modelos de aprendizaje automático
 
 Los modelos de pronóstico basados en aprendizaje automático no imponen supuestos estadísticos estrictos, lo que simplifica su implementación y facilita la automatización. No obstante, su desempeño depende en gran medida de la selección adecuada de las características (*features*) y de la configuración de hiperparámetros del modelo.
@@ -1449,7 +1478,7 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_xgb['pred'], pred_c
 ![Pronóstico con XGBoost sobre las temperaturas por hora en la ciudad de Rosario.](../Imgs/plotnine/xgboost3.png)
 
 
-Los pronósticos con XGBoost fueron satisfactorios sobre las tres series, logrando captar correctamente los patrones estacionales. Los intervalos de confianza del 80% conseguidos gracias a *Ensemble Batch Prediction Intervals* contienen en la mayoría de los casos a los valores reales. Es interesante notar la baja amplitud en los intervalos para la serie de temperaturas, lo que indica una mejora en la incertidumbre del modelo con respecto a los resultados vistos con el modelo SARIMAX.
+Los pronósticos con XGBoost fueron satisfactorios sobre las tres series, logrando captar correctamente los patrones estacionales. Los intervalos de predicción del 80% conseguidos gracias a *Ensemble Batch Prediction Intervals* contienen en la mayoría de los casos a los valores reales. Es interesante notar la baja amplitud en los intervalos para la serie de temperaturas, lo que indica una mejora en la incertidumbre del modelo con respecto a los resultados vistos con el modelo SARIMAX.
 
 Es interesante notar que todos los modelos elegidos fueron construidos con árboles sencillos, de una única división ($H=2$). Esto puede deberse a la existencia de alguna característica que por sí sola explica gran parte de la aleatoridad de las variables. Otro aspecto a notar es que los modelos que pronosticaron la serie de atenciones utilizaron pocos árboles en las estimaciones ($A=20$), mientras que para la serie de trabajadores se usaron el máximo establecido ($A=150$). Esto se explica con la variabilidad de las series, dado que el número de atenciones en guardia no tiene patrones muy marcados, modelos más complejos podrían llevar a sobreajustes, mientras que la poca aleatoriedad en el comportamiento de la serie de trabajadores beneficia a los modelos más complejos.
 
@@ -1490,9 +1519,9 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_lgbm['pred'], pred_
 
 
 
-En el caso de LightGBM, los resultados fueron ligeramente inferiores a los de XGBoost en las series de trabajadores y temperaturas. En esta última la diferencia es especialmente importante, ya que en el pronóstico de las temperaturas a 24 horas los intervalos de confianza en las primeras 6 horas no suelen cubrir a las observaciones, lo que podría indicar una subestimación en la variabilidad de los pronósticos.
+En el caso de LightGBM, los resultados fueron ligeramente inferiores a los de XGBoost en las series de trabajadores y temperaturas. En esta última la diferencia es especialmente importante, ya que en el pronóstico de las temperaturas a 24 horas los intervalos de predicción en las primeras 6 horas no suelen cubrir a las observaciones, lo que podría indicar una subestimación en la variabilidad de los pronósticos.
 
-Resulta interesante destacar en las tablas @tbl-resultadosxgb y @tbl-resultadoslgbm como XGBoost tendió a elegir bosques más sencillos, con menos árboles y menor profundidad, mientras que LightGBM optó por estructuras más complejas. En general, ambos modelos privilegiaron una tasa de aprendizaje alta ($\eta = 0.2$) y una amplia proporción de características ($C = 1$), configuraciones que podrían aumentar el riesgo de sobreajuste, aunque este no se evidenció en los resultados obtenidos.
+Resulta interesante destacar en las tablas @tbl-resultadosxgb y @tbl-resultadoslgbm como XGBoost tendió a elegir estructuras más sencillas, con menos árboles y menor profundidad, mientras que LightGBM optó por estructuras más complejas. En general, ambos modelos privilegiaron una tasa de aprendizaje alta ($\eta = 0.2$) y una amplia proporción de características ($C = 1$), configuraciones que podrían aumentar el riesgo de sobreajuste, aunque este no se evidenció en los resultados obtenidos.
 
 ### 4.2.3 Redes neuronales (LSTM)
 
@@ -1547,7 +1576,7 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_lstm['pred'], pred_
 ![Pronóstico con LSTM sobre las temperaturas por hora en la ciudad de Rosario.](../Imgs/plotnine/lstm3.png)
 
 
-Al igual que en los métodos de aprendizaje automatizado, los intervalos de confianza se obtuvieron usando *conformal predictions*, pero se realizaron con funciones ya integradas en la librería `scalecast`.
+Al igual que en los métodos de aprendizaje automatizado, los intervalos de predicción se obtuvieron usando *conformal predictions*, pero se realizaron con funciones ya integradas en la librería `scalecast`.
 
 Los pronósticos sobre todas las series fueron satisfactorios, sin embargo, se destaca la sobreestimación de las atenciones luego del pico invernal. La serie de trabajadores se destacó al usar una proporción de *dropout* baja ($D =0.1$), al contrario de la serie de atenciones, llevando a pensar que una mayor proporción de *dropout* parece funcionar mejor en series con patrones menos marcados, similar a lo ocurrido con el número de estimadores en XGBoost. 
 
@@ -1586,12 +1615,12 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_gpt['pred'], pred_c
 |Trabajadores                |6     |`{python} round(resultados_2_gpt6['mape'], 4)`|`{python} round(resultados_2_gpt6['score'], 4)`|
 |                          |12    |`{python} round(resultados_2_gpt['mape'], 4)`|`{python} round(resultados_2_gpt['score'], 4)`|
 | |      | | |
-|                          |3     |`{python} round(resultados_3_gpt6['mape'], 4)`|`{python} round(resultados_3_gpt6['score'], 4)`|
-|Temperatura                |6     |`{python} round(resultados_3_gpt12['mape'], 4)`|`{python} round(resultados_3_gpt12['score'], 4)`|
-|                          |12    |`{python} round(resultados_3_gpt['mape'], 4)`|`{python} round(resultados_3_gpt['score'], 4)`|
+|                          |6     |`{python} round(resultados_3_gpt6['mape'], 4)`|`{python} round(resultados_3_gpt6['score'], 4)`|
+|Temperatura                |12     |`{python} round(resultados_3_gpt12['mape'], 4)`|`{python} round(resultados_3_gpt12['score'], 4)`|
+|                          |24    |`{python} round(resultados_3_gpt['mape'], 4)`|`{python} round(resultados_3_gpt['score'], 4)`|
 : Métricas de evaluación para los ajustes con TimeGPT. {#tbl-metricasTimegpt}
 
-Los pronósticos obtenidos con TimeGPT mostraron un desempeño moderado en las series de temperatura y atenciones, particularmente en los horizontes largos, donde el modelo no logró capturar adecuadamente los patrones estacionales. En cambio, en la serie de trabajadores el modelo reprodujo correctamente la dinámica temporal y alcanzó una alta precisión en los pronósticos. En la figura @fig-pronTgptAten se observa un aumento significativo en la amplitud del intervalo de confianza para el pronóstico de la serie de atenciones, indicando una gran incertidumbre en el período de invierno.
+Los pronósticos obtenidos con TimeGPT mostraron un desempeño moderado en las series de temperatura y atenciones, particularmente en los horizontes largos, donde el modelo no logró capturar adecuadamente los patrones estacionales. En cambio, en la serie de trabajadores el modelo reprodujo correctamente la dinámica temporal y alcanzó una alta precisión en los pronósticos. En la figura @fig-pronTgptAten se observa un aumento significativo en la amplitud del intervalo de predicción para el pronóstico de la serie de atenciones, indicando una gran incertidumbre en el período de invierno.
 
 Chronos es una familia de modelos fundacionales basada en arquitecturas de lenguaje adaptadas a series temporales. Dispone de múltiples variantes de distinto tamaño y complejidad para realizar pronósticos en modo *zero-shot*. En este trabajo se utilizó la versión `Chronos-bolt-small`, que cuenta con aproximadamente 48 millones de parámetros.
 
@@ -1626,16 +1655,16 @@ plot_forecast(data = tiempo_rosario, forecast = resultados_3_chronos['pred'], pr
 |Trabajadores                |6     |`{python} round(resultados_2_chronos6['mape'], 4)`|`{python} round(resultados_2_chronos6['score'], 4)`|
 |                          |12    |`{python} round(resultados_2_chronos['mape'], 4)`|`{python} round(resultados_2_chronos['score'], 4)`|
 | |      | | |
-|                          |3     |`{python} round(resultados_3_chronos6['mape'], 4)`|`{python} round(resultados_3_chronos6['score'], 4)`|
-|Temperatura                |6     |`{python} round(resultados_3_chronos12['mape'], 4)`|`{python} round(resultados_3_chronos12['score'], 4)`|
-|                          |12    |`{python} round(resultados_3_chronos['mape'], 4)`|`{python} round(resultados_3_chronos['score'], 4)`|
+|                          |6     |`{python} round(resultados_3_chronos6['mape'], 4)`|`{python} round(resultados_3_chronos6['score'], 4)`|
+|Temperatura                |12     |`{python} round(resultados_3_chronos12['mape'], 4)`|`{python} round(resultados_3_chronos12['score'], 4)`|
+|                          |24    |`{python} round(resultados_3_chronos['mape'], 4)`|`{python} round(resultados_3_chronos['score'], 4)`|
 : Métricas de evaluación para los ajustes con Chronos. {#tbl-metricasChronos}
 
 Chronos logró capturar adecuadamente las variaciones diarias de temperatura, mostrando un buen ajuste en todos los horizontes probados. Sin embargo, su rendimiento fue inferior en las series de atenciones y trabajadores, donde los pronósticos puntuales se alejaron significativamente de los reales.
 
 ## 4.3 Comparación de resultados y análisis final
 
-Con el propósito de evaluar el desempeño relativo de los distintos modelos de pronóstico, se realizó una comparación sistemática entre sus métricas de error y de calidad de intervalos para cada una de las tres series analizadas. En todos los casos, se consideraron horizontes de predicción de corto, mediano y largo plazo, utilizando un nivel de confianza del 80% para el cálculo de los intervalos de predicción. Las métricas empleadas fueron el *Mean Absolute Percentage Error* (MAPE), que mide la precisión media del pronóstico, y el *Interval Score*, que evalúa la amplitud y la cobertura de los intervalos de predicción.
+Con el propósito de evaluar el desempeño relativo de los distintos modelos de pronóstico, se realizó una comparación sistemática entre sus métricas de error y de calidad de intervalos para cada una de las tres series analizadas. En todos los casos, se consideraron horizontes de predicción de corto, mediano y largo plazo, con intervalos de predicción con una probabilidad de cobertura del 80%. Las métricas empleadas fueron el *Mean Absolute Percentage Error* (MAPE), que mide la precisión media del pronóstico, y el *Interval Score*, que evalúa la amplitud y la cobertura de los intervalos de predicción.
 
 **Serie 1. Atenciones en guardia por patologías respiratorias – Hospital de Niños Víctor J. Vilela (HNVV)**
 
@@ -1685,7 +1714,7 @@ plot_forecast_compare(trabajadores.tail(12), pronosticos_trabajadores, nombres, 
 
 Se destacaron principalmente TimeGPT en los horizontes cortos y LSTM en los horizontes más largos. Esta diferencia se asocia con la estructura de los modelos: mientras TimeGPT, basado en transformadores, capta con mayor precisión la dinámica de corto plazo, LSTM logra un mejor desempeño en horizontes extendidos gracias a su capacidad de retener dependencias de largo alcance en la secuencia temporal.
 
-El gráfico @fig-comparacionesPronTrab muestra como TimeGPT y Chronos pronostican con mayor exactitud que otros modelos los primeros meses, sin embargo, a medida que aumenta el tiempo los pronósticos puntuales se desvían y los intervalos de confianza se ensanchan. Por otro lado, LSTM genera pronósticos estables a través del tiempo y con poca incertidumbre.
+El gráfico @fig-comparacionesPronTrab muestra como TimeGPT y Chronos pronostican con mayor exactitud que otros modelos los primeros meses, sin embargo, a medida que aumenta el tiempo los pronósticos puntuales se desvían y los intervalos de predicción se ensanchan. Por otro lado, LSTM genera pronósticos estables a través del tiempo y con poca incertidumbre.
 
 En este caso, la estabilidad de la serie y la clara repetición anual de los ciclos facilitaron el ajuste de modelos tanto clásicos como de aprendizaje profundo, logrando métricas de error reducidas en todos los escenarios.
 
@@ -1742,7 +1771,7 @@ En esta tesina se buscó abordar el tema de la forma más amplia posible sin sac
 
 En primer lugar, en la selección de los modelos se utilizó el MAPE como métrica para elegir el mejor ajuste, sin embargo, la elección se pudo haber realizado en base al *Interval Score* o alguna otra medida de error. A su vez, podría explorarse el uso de distintas medidas de error probabilísticas diferentes al *Interval Score*, tales como *Scaled quantile loss*, *Weighted quantile loss* o *Implicit quantile loss*.
 
-El ensamblaje de modelos, como *Boosting* o *Bagging*, no esta limitado únicamente a los árboles de decisión, por lo que se propone indagar como funcionan estas técnicas en otros modelos, como en redes neuronales.
+El ensamble de modelos, como *Boosting* o *Bagging*, no esta limitado únicamente a los árboles de decisión, por lo que se propone indagar como funcionan estas técnicas en otros modelos, como en redes neuronales.
 
 Para obtener pronósticos probabilísticos en los algoritmos de aprendizaje automático se optó por EnbPI, pero existen otras alternativas, como *Natural Gradient Boosting* (NGBoost).
 

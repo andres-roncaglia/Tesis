@@ -377,6 +377,25 @@ def summary_to_df(model):
 
 
 # ------------------------------------------------------------------------------------
+# Funcion summary_to_html()
+# Hace que un pandas dataframe se convierta a formato html, exclusivo para las presentaciones
+
+def summary_to_html(df):
+    fila_footnote = pd.DataFrame([{
+        'Componente': 'Modelo',
+        'Coeficiente': df['Modelo'].iloc[0],
+        'IC(0.025)': '',
+        'IC(0.975)': 'AIC',
+        'p-value': df['AIC'].iloc[0]
+    }])
+
+    tabla_markdown = pd.concat(
+        [df[['Componente','Coeficiente','IC(0.025)','IC(0.975)','p-value']], fila_footnote],
+        ignore_index=True).to_html(index=False)
+
+    print(tabla_markdown)
+
+# ------------------------------------------------------------------------------------
 # Funcion tabla_resumen()
 # Resume las metricas de los pronosticos con distintos modelos
 
