@@ -73,11 +73,11 @@ def interval_score(obs, lower, upper, alpha):
 # - label : Etiqueta de los pronosticos en el grafico (opcional)
 # salida: matplotlib plot
 
-def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', label = 'Prediccion', xlabel = 'Año', ylabel = 'Y', long=None, legend = True, legend_position  =(0.5,0.98)):
+def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', label = 'Prediccion', xlabel = 'Año', ylabel = 'Y', long=None, legend = True, legend_position  =(0.5,0.98), size = 0.6):
 
     # Guardamos el ultimo punto conocido para el pronostico para que no se vea tan abrupto el intervalo
-    ult_punto = data.tail(len(forecast)+1).iloc[0]
-    forecast = pd.concat([forecast, pd.Series({'ds': ult_punto['ds'], 'pred': ult_punto['y'], 'lower': ult_punto['y'], 'upper' : ult_punto['y']}).to_frame().T])
+    #ult_punto = data.tail(len(forecast)+1).iloc[0]
+    #forecast = pd.concat([forecast, pd.Series({'ds': ult_punto['ds'], 'pred': ult_punto['y'], 'lower': ult_punto['y'], 'upper' : ult_punto['y']}).to_frame().T])
 
     # Nos quedamos con el largo deseado que mostrar
     if long != None:
@@ -93,7 +93,7 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
     data_plt['pred'] = pd.to_numeric(data_plt['pred'])
     data_plt['lower'] = pd.to_numeric(data_plt['lower'])
     data_plt['upper'] = pd.to_numeric(data_plt['upper'])
-    data_plt['fill'] = 'IC 80%'
+    data_plt['fill'] = 'IP 80%'
 
     # Segun el nmbre del eje X voy a cambiar la frecuencia de este mismo
     if xlabel == 'Año':
@@ -111,9 +111,11 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
     return (
       ggplot(data_plt) +  
       
-      geom_line(aes(x = 'ds', y = "y"), color = line_color, data=data_plt[data_plt['y'].notna()]) +
+      geom_line(aes(x = 'ds', y = "y"), color = line_color, size = size, data=data_plt[data_plt['y'].notna()]) +
+      geom_point(aes(x = 'ds', y = "y"), color = line_color, size = 0.3, data=data_plt[data_plt['y'].notna()]) +
       
-      geom_line(aes(x = 'ds', y = "pred"), color = pred_color, data=data_plt[data_plt['pred'].notna()]) +
+      geom_line(aes(x = 'ds', y = "pred"), color = pred_color, size = size, data=data_plt[data_plt['pred'].notna()]) +
+      geom_point(aes(x = 'ds', y = "pred"), color = pred_color, size = 0.3, data=data_plt[data_plt['pred'].notna()]) +
       
       geom_ribbon(
         aes(ymin = 'lower', ymax = 'upper', x = 'ds'),
@@ -128,11 +130,11 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
         data=data_plt[data_plt['lower'].notna()]
         ) +
       
-      scale_fill_manual(breaks= ['IC 80%'], values = [pred_color]) +
+      scale_fill_manual(breaks= ['IP 80%'], values = [pred_color]) +
       
       geom_line(aes(x = 'ds', y = "pred", color = 'fill'), data=data_plt[data_plt['pred'].notna()], alpha = 1) +
       
-      scale_color_manual(breaks= ['IC 80%'], values = [pred_color]) +
+      scale_color_manual(breaks= ['IP 80%'], values = [pred_color]) +
       
       scale_x_date(date_labels = date_labels, date_breaks = date_breaks) +
 
@@ -148,6 +150,7 @@ def plot_forecast(data, forecast, pred_color = 'red', line_color = 'black', labe
         legend_text= element_text(size = 6)
         )
     )
+
 
     
 # ------------------------------------------------------------------------------------
@@ -399,7 +402,7 @@ def summary_to_html(df):
 # Funcion tabla_resumen()
 # Resume las metricas de los pronosticos con distintos modelos
 
-def tabla_resumen(metricas, path):
+def tabla_resumen(metricas, path, colors = ["#D3EEDB", "#B6E2C3", "#99D6AB"]):
 
   metricas = metricas.drop(columns = 'Tiempo')
 
@@ -440,13 +443,19 @@ def tabla_resumen(metricas, path):
       )
       .opt_table_font(font=["Source Sans Pro", 'sans-serif'])
   )
+  
   for col in t.columns:
-      if col != "Modelo":
-          fila = t[t[col] == t[col].min()].index.values[0]
-          gt = gt.tab_style(
-              style=style.fill(color="#B5E3C3"),
-              locations=loc.body(columns=col, rows=[fila])
-          )
+    if ('3' in col) | ('12' in col):
+      color = colors[0]
+    else:
+      color = colors[2]
+
+    if col != "Modelo":
+        fila = t[t[col] == t[col].min()].index.values[0]
+        gt = gt.tab_style(
+            style=style.fill(color=color),
+            locations=loc.body(columns=col, rows=[fila])
+        )
 
   gt.save(path)
 
@@ -464,7 +473,7 @@ def plot_forecast_compare(data, pronosticos, nombres_modelos, pred_color = 'red'
 
     # Unimos los datasets
     data_plt = pd.merge(data,pronosticos[i], on = 'ds', how='inner')
-    data_plt['fill'] = 'IC 80%'
+    data_plt['fill'] = 'IP 80%'
     data_plt['modelo'] = nombres_modelos[i]
 
     data_fin = pd.concat([data_fin, data_plt])
@@ -494,9 +503,11 @@ def plot_forecast_compare(data, pronosticos, nombres_modelos, pred_color = 'red'
 
   return(ggplot(data_plt) +  
 
-    geom_line(aes(x = 'ds', y = "y"), color = line_color) +
+    geom_line(aes(x = 'ds', y = "y"), color = line_color, size = 0.6) +
+    geom_point(aes(x = 'ds', y = "y"), color = line_color, size = 0.3) +
 
-    geom_line(aes(x = 'ds', y = "pred"), color = pred_color) +
+    geom_line(aes(x = 'ds', y = "pred"), color = pred_color, size = 0.6) +
+    geom_point(aes(x = 'ds', y = "pred"), color = pred_color, size = 0.3) +
 
     geom_ribbon(
       aes(ymin = 'lower', ymax = 'upper', x = 'ds'),
@@ -511,11 +522,12 @@ def plot_forecast_compare(data, pronosticos, nombres_modelos, pred_color = 'red'
       data=data_plt[data_plt['lower'].notna()]
       ) +
 
-    scale_fill_manual(breaks= ['IC 80%'], values = [pred_color]) +
+    scale_fill_manual(breaks= ['IP 80%'], values = [pred_color]) +
 
-    geom_line(aes(x = 'ds', y = "pred", color = 'fill'), alpha = 1) +
+    geom_line(aes(x = 'ds', y = "pred", color = 'fill'), alpha = 1, size = 0.6) +
+    geom_point(aes(x = 'ds', y = "pred", color = 'fill'), alpha = 1, size = 0.6) +
 
-    scale_color_manual(breaks= ['IC 80%'], values = [pred_color]) +
+    scale_color_manual(breaks= ['IP 80%'], values = [pred_color]) +
     
     facet_wrap('modelo') +
 
