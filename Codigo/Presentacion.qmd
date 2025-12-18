@@ -49,6 +49,21 @@ def funcion_zoom(img_path, zoom_name, img_size=70, zoom=100, position_top="unset
 
 ## 
 
+<script>
+document.addEventListener("mousedown", function(e) {
+  // Left click
+  if (e.button === 0) {
+    Reveal.next();
+  }
+  // Right click
+  if (e.button === 2) {
+    e.preventDefault();
+    Reveal.prev();
+  }
+});
+document.addEventListener("contextmenu", e => e.preventDefault());
+</script>
+
 ![](../Imgs/Portada_presentacion.png){fig-align="center" width="100%"}
 
 ## Resumen {.theme-slideSimple}
@@ -169,42 +184,6 @@ Propiedades de un buen modelo $SARIMA$:
 ::: {.fragment}
 - Es parsimonioso
 :::
-
-
-## 2.1 Modelos estadísticos tradicionales {.theme-slideSimple}
-
-::: {.callout-tip title="Funciones de autocorrelación y autocorrelación parcial"}
-
-Función de autocorrelación:
-
-$\rho_k = Corr(z_t, z_{t+k}) = \frac{Cov(z_t, z_{t+k})}{\sqrt{Var(z_t) \cdot Var(z_{t+k})}}$
-
-Función de autocorrelación parcial:
-
-$\phi_{kk} = Corr(z_t, z_{t+k}|z_{t+1}, ..., z_{t+k-1})$
-
-:::
-
-
-:::: {.columns .fragment}
-
-::: {.column width="50%" .centro}
-Ejemplo proceso AR(1)
-
-![](../Imgs/plotnine/ejemplo_ar_1.png){fig-align="center" .img_style width="98%"}
-
-![](../Imgs/plotnine/ejemplo_ar_2.png){fig-align="center" .img_style  width="98%"}
-:::
-
-::: {.column width="50%" .centro}
-Ejemplo proceso MA(1)
-
-![](../Imgs/plotnine/ejemplo_ma_1.png){fig-align="center" .img_style width="98%"}
-
-![](../Imgs/plotnine/ejemplo_ma_2.png){fig-align="center" .img_style width="98%"}
-:::
-
-::::
 
 # 2.2 Modelos de aprendizaje automático {.center .theme-slideTitle}
 
@@ -353,16 +332,7 @@ Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y cone
 Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y conexiones (pesos).
 :::
 
-![](../Imgs/red_conectada.png){fig-align="center" .img_style width="65%"}
-
-## 2.3 Modelos de aprendizaje profundo {.theme-slideSimple}
-
-::: {.callout-note title="Red neuronal"}
-Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y conexiones (pesos).
-:::
-
 ![](../Imgs/conexiones_redneuro.png){fig-align="center" .img_style width="65%"}
-
 
 ## 2.3 Modelos de aprendizaje profundo{.theme-slideBorders .center}
 
@@ -382,9 +352,9 @@ Busca imitar el funcionamiento del cerebro humano. Compuesta por neuronas y cone
 
 - *Feedforward Neural Networks* (FNN)
 
-- *Recurrent Neural Networks* (RNN)
-
 - *Convolutional Neural Networks* (CNN)
+
+- *Recurrent Neural Networks* (RNN)
 
 - Entre otras...
 
@@ -480,50 +450,6 @@ Para pronosticar series de tiempo:
 :::
 
 
-## 2.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
-
-### Modelos fundacionales preentrenados
-
-- Capaces de seleccionar de forma automática el mejor ajuste
-
-- No requieren entrenamiento previo ni conocimientos especializados 
-
-- Basados en arquitecturas *transformer*
-
-::: {.nofragment}
-::: {.callout-tip title=""}
-¿Qué tan bien se desempeñan?
-:::
-:::
-
-```{python}
-#| output: asis
-
-funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=44.76,extra=".zoom_attention{position:absolute; top: 150px; left: 545px;} .zoom_attention p{left:0 !important; width:inherit;}")
-```
-
-## 2.4 Modelos fundacionales preentrenados {.theme-slideBoxRightPic auto-animate="true"}
-
-### Modelos fundacionales preentrenados
-
-- Capaces de seleccionar de forma automática el mejor ajuste
-
-- No requieren entrenamiento previo ni conocimientos especializados 
-
-- Basados en arquitecturas *transformer*
-
-::: {.nofragment}
-::: {.callout-tip title=""}
-¿Qué tan bien se desempeñan?
-:::
-:::
-
-```{python}
-#| output: asis
-
-funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "zoom_attention", img_size=44.76, zoom=250, position_top = "-422px", position_left = '-164px', extra=".zoom_attention{position:absolute; top: 150px; left: 545px;} .zoom_attention p{left=0 !important; width:inherit;}")
-```
-
 ## 2.4 Modelos fundacionales preentrenados {.theme-slideSimple}
 
 ::: {.callout-note title="Atención"}
@@ -548,17 +474,56 @@ $W_Q$: Matriz de características ($\vec E \times W_Q = \vec Q$)
 $W_K$: Matriz de relaciones ($\vec E \times W_K = \vec K$)
 
 $W_V$: Matriz de valores ($\vec E \times W_V = \vec V$)
+
+Matrices iniciadas aleatoriamente y ajustadas en el preentrenado
 :::
 
-:::{.fragment}
-Matrices iniciadas aleatoriamente y ajustadas en el preentrenado
+
+## 2.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
+
+:::{.body}
+
+![](../Imgs/gif_attention1.gif){fig-align="center"}
+
 :::
 
 ## 2.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
 
 :::{.body}
 
-![](../Imgs/gif_attention.gif){fig-align="center"}
+![](../Imgs/gif_attention2.gif){fig-align="center"}
+
+:::
+
+## 2.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
+
+:::{.body}
+
+![](../Imgs/gif_attention3.gif){fig-align="center"}
+
+:::
+
+## 2.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
+
+:::{.body}
+
+![](../Imgs/gif_attention4.gif){fig-align="center"}
+
+:::
+
+## 2.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
+
+:::{.body}
+
+![](../Imgs/gif_attention5.gif){fig-align="center"}
+
+:::
+
+## 2.4 Modelos fundacionales preentrenados {.theme-slideBorders .center}
+
+:::{.body}
+
+![](../Imgs/gif_attention6.gif){fig-align="center"}
 
 :::
 
@@ -581,7 +546,7 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 
 
 ::: {.callout-note title="Representación vectorial y codificación posicional"}
-Se *tokenizan* los datos de entrada ($\vec E$). Se suma a $\vec E$ un vector con patrones específicos que integran al vector de entrada la información posicional del *token*.
+Se *tokenizan* los datos de entrada y se los representa vectorialmente ($\vec E$). Se suma a $\vec E$ un vector con patrones específicos que integran al vector de entrada la información posicional del *token*.
 :::
 
 
@@ -608,7 +573,7 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 ```
 
 ::: {.callout-note title="Red neuronal convolucional (CNN)"}
-Utilizada para descubrir dependencias locales y patrones de corto plazo.
+Utilizada para descubrir patrones en los datos.
 :::
 
 ## 2.4 Modelos fundacionales preentrenados {auto-animate="true" .theme-slideSimple}
@@ -694,12 +659,15 @@ funcion_zoom(img_path = "../Imgs/modelo_timegpt.png", zoom_name = "attention", i
 Diferencias entre TimeGPT y Chronos
 :::
 
+:::{.letraTablaChica}
 |                                   | TimeGPT    | Chronos   |
-|-----------------------------------|------------|-----------|
+|-----------------------------------|-----------------------------------|-----------------------------------|
 | Accesibilidad al código           | Cerrado    | Abierto   |
-| Representación vectorial          | No realiza | Necesaria |
-| Búsqueda de patrones en los datos | CNN        | FNN       |
+| Estructura *transformer*          | Especializado en series de tiempo | Adaptación de modelos de lenguaje |
+| *Tokenizacion*          | No realiza | Necesaria |
 | Softmax en los resultados         | No realiza | Necesaria |
+| Búsqueda de patrones en los datos | CNN        | FNN       |
+:::
 
 :::
 
@@ -750,9 +718,9 @@ $IS_l$: Límite superior del intervalo
 
 $II_l$: Límite inferior del intervalo
 
-$O_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_n(l) - Z_{n+l}) \hspace{10,mm} \text{si } Z_n(l) > Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.$
+$O_l = \left \{ \begin{matrix} \frac{2}{\alpha}(z_n(l) - z_{n+l}) \hspace{10,mm} \text{si } z_n(l) > z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.$
 
-$U_l = \left \{ \begin{matrix} \frac{2}{\alpha}(Z_{n+l} - Z_n(l)) \hspace{10,mm} \text{si } Z_n(l) < Z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.$
+$U_l = \left \{ \begin{matrix} \frac{2}{\alpha}(z_{n+l} - z_n(l)) \hspace{10,mm} \text{si } z_n(l) < z_{n+l} \\ 0 \hspace{1,cm} \text{en otro caso} \hfill \end{matrix} \right.$
 
 :::
 
@@ -786,7 +754,7 @@ El corte debe hacerse respetando el orden temporal de las observaciones. En caso
 
 ::: {.callout-warning title="Limitaciones de modelos modernos"}
 
-No realizan supuestos distribucionales, y por lo tanto, no generan pronósticos probabilísticos de forma directa.
+No realizan supuestos distribucionales, y por lo tanto, no generan pronósticos probabilísticos.
 
 :::
 
@@ -808,34 +776,6 @@ No realizan supuestos distribucionales, y por lo tanto, no generan pronósticos 
 
 # 4. Aplicación {.center .theme-slideTitle}
 
-## 4. Aplicación: software y librerías {.theme-slideBoxLeft}
-
-**Lenguaje de programación:**
-
-`Python`
-
-**Librerías utilizadas:**
-
-- ARIMA y SARIMA
-  
-  `pmdarima`
-
-- Algoritmos de aprendizaje automático
-
-  `xgboost`, `lightgbm` y `mapie`
-
-- LSTM
-
-  `scalecast`
-
-- TimeGPT
-
-  `nixtla`
-
-- Chronos
-
-  `autogluon`
-
 ## 4. Aplicación: Series analizadas{.theme-slideBorders .center}
 
 :::{.body}
@@ -845,12 +785,12 @@ Atenciones mensuales en guardia por patologías respiratorias en el Hospital de 
 :::
 
 ::: {.callout-important icon="false" appearance="default" title="Serie 2"} 
-Temperatura horaria en los primeros días de marzo de 2025 en la ciudad de Rosario
+Temperaturas por hora en los primeros días de marzo de 2025 en la ciudad de Rosario
 :::
 
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
 ### Atenciones en guardia
 
@@ -864,7 +804,7 @@ funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70,
 Información provista por la Dirección General de Estadística de la Municipalidad de Rosario.
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
 ### Atenciones en guardia
 
@@ -874,7 +814,7 @@ Información provista por la Dirección General de Estadística de la Municipali
 funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=290, position_top = "2px", position_left = '-1415px')
 ```
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
 ### Atenciones en guardia
 
@@ -884,17 +824,7 @@ funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70,
 funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=290, position_top = "-448px", position_left = '-700px')
 ```
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
-
-### Atenciones en guardia
-
-```{python}
-#| output: asis
-
-funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=303, position_top = "-600px", position_left = '0px')
-```
-
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
 ### Atenciones en guardia
 
@@ -904,17 +834,8 @@ funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70,
 funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=303, position_top = "-1066px", position_left = '-20px')
 ```
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
-### Atenciones en guardia
-
-```{python}
-#| output: asis
-
-funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=320, position_top = "-1023px", position_left = '-836px')
-```
-
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
 ### Atenciones en guardia
 
@@ -924,97 +845,25 @@ funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70,
 funcion_zoom(img_path = "../Imgs/Serie1.png", zoom_name = "serie1", img_size=70, zoom=308, position_top = "-980px", position_left = '-1520px')
 ```
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
 :::{.centro}
-**Modelo seleccionado**
+**Modelo propuesto:** $SARIMA(0,1,0)(0,1,1)_{12}$
 :::
-
-$$
-SARIMA(0,1,0)(0,1,1)_{12}
-$$
-
 
 ::: {.columns}
 ::: {.column .alinear width="50%"}
-![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="60%" style="margin:0;" data-id="sup1"}
-![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="60%" style="margin:0;" data-id="sup2"}
+![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="70%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="70%" style="margin:0;" data-id="sup2"}
 :::
 ::: {.column .smargen width="50%"}
-![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="60%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="60%" style="margin:0;" data-id="sup4"}
+![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="70%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="70%" style="margin:0;" data-id="sup4"}
 :::
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
 
-:::{.centro}
-**Modelo seleccionado**
-:::
-
-$$
-SARIMA(0,1,0)(0,1,1)_{12}
-$$
-
-::: {.columns}
-:::{.column width="20%"}
-
-:::
-::: {.column .centro width="60%"}
-![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
-:::
-::: {.column width="20%"}
-![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
-![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
-:::
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
-
-:::{.centro}
-**Modelo seleccionado**
-:::
-
-$$
-SARIMA(0,1,0)(0,1,1)_{12}
-$$
-
-::: {.columns}
-:::{.column width="20%"}
-![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
-:::
-::: {.column .centro width="60%"}
-![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
-:::
-::: {.column width="20%"}
-![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
-:::
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple auto-animate="true"}
-
-:::{.centro}
-**Modelo seleccionado**
-:::
-
-$$
-SARIMA(0,1,0)(0,1,1)_{12}
-$$
-
-::: {.columns}
-:::{.column width="20%"}
-![](../Imgs/plotnine/resid_arima_AT1_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
-![](../Imgs/plotnine/resid_arima_AT1_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
-:::
-::: {.column .centro width="80%"}
-![](../Imgs/plotnine/resid_arima_AT1_3.png){.img_style width="47%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_AT1_4.png){.img_style width="47%" style="margin:0;" data-id="sup4"}
-:::
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 1 {.theme-slideSimple}
+## 4.1 Aplicación: SARIMA - Serie 1 {.theme-slideSimple}
 
 :::{.body}
 
@@ -1041,37 +890,9 @@ globals().update(load_env('../Codigo/Ambiente/Amb_Aplicacion_chronos.pkl'))
 
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
+## 4.1 Aplicación: SARIMA - Serie 2 {.theme-slideSimple}
 
-### Temperaturas
-
-::: {r.vstack}
-
-![](../Imgs/plotnine/temperatura1.png){width="65%" fig-align="center" data-id="temp1" .img_style}
-
-![](../Imgs/plotnine/temperatura2.png){width="65%" fig-align="center" .img_style}
-
-![](../Imgs/plotnine/temperatura3.png){width="65%" fig-align="center" .img_style}
-
-:::
-
-
-::: footer
-Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
-
-\
-
-\
-
-![](../Imgs/plotnine/temperatura1.png){width="100%" fig-align="center" .img_style data-id="temp1" style="text-align: center;"}
-
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate=true auto-animate-easing="ease-in-out" auto-animate-duration="0.7"}
-
-
-### Temperaturas
+### Temperatura por hora
 
 ::: {r.vstack}
 
@@ -1088,15 +909,12 @@ Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 Datos obtenidos a partir de la página del Servicio Meteorológico Nacional
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+
+## 4.1 Aplicación: SARIMA - Serie 2 {.theme-slideSimple}
 
 :::{.centro}
-Modelo seleccionado de forma automática con `autoarima`
+Modelo seleccionado de forma automática con `autoarima`: $SARIMAX(1,1,1)(2,0,1)_{24}$
 :::
-
-
-$$SARIMAX(1,1,1)(2,0,1)_{24}$$
-
 
 ```{python}
 
@@ -1111,92 +929,25 @@ summary_to_html(resultados_arima['salida_arima_temperatura_auto'])
 ```
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
+## 4.1 Aplicación: SARIMA - Serie 2 {.theme-slideSimple}
 
 :::{.centro}
-**Modelo propuesto**
+**Modelo propuesto:** $SARIMAX(1,1,0)(1,0,1)_{24}$
 :::
-
-$$SARIMAX(1,1,0)(1,0,1)_{24}$$
-
 
 ::: {.columns}
 ::: {.column .alinear width="50%"}
-![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="60%" style="margin:0;" data-id="sup1"}
-![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="60%" style="margin:0;" data-id="sup2"}
+![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="70%" style="margin:0;" data-id="sup1"}
+![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="70%" style="margin:0;" data-id="sup2"}
 :::
 ::: {.column .smargen width="50%"}
-![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="60%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="60%" style="margin:0;" data-id="sup4"}
+![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="70%" style="margin:0;" data-id="sup3"}
+![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="70%" style="margin:0;" data-id="sup4"}
 :::
 :::
 
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
 
-:::{.centro}
-**Modelo propuesto**
-:::
-
-$$SARIMAX(1,1,0)(1,0,1)_{24}$$
-
-
-::: {.columns}
-:::{.column width="20%"}
-
-:::
-::: {.column .centro width="60%"}
-![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
-:::
-::: {.column width="20%"}
-![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
-![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
-:::
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
-
-:::{.centro}
-**Modelo propuesto**
-:::
-
-$$SARIMAX(1,1,0)(1,0,1)_{24}$$
-
-
-::: {.columns}
-:::{.column width="20%"}
-![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
-:::
-::: {.column .centro width="60%"}
-![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
-:::
-::: {.column width="20%"}
-![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="37%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="37%" style="margin:0;" data-id="sup4"}
-:::
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple auto-animate="true"}
-
-:::{.centro}
-**Modelo propuesto**
-:::
-
-$$SARIMAX(1,1,0)(1,0,1)_{24}$$
-
-
-::: {.columns}
-:::{.column width="20%"}
-![](../Imgs/plotnine/resid_arima_TE4_1.png){.img_style width="100%" style="margin:0;" data-id="sup1"}
-![](../Imgs/plotnine/resid_arima_TE4_2.png){.img_style width="100%" style="margin:0;" data-id="sup2"}
-:::
-::: {.column .centro width="80%"}
-![](../Imgs/plotnine/resid_arima_TE4_3.png){.img_style width="47%" style="margin:0;" data-id="sup3"}
-![](../Imgs/plotnine/resid_arima_TE4_4.png){.img_style width="47%" style="margin:0;" data-id="sup4"}
-:::
-:::
-
-## 4.1 Aplicación: ARIMA - Serie 2 {.theme-slideSimple}
+## 4.1 Aplicación: SARIMA - Serie 2 {.theme-slideSimple}
 
 :::{.body}
 
@@ -1230,31 +981,6 @@ $$SARIMAX(1,1,0)(1,0,1)_{24}$$
 
 - El valor del rezago estacional
 
-## 4.2 Aplicación: Modelos de aprendizaje automático {.theme-slideBoxLeft}
-
-**Hiperparámetros:**
-
-- Número de árboles ($A$). 
-
-  Opciones: 20, 50, 100, 150.
-
-- Profundidad máxima del árbol ($P$). 
-
-  Opciones: 2, 3, 4, 5.
-
-- Número máximo de hojas del árbol ($H$). 
-
-  Opciones: 2, 4, 8, 16.
-
-- Tasa de aprendizaje en el descenso del gradiente ($\eta$). 
-
-  Opciones: 0.001, 0.1, 0.2.
-
-- Proporción de características que se usa en cada árbol ($C$). 
-
-  Opciones: 0.7, 1.
-
-
 ## 4.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
 
 \
@@ -1263,19 +989,43 @@ $$SARIMAX(1,1,0)(1,0,1)_{24}$$
 **Métricas con XGBoost**
 :::
 
-:::{.tablaLetraChica .img_style style="background-color:white; width: auto; margin: 0 auto;"}
+::::{.tablaLetraChica .img_style style="background-color:white; width: auto; margin: 0 auto;"}
 
 | Serie                    | Hor. | $A$ | $P$ | $H$ | $\eta$  | $C$ | MAPE  | Interval Score |
 |--------------------------|------|-----|-----|-----|-----|-----|-------|----------------|
-|                          | 3    | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb3['mape'], 4)` | `{python} round(resultados_1_xgb3['score'], 4)` |
-| Atenciones    | 6    | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb6['mape'], 4)` | `{python} round(resultados_1_xgb6['score'], 4)` |
-|                          | 12   | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb['mape'], 4)` | `{python} round(resultados_1_xgb['score'], 4)` |
+|                          | 3    | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb3['grilla'][resultados_1_xgb3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb3['mape']*100, 4)` | `{python} round(resultados_1_xgb3['score'], 4)` |
+| Atenciones    | 6    | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb6['grilla'][resultados_1_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb6['mape']*100, 4)` | `{python} round(resultados_1_xgb6['score'], 4)` |
+|                          | 12   | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_xgb['grilla'][resultados_1_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_xgb['mape']*100, 4)` | `{python} round(resultados_1_xgb['score'], 4)` |
 |                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
-|                          | 6    | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb6['mape'], 4)` | `{python} round(resultados_3_xgb6['score'], 4)` |
-| Temperatura              | 12   | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb12['mape'], 4)` | `{python} round(resultados_3_xgb12['score'], 4)` |
-|                          | 24   | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb['mape'], 4)` | `{python} round(resultados_3_xgb['score'], 4)` |
+|                          | 6    | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb6['grilla'][resultados_3_xgb6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb6['mape']*100, 4)` | `{python} round(resultados_3_xgb6['score'], 4)` |
+| Temperatura              | 12   | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb12['grilla'][resultados_3_xgb12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb12['mape']*100, 4)` | `{python} round(resultados_3_xgb12['score'], 4)` |
+|                          | 24   | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['max_leaves'].values[0]` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_xgb['grilla'][resultados_3_xgb['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_xgb['mape']*100, 4)` | `{python} round(resultados_3_xgb['score'], 4)` |
+::::
+
+\
+
+:::: {.tablaLetraChica}
+
+::: {.columns}
+::: {.column}
+
+- $A$: Número de árboles
+
+- $P$: Profundidad máxima de cada árbol
+
+- $H$: Número máximo de hojas de cada árbol
 
 :::
+::: {.column}
+
+- $\eta$: Tasa de aprendizaje 
+
+- $C$: Proporción de características utilizadas
+
+:::
+:::
+
+::::
 
 ## 4.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
 
@@ -1301,15 +1051,40 @@ $$SARIMAX(1,1,0)(1,0,1)_{24}$$
 
 | Serie                    | Hor. | $A$ | $P$ | $H$ | $\eta$  | $C$ | MAPE  | Interval Score |
 |--------------------------|------|-----|-----|-----|-----|-----|-------|----------------|
-|                          | 3    | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm3['mape'], 4)` | `{python} round(resultados_1_lgbm3['score'], 4)` |
-| Atenciones    | 6    | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm6['mape'], 4)` | `{python} round(resultados_1_lgbm6['score'], 4)` |
-|                          | 12   | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm['mape'], 4)` | `{python} round(resultados_1_lgbm['score'], 4)` |
+|                          | 3    | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm3['grilla'][resultados_1_lgbm3['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm3['mape']*100, 4)` | `{python} round(resultados_1_lgbm3['score'], 4)` |
+| Atenciones    | 6    | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm6['grilla'][resultados_1_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm6['mape']*100, 4)` | `{python} round(resultados_1_lgbm6['score'], 4)` |
+|                          | 12   | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_1_lgbm['grilla'][resultados_1_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_1_lgbm['mape']*100, 4)` | `{python} round(resultados_1_lgbm['score'], 4)` |
 |                          |      |                                                                                                                                 |                                                                                                                          |                                                                                                                           |                                                                                                                                     |                                                                                                                                        |                                               |                                                |
-|                          | 6    | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`   | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm6['mape'], 4)` | `{python} round(resultados_3_lgbm6['score'], 4)` |
-| Temperatura              | 12   | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]` | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm12['mape'], 4)` | `{python} round(resultados_3_lgbm12['score'], 4)` |
-|                          | 24   | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0]`     | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0]` | `{python} resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0]` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm['mape'], 4)` | `{python} round(resultados_3_lgbm['score'], 4)` |
+|                          | 6    | `{python} int(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0])`   | `{python} int(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0])` | `{python} int(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0])` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm6['grilla'][resultados_3_lgbm6['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm6['mape']*100, 4)` | `{python} round(resultados_3_lgbm6['score'], 4)` |
+| Temperatura              | 12   | `{python} int(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0])` | `{python} int(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0])` | `{python} int(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0])` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm12['grilla'][resultados_3_lgbm12['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm12['mape']*100, 4)` | `{python} round(resultados_3_lgbm12['score'], 4)` |
+|                          | 24   | `{python} int(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['n_estimators'].values[0])`     | `{python} int(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['max_depth'].values[0])` | `{python} int(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['num_leaves'].values[0])` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['learning_rate'].values[0])` | `{python} float(resultados_3_lgbm['grilla'][resultados_3_lgbm['grilla']['Seleccionado'] == True].head(1)['colsample_bytree'].values[0])` | `{python} round(resultados_3_lgbm['mape']*100, 4)` | `{python} round(resultados_3_lgbm['score'], 4)` |
 
 :::
+
+\
+
+:::: {.tablaLetraChica}
+
+::: {.columns}
+::: {.column}
+
+- $A$: Número de árboles
+
+- $P$: Profundidad máxima de cada árbol
+
+- $H$: Número máximo de hojas de cada árbol
+
+:::
+::: {.column}
+
+- $\eta$: Tasa de aprendizaje 
+
+- $C$: Proporción de características utilizadas
+
+:::
+:::
+
+::::
 
 ## 4.2 Aplicación: Modelos de aprendizaje automático {.theme-slideSimple}
 
@@ -1324,42 +1099,9 @@ $$SARIMAX(1,1,0)(1,0,1)_{24}$$
 
 ![](../Imgs/plotnine/lgbm3.png){.img_style fig-align="center" width="80%"}
 
-## 4.3 Aplicación: Modelos de aprendizaje profundo {.theme-slideBoxLeft}
-
-::: {.callout-tip title="Técnicas para evitar sobreajuste en redes neuronales"}
-- Detención temprana
-
-- *Dropout*
-:::
-
-:::{style="font-size:.8em;"}
-
-300 iteraciones de entrenamiento, $\eta$ = 0.001 y paciencia = 10.
-
-**Hiperparámetros:**
-
-- Capas y neuronas en el modelo ($N$). 
-
-  Opciones: [32], [12, 24], [24, 42].
-
-- Rezagos con los que se entrena el modelo ($R$). 
-
-  Opciones: 1, 12, 24.
-
-- Proporción de *dropout* en cada capa ($D$). 
-
-  Opciones: 0.1, 0.3.
-
-- Función de activación ($A$). 
-
-  Opciones: ReLu, tangente hiperbólica (tanh).
-
-:::
-
 ## 4.3 Aplicación: Modelos de aprendizaje profundo {.theme-slideSimple}
 
 \
-
 
 ::: {.centro}
 **Métricas con LSTM**
@@ -1369,15 +1111,40 @@ $$SARIMAX(1,1,0)(1,0,1)_{24}$$
 
 | Serie                    | Hor. | $N$ | $R$ | $D$ | $A$ | MAPE  | _Interval Score_ |
 |--------------------------|------|--------|-----|-----|-----|-------|------------------|
-|              | 3    | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`       | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`               | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`          | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`       | `{python} round(resultados_1_lstm3['mape'], 4)`  | `{python} round(resultados_1_lstm3['score'], 4)`  |
-| Atenciones   | 6    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_1_lstm6['mape'], 4)`  | `{python} round(resultados_1_lstm6['score'], 4)`  |
-|              | 12   | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_1_lstm['mape'], 4)`   | `{python} round(resultados_1_lstm['score'], 4)`   |
+|              | 3    | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`       | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`               | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`          | `{python} resultados_1_lstm3['grilla'][resultados_1_lstm3['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`       | `{python} round(resultados_1_lstm3['mape']*100, 4)`  | `{python} round(resultados_1_lstm3['score'], 4)`  |
+| Atenciones   | 6    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`    | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_1_lstm6['grilla'][resultados_1_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_1_lstm6['mape']*100, 4)`  | `{python} round(resultados_1_lstm6['score'], 4)`  |
+|              | 12   | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_1_lstm['grilla'][resultados_1_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_1_lstm['mape']*100, 4)`   | `{python} round(resultados_1_lstm['score'], 4)`   |
 |              |      |                                                                                                                                |                                                                                                                                       |                                                                                                                                     |                                                                                                                                     |                                                  |                                                   |
-|              | 6    | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_3_lstm6['mape'], 4)`  | `{python} round(resultados_3_lstm6['score'], 4)`  |
-| Temperatura  | 12   | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['units'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]` | `{python} round(resultados_3_lstm12['mape'], 4)` | `{python} round(resultados_3_lstm12['score'], 4)` |
-|              | 24   | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_3_lstm['mape'], 4)`   | `{python} round(resultados_3_lstm['score'], 4)`   |
+|              | 6    | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`   | `{python} resultados_3_lstm6['grilla'][resultados_3_lstm6['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`   | `{python} round(resultados_3_lstm6['mape']*100, 4)`  | `{python} round(resultados_3_lstm6['score'], 4)`  |
+| Temperatura  | 12   | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['units'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]` | `{python} resultados_3_lstm12['grilla'][resultados_3_lstm12['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]` | `{python} round(resultados_3_lstm12['mape']*100, 4)` | `{python} round(resultados_3_lstm12['score'], 4)` |
+|              | 24   | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['units'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['lags'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['dropout'].values[0]`     | `{python} resultados_3_lstm['grilla'][resultados_3_lstm['grilla']['Seleccionado'] == True].head(1)['activation'].values[0]`     | `{python} round(resultados_3_lstm['mape']*100, 4)`   | `{python} round(resultados_3_lstm['score'], 4)`   |
 
 :::
+
+\
+
+:::: {.tablaLetraChica}
+
+300 iteraciones de entrenamiento con $\eta$ = 0.001 y paciencia = 10.
+
+::: {.columns}
+::: {.column}
+
+- $N$: Capas y neuronas en el modelo
+
+- $R$: Rezagos con los que se entrena el modelo
+
+:::
+::: {.column}
+
+- $D$: Proporción de *dropout* en cada capa
+
+- $A$: Función de activación
+
+:::
+:::
+
+::::
 
 ## 4.3 Aplicación: Modelos de aprendizaje profundo {.theme-slideSimple}
 
@@ -1391,79 +1158,6 @@ $$SARIMAX(1,1,0)(1,0,1)_{24}$$
 ![](../Imgs/plotnine/lstm1.png){.img_style fig-align="center" width="80%"}
 
 ![](../Imgs/plotnine/lstm3.png){.img_style fig-align="center" width="80%"}
-
-
-## 4.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
-
-\
-
-
-::: {.centro}
-**Métricas con TimeGPT**
-:::
-
-:::{.img_style style="background-color:white; width: fit-content; margin: 0 auto;"}
-
-| Serie                    | Hor. | MAPE  | _Interval Score_ |
-|--------------------------|------|-------|------------------|
-|                          |3     |`{python} round(resultados_1_gpt3['mape'], 4)`|`{python} round(resultados_1_gpt3['score'], 4)`|
-|Atenciones                |6     |`{python} round(resultados_1_gpt6['mape'], 4)`|`{python} round(resultados_1_gpt6['score'], 4)`|
-|                          |12    |`{python} round(resultados_1_gpt['mape'], 4)`|`{python} round(resultados_1_gpt['score'], 4)`|
-| |      | | |
-|                          |6     |`{python} round(resultados_3_gpt6['mape'], 4)`|`{python} round(resultados_3_gpt6['score'], 4)`|
-|Temperatura                |12     |`{python} round(resultados_3_gpt12['mape'], 4)`|`{python} round(resultados_3_gpt12['score'], 4)`|
-|                          |24    |`{python} round(resultados_3_gpt['mape'], 4)`|`{python} round(resultados_3_gpt['score'], 4)`|
-
-:::
-
-## 4.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
-
-\
-
-
-::: {.centro}
-**Pronósticos con TimeGPT**
-:::
-
-![](../Imgs/plotnine/gpt1.png){.img_style fig-align="center" width="80%"}
-
-![](../Imgs/plotnine/gpt3.png){.img_style fig-align="center" width="80%"}
-
-## 4.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
-
-\
-
-
-::: {.centro}
-**Métricas con Chronos**
-:::
-
-:::{.img_style style="background-color:white; width: fit-content; margin: 0 auto;"}
-
-| Serie                    | Hor. | MAPE  | _Interval Score_ |
-|--------------------------|------|-------|------------------|
-|                          |3     |`{python} round(resultados_1_chronos3['mape'], 4)`|`{python} round(resultados_1_chronos3['score'], 4)`|
-|Atenciones                |6     |`{python} round(resultados_1_chronos6['mape'], 4)`|`{python} round(resultados_1_chronos6['score'], 4)`|
-|                          |12    |`{python} round(resultados_1_chronos['mape'], 4)`|`{python} round(resultados_1_chronos['score'], 4)`|
-| |      | | |
-|                          |6     |`{python} round(resultados_3_chronos6['mape'], 4)`|`{python} round(resultados_3_chronos6['score'], 4)`|
-|Temperatura                |12     |`{python} round(resultados_3_chronos12['mape'], 4)`|`{python} round(resultados_3_chronos12['score'], 4)`|
-|                          |24    |`{python} round(resultados_3_chronos['mape'], 4)`|`{python} round(resultados_3_chronos['score'], 4)`|
-
-:::
-
-## 4.4 Aplicación: Modelos fundacionales preentrenados {.theme-slideSimple .small-h2}
-
-\
-
-
-::: {.centro}
-**Pronósticos con Chronos**
-:::
-
-![](../Imgs/plotnine/chronos1.png){.img_style fig-align="center" width="80%"}
-
-![](../Imgs/plotnine/chronos3.png){.img_style fig-align="center" width="80%"}
 
 # 5. Comparación de resultados {.center .theme-slideTitle}
 

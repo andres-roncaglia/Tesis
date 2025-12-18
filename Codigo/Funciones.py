@@ -406,6 +406,8 @@ def tabla_resumen(metricas, path, colors = ["#D3EEDB", "#B6E2C3", "#99D6AB"]):
 
   metricas = metricas.drop(columns = 'Tiempo')
 
+  metricas['MAPE'] = metricas['MAPE']*100
+
   t = metricas.pivot_table(
     index='Modelo',
     columns = 'Horizonte',
