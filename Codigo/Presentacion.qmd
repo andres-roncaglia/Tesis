@@ -135,7 +135,7 @@ document.addEventListener("contextmenu", e => e.preventDefault());
 
     - Modelos estadísticos tradicionales
 
-    - Modelos de aprendizaje automatizado
+    - Modelos de aprendizaje automático
 
     - Modelos de aprendizaje profundo
 
